@@ -188,7 +188,7 @@ async function getDashboardStats(timeFilter?: string | null) {
     const [
       { data: topProductsData },
       { data: topStoresData },
-      { data: monthlyTrendsData },
+      monthlyTrendsData,
       { data: cashInHandData }
     ] = await Promise.all([
       

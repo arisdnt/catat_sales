@@ -459,12 +459,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <DonutChart
-              data={(dashboardStats.assetDistribution?.length ? dashboardStats.assetDistribution : [
-                { category: 'Stok Gudang', amount: dashboardStats.totalProducts * 15000 },
-                { category: 'Barang di Jalan', amount: dashboardStats.completedShipments * 12000 },
-                { category: 'Piutang Beredar', amount: dashboardStats.totalSalesAmount * 2.5 },
-                { category: 'Kas di Tangan Sales', amount: dashboardStats.totalSalesAmount * 0.3 }
-              ]).map(item => ({ name: item.category, value: item.amount }))}
+              data={(dashboardStats?.assetDistribution?.length ? dashboardStats.assetDistribution : [
+                { category: 'Stok Gudang', amount: (dashboardStats?.totalProducts || 0) * 15000 },
+                { category: 'Barang di Jalan', amount: (dashboardStats?.completedShipments || 0) * 12000 },
+                { category: 'Piutang Beredar', amount: (dashboardStats?.totalSalesAmount || 0) * 2.5 },
+                { category: 'Kas di Tangan Sales', amount: (dashboardStats?.totalSalesAmount || 0) * 0.3 }
+              ]).map((item: any) => ({ name: item.category, value: item.amount }))}
               height={320}
               formatValue={(value) => formatCurrency(value)}
             />
@@ -605,16 +605,13 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <BarChart
-              data={dashboardStats.receivables?.length ? dashboardStats.receivables : [
+              data={(dashboardStats.receivables?.length ? dashboardStats.receivables : [
                 { aging_category: '0-30 hari', total_amount: 5000000, count_items: 25 },
                 { aging_category: '31-60 hari', total_amount: 2000000, count_items: 15 },
                 { aging_category: '61-90 hari', total_amount: 1000000, count_items: 8 },
                 { aging_category: '90+ hari', total_amount: 500000, count_items: 5 }
-              ]}
+              ]).map((item: any) => ({ nama_sales: item.aging_category, total_setoran: item.total_amount }))}
               height={320}
-              dataKey="total_amount"
-              labelKey="aging_category"
-              color="rgba(239, 68, 68, 0.8)"
               title="Jumlah Piutang"
               formatValue={(value) => formatCurrency(value)}
             />
