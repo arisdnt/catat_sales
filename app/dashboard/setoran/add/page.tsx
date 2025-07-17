@@ -245,7 +245,6 @@ export default function AddSetoranPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }

@@ -200,7 +200,6 @@ export default function AddPenagihanPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }
