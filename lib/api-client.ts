@@ -338,8 +338,10 @@ class ApiClient {
     return this.request(`/laporan?${params.toString()}`)
   }
 
-  async getDashboardStats() {
-    return this.request('/laporan?type=dashboard-stats')
+  async getDashboardStats(timeFilter?: string) {
+    const params = new URLSearchParams({ type: 'dashboard-stats' })
+    if (timeFilter) params.append('time_filter', timeFilter)
+    return this.request(`/laporan?${params.toString()}`)
   }
 }
 

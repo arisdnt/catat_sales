@@ -16,9 +16,7 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown,
   BarChart3,
-  Settings,
   Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -118,7 +116,6 @@ export function ModernSidebar() {
   const { signOut } = useAuth()
   const { toast } = useToast()
   const { isCollapsed, toggleCollapsed } = useSidebar()
-  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   const handleLogout = async () => {
     try {
@@ -136,13 +133,16 @@ export function ModernSidebar() {
     }
   }
 
-  const toggleExpanded = (title: string) => {
-    setExpandedItems(prev => 
-      prev.includes(title) 
-        ? prev.filter(item => item !== title)
-        : [...prev, title]
-    )
-  }
+  // Flatten menu items for tree view
+  const flatMenuItems = menuItems.reduce((acc: any[], item) => {
+    acc.push({ ...item, level: 0 })
+    if (item.submenu) {
+      item.submenu.forEach(subItem => {
+        acc.push({ ...subItem, level: 1, parent: item.title })
+      })
+    }
+    return acc
+  }, [])
 
   return (
     <div className={cn(
@@ -159,9 +159,9 @@ export function ModernSidebar() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">
-                  Sales System
+                  Tera Cendani
                 </h1>
-                <p className="text-xs text-gray-500">Titip Bayar</p>
+                <p className="text-xs text-gray-500">Tim Babat Alas</p>
               </div>
             </div>
           )}
@@ -177,105 +177,83 @@ export function ModernSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => {
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {flatMenuItems.map((item, index) => {
           const Icon = item.icon
-          const isActive = pathname === item.href || 
-                          (item.submenu && item.submenu.some(sub => pathname.startsWith(sub.href)))
-          const isExpanded = expandedItems.includes(item.title)
+          const isActive = pathname === item.href
+          const isParent = item.level === 0 && !item.href
 
-          return (
-            <div key={item.title}>
-              {item.href ? (
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all group",
-                    isActive
+          if (item.href) {
+            return (
+              <Link
+                key={`${item.title}-${index}`}
+                href={item.href}
+                className={cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all group relative",
+                  item.level === 1 && "ml-6",
+                  isActive
+                    ? item.level === 0
                       ? `${item.bgColor} ${item.iconColor} shadow-sm`
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg mr-3 transition-all",
-                    isActive 
-                      ? `${item.color} text-white shadow-sm` 
-                      : 'text-gray-400 group-hover:text-gray-600'
-                  )}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  {!isCollapsed && (
-                    <span className="flex-1">{item.title}</span>
-                  )}
-                </Link>
-              ) : (
-                <button
-                  onClick={() => toggleExpanded(item.title)}
-                  className={cn(
-                    "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all group",
-                    isActive
-                      ? `${item.bgColor} ${item.iconColor} shadow-sm`
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg mr-3 transition-all",
-                    isActive 
-                      ? `${item.color} text-white shadow-sm` 
-                      : 'text-gray-400 group-hover:text-gray-600'
-                  )}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  {!isCollapsed && (
-                    <>
-                      <span className="flex-1 text-left">{item.title}</span>
-                      <ChevronDown className={cn(
-                        "w-4 h-4 transition-transform",
-                        isExpanded ? "rotate-180" : ""
-                      )} />
-                    </>
-                  )}
-                </button>
-              )}
-
-              {item.submenu && isExpanded && !isCollapsed && (
-                <div className="ml-6 mt-2 space-y-1">
-                  {item.submenu.map((subItem) => {
-                    const SubIcon = subItem.icon
-                    const isSubActive = pathname === subItem.href
-
-                    return (
-                      <Link
-                        key={subItem.href}
-                        href={subItem.href}
-                        className={cn(
-                          "flex items-center px-3 py-2 text-sm rounded-lg transition-all group",
-                          isSubActive
-                            ? `${subItem.bgColor} ${subItem.color} font-medium shadow-sm`
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                        )}
-                      >
-                        <div className={cn(
-                          "flex items-center justify-center w-6 h-6 rounded-md mr-3 transition-all",
-                          isSubActive 
-                            ? `${subItem.bgColor} ${subItem.color}` 
-                            : 'text-gray-400 group-hover:text-gray-600'
-                        )}>
-                          <SubIcon className="w-3 h-3" />
-                        </div>
-                        {subItem.title}
-                      </Link>
-                    )
-                  })}
+                      : `${item.bgColor} ${item.color} shadow-sm`
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                )}
+              >
+                {/* Tree lines for submenu items */}
+                 {item.level === 1 && !isCollapsed && (
+                   <>
+                     {/* Vertical line connecting to parent */}
+                     <div className="absolute left-6 top-0 w-px h-4 bg-gray-300 -translate-x-3" />
+                     {/* Horizontal line to item */}
+                     <div className="absolute left-6 top-4 w-3 h-px bg-gray-300 -translate-x-3" />
+                     {/* Vertical line continuing down if not last item */}
+                     {index < flatMenuItems.length - 1 && flatMenuItems[index + 1]?.level === 1 && flatMenuItems[index + 1]?.parent === item.parent && (
+                       <div className="absolute left-6 top-4 w-px h-6 bg-gray-300 -translate-x-3" />
+                     )}
+                   </>
+                 )}
+                
+                <div className={cn(
+                  "flex items-center justify-center rounded-lg mr-3 transition-all",
+                  item.level === 0 ? "w-8 h-8" : "w-6 h-6",
+                  isActive 
+                    ? item.level === 0
+                      ? `${item.color} text-white shadow-sm`
+                      : `${item.bgColor} ${item.color}`
+                    : 'text-gray-400 group-hover:text-gray-600'
+                )}>
+                  <Icon className={cn(item.level === 0 ? "w-4 h-4" : "w-3 h-3")} />
                 </div>
-              )}
-            </div>
-          )
+                {!isCollapsed && (
+                  <span className="flex-1">{item.title}</span>
+                )}
+              </Link>
+            )
+          } else {
+            return (
+              <div
+                key={`${item.title}-${index}`}
+                className={cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all",
+                  'text-gray-600'
+                )}
+              >
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-lg mr-3 transition-all",
+                  'text-gray-400'
+                )}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                {!isCollapsed && (
+                  <span className="flex-1">{item.title}</span>
+                )}
+              </div>
+            )
+          }
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100">
+      <div className="p-4">
         <div className="flex items-center space-x-3 mb-4">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
@@ -283,18 +261,10 @@ export function ModernSidebar() {
                 <Users className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Admin User</p>
-                <p className="text-xs text-gray-500">System Administrator</p>
               </div>
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
+
         </div>
         
         <Button

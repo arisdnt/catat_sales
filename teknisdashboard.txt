@@ -1,0 +1,92 @@
+# Analisa & Rekomendasi Dashboard untuk Proyek Catat Sales
+
+Dokumen ini berisi analisa teknis dari struktur proyek dan rekomendasi statistik serta visualisasi (chart) yang dapat ditampilkan pada halaman dashboard utama, dengan penekanan pada pelacakan aset dan performa sales.
+
+---
+
+## 1. Analisa Teknis & Alur Sistem
+
+### A. Analisa Teknis
+
+*   **Framework**: Next.js (App Router), TypeScript
+*   **Backend**: Next.js API Routes & Supabase (Database, Auth)
+*   **Manajemen Data**: TanStack Query (React Query)
+*   **UI**: Tailwind CSS, kemungkinan `shadcn/ui`
+*   **Fitur Pendukung**: Otentikasi via Middleware, Ekspor ke Excel
+
+### B. Analisa Alur Aset (Barang & Uang)
+
+1.  **Stok Awal (Aset Barang)**: Berawal dari data `produk` (kuantitas & harga).
+2.  **Barang Keluar (Pengiriman)**: Produk dialokasikan ke `sales` untuk diantar ke `toko`. Aset berubah dari "Stok Gudang" menjadi "Barang di Jalan".
+3.  **Penjualan & Piutang (Aset Uang)**: Setelah barang diterima, proses `penagihan` dimulai. Aset berubah dari "Barang di Jalan" menjadi "Piutang Usaha (Tagihan)".
+4.  **Penerimaan Kas (Aset Uang)**: `Sales` menerima pembayaran. Aset berubah dari "Piutang Usaha" menjadi "Kas di Tangan Sales".
+5.  **Setoran (Aset Uang)**: `Sales` melakukan `setoran`. Aset berubah dari "Kas di Tangan Sales" menjadi "Kas Diterima Perusahaan".
+
+---
+
+## 2. Ide Statistik & Chart untuk Dashboard
+
+### A. Ringkasan KPI Utama (KPI Cards)
+
+1.  **Total Penjualan (Bulan Ini)**: Nilai total transaksi.
+2.  **Total Setoran Diterima (Hari Ini)**: Kas masuk hari ini.
+3.  **Piutang Beredar (Outstanding)**: Total tagihan belum lunas.
+4.  **Nilai Barang di Jalan**: Nilai produk dalam proses pengiriman.
+5.  **Kas di Tangan Sales**: Total uang tunai yang belum disetor.
+6.  **Total Nilai Stok**: Nilai inventaris di gudang.
+
+### B. Pelacakan Aset (Barang & Uang)
+
+1.  **Distribusi Aset Saat Ini**
+    *   **Tipe Chart**: Donut Chart
+    *   **Segmen**: "Stok Gudang", "Barang di Jalan", "Piutang Beredar", "Kas di Tangan Sales".
+    *   **Deskripsi**: Komposisi aset perusahaan secara real-time.
+
+2.  **Posisi Kas per Sales**
+    *   **Tipe Chart**: Bar Chart
+    *   **Sumbu X**: Nama Sales
+    *   **Sumbu Y**: Jumlah Uang (Rp)
+    *   **Deskripsi**: Memantau uang tunai yang dipegang setiap sales.
+
+### C. Performa Penjualan & Operasional
+
+1.  **Tren Penjualan vs. Setoran (3 Bulan Terakhir)**
+    *   **Tipe Chart**: Combo Chart (Line + Bar)
+    *   **Deskripsi**: Membandingkan laju penjualan dengan pengumpulan kas untuk analisa cash flow.
+
+2.  **Performa Penagihan (Aging of Receivables)**
+    *   **Tipe Chart**: Stacked Bar Chart
+    *   **Deskripsi**: Mengklasifikasikan umur piutang untuk prioritas penagihan.
+
+### D. Analisis Produk & Pelanggan
+
+1.  **Produk Terlaris (Bulan Ini)**
+    *   **Tipe Chart**: Horizontal Bar Chart
+    *   **Deskripsi**: Mengidentifikasi produk paling diminati.
+
+2.  **Toko dengan Pembelian Terbanyak (Bulan Ini)**
+    *   **Tipe Chart**: Table View
+    *   **Deskripsi**: Mengidentifikasi pelanggan paling bernilai dari segi volume dan kecepatan bayar.
+
+### E. Analisis Performa Sales
+
+Visualisasi yang didedikasikan untuk mengukur dan membandingkan kinerja pendapatan dari setiap sales.
+
+1.  **Peringkat Sales Berdasarkan Pendapatan (Bulan Ini)**
+    *   **Tipe Chart**: Bar Chart
+    *   **Sumbu X**: Nama Sales
+    *   **Sumbu Y**: Total Nilai Setoran (Rp)
+    *   **Deskripsi**: Secara langsung membandingkan kontribusi pendapatan bersih (uang yang sudah masuk) dari setiap sales. Ini adalah metrik kinerja paling utama.
+
+2.  **Efektivitas Penagihan per Sales**
+    *   **Tipe Chart**: Stacked Bar Chart
+    *   **Sumbu X**: Nama Sales
+    *   **Sumbu Y**: Total Nilai Transaksi (Rp)
+    *   **Segmen**: "Sudah Tertagih & Disetor" vs. "Masih Menjadi Piutang"
+    *   **Deskripsi**: Menunjukkan seberapa efektif setiap sales dalam mengubah penjualan menjadi setoran. Sales dengan porsi "Piutang" yang besar mungkin memerlukan bantuan dalam penagihan.
+
+3.  **Rata-rata Hari Penagihan per Sales (Sales Cycle Length)**
+    *   **Tipe Chart**: Table View atau Bar Chart
+    *   **Kolom/Sumbu Y**: Nama Sales
+    *   **Kolom/Sumbu X**: Rata-rata jumlah hari (dari pengiriman hingga setoran)
+    *   **Deskripsi**: Mengukur kecepatan perputaran uang untuk setiap sales. Angka yang lebih rendah menunjukkan sales yang lebih efisien dalam menutup siklus penjualan.

@@ -225,3 +225,210 @@ GROUP BY s.id_setoran, s.dibuat_pada, s.total_setoran, s.penerima_setoran;
 GRANT SELECT ON v_laporan_pengiriman TO authenticated;
 GRANT SELECT ON v_laporan_penagihan TO authenticated;
 GRANT SELECT ON v_rekonsiliasi_setoran TO authenticated;
+
+-- Dashboard analytics functions
+CREATE OR REPLACE FUNCTION get_sales_performance(month_filter text)
+RETURNS TABLE(
+  nama_sales text,
+  total_penjualan numeric,
+  total_setoran numeric,
+  piutang numeric,
+  rata_hari_penagihan numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    s.nama_sales,
+    COALESCE(SUM(pn.total_uang_diterima), 0) as total_penjualan,
+    COALESCE(SUM(st.total_setoran), 0) as total_setoran,
+    COALESCE(SUM(pn.total_uang_diterima) - SUM(st.total_setoran), 0) as piutang,
+    COALESCE(AVG(EXTRACT(DAY FROM (st.dibuat_pada - pn.dibuat_pada))), 0) as rata_hari_penagihan
+  FROM sales s
+  LEFT JOIN toko t ON s.id_sales = t.id_sales
+  LEFT JOIN penagihan pn ON t.id_toko = pn.id_toko 
+    AND to_char(pn.dibuat_pada, 'YYYY-MM') = month_filter
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE s.status_aktif = true
+  GROUP BY s.id_sales, s.nama_sales;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_top_products(month_filter text)
+RETURNS TABLE(
+  nama_produk text,
+  total_terjual bigint,
+  total_nilai numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    p.nama_produk,
+    SUM(dp.jumlah_terjual) as total_terjual,
+    SUM(dp.jumlah_terjual * p.harga_satuan) as total_nilai
+  FROM produk p
+  JOIN detail_penagihan dp ON p.id_produk = dp.id_produk
+  JOIN penagihan pn ON dp.id_penagihan = pn.id_penagihan
+  WHERE to_char(pn.dibuat_pada, 'YYYY-MM') = month_filter
+  GROUP BY p.id_produk, p.nama_produk
+  ORDER BY total_terjual DESC
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_top_stores(month_filter text)
+RETURNS TABLE(
+  nama_toko text,
+  nama_sales text,
+  total_pembelian numeric,
+  total_transaksi bigint
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    t.nama_toko,
+    s.nama_sales,
+    SUM(pn.total_uang_diterima) as total_pembelian,
+    COUNT(pn.id_penagihan) as total_transaksi
+  FROM toko t
+  JOIN sales s ON t.id_sales = s.id_sales
+  JOIN penagihan pn ON t.id_toko = pn.id_toko
+  WHERE to_char(pn.dibuat_pada, 'YYYY-MM') = month_filter
+  GROUP BY t.id_toko, t.nama_toko, s.nama_sales
+  ORDER BY total_pembelian DESC
+  LIMIT 10;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_asset_distribution()
+RETURNS TABLE(
+  category text,
+  amount numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 'Stok Gudang' as category, SUM(p.harga_satuan * 100) as amount FROM produk p WHERE p.status_produk = true
+  UNION ALL
+  SELECT 'Barang di Jalan' as category, 
+    COALESCE(SUM(dp.jumlah_kirim * pr.harga_satuan), 0) as amount
+  FROM detail_pengiriman dp
+  JOIN produk pr ON dp.id_produk = pr.id_produk
+  JOIN pengiriman pg ON dp.id_pengiriman = pg.id_pengiriman
+  WHERE pg.tanggal_kirim >= CURRENT_DATE - INTERVAL '30 days'
+  UNION ALL
+  SELECT 'Piutang Beredar' as category,
+    COALESCE(SUM(pn.total_uang_diterima), 0) - COALESCE(SUM(st.total_setoran), 0) as amount
+  FROM penagihan pn
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE pn.dibuat_pada >= CURRENT_DATE - INTERVAL '30 days'
+  UNION ALL
+  SELECT 'Kas di Tangan Sales' as category,
+    COALESCE(SUM(pn.total_uang_diterima), 0) as amount
+  FROM penagihan pn
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE pn.metode_pembayaran = 'Cash' 
+    AND pn.dibuat_pada >= CURRENT_DATE - INTERVAL '7 days'
+    AND st.id_setoran IS NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_sales_ranking(month_filter text)
+RETURNS TABLE(
+  nama_sales text,
+  total_setoran numeric,
+  total_penjualan numeric,
+  efektivitas_persen numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    s.nama_sales,
+    COALESCE(SUM(st.total_setoran), 0) as total_setoran,
+    COALESCE(SUM(pn.total_uang_diterima), 0) as total_penjualan,
+    CASE 
+      WHEN COALESCE(SUM(pn.total_uang_diterima), 0) = 0 THEN 0
+      ELSE (COALESCE(SUM(st.total_setoran), 0) / COALESCE(SUM(pn.total_uang_diterima), 0)) * 100
+    END as efektivitas_persen
+  FROM sales s
+  LEFT JOIN toko t ON s.id_sales = t.id_sales
+  LEFT JOIN penagihan pn ON t.id_toko = pn.id_toko 
+    AND to_char(pn.dibuat_pada, 'YYYY-MM') = month_filter
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE s.status_aktif = true
+  GROUP BY s.id_sales, s.nama_sales
+  ORDER BY total_setoran DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_monthly_trends(start_date date)
+RETURNS TABLE(
+  month text,
+  total_penjualan numeric,
+  total_setoran numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    to_char(pn.dibuat_pada, 'YYYY-MM') as month,
+    SUM(pn.total_uang_diterima) as total_penjualan,
+    COALESCE(SUM(st.total_setoran), 0) as total_setoran
+  FROM penagihan pn
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE pn.dibuat_pada >= start_date
+  GROUP BY to_char(pn.dibuat_pada, 'YYYY-MM')
+  ORDER BY month;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_cash_in_hand()
+RETURNS TABLE(
+  nama_sales text,
+  kas_di_tangan numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    s.nama_sales,
+    COALESCE(SUM(pn.total_uang_diterima), 0) as kas_di_tangan
+  FROM sales s
+  LEFT JOIN toko t ON s.id_sales = t.id_sales
+  LEFT JOIN penagihan pn ON t.id_toko = pn.id_toko
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE pn.metode_pembayaran = 'Cash' 
+    AND pn.dibuat_pada >= CURRENT_DATE - INTERVAL '7 days'
+    AND st.id_setoran IS NULL
+    AND s.status_aktif = true
+  GROUP BY s.id_sales, s.nama_sales
+  HAVING SUM(pn.total_uang_diterima) > 0;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_receivables_aging()
+RETURNS TABLE(
+  aging_category text,
+  total_amount numeric,
+  count_items bigint
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    CASE 
+      WHEN EXTRACT(DAY FROM (CURRENT_DATE - pn.dibuat_pada::date)) <= 30 THEN '0-30 hari'
+      WHEN EXTRACT(DAY FROM (CURRENT_DATE - pn.dibuat_pada::date)) <= 60 THEN '31-60 hari'
+      WHEN EXTRACT(DAY FROM (CURRENT_DATE - pn.dibuat_pada::date)) <= 90 THEN '61-90 hari'
+      ELSE '90+ hari'
+    END as aging_category,
+    SUM(pn.total_uang_diterima) as total_amount,
+    COUNT(*) as count_items
+  FROM penagihan pn
+  LEFT JOIN setoran st ON DATE(st.dibuat_pada) = DATE(pn.dibuat_pada)
+  WHERE st.id_setoran IS NULL
+  GROUP BY aging_category
+  ORDER BY 
+    CASE aging_category
+      WHEN '0-30 hari' THEN 1
+      WHEN '31-60 hari' THEN 2
+      WHEN '61-90 hari' THEN 3
+      ELSE 4
+    END;
+END;
+$$ LANGUAGE plpgsql;
