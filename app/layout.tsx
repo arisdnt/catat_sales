@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { Toaster } from '@/components/ui/toaster'
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'Sistem Penjualan Titip Bayar',
-  description: 'Sistem untuk mencatat penjualan dengan model titip bayar',
+  title: "Sistem Penjualan Titip Bayar",
+  description: "Sistem manajemen penjualan dengan fitur titip bayar",
 }
 
 export default function RootLayout({
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body className={inter.className}>
         {children}
         <Toaster />

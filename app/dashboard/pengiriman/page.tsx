@@ -9,51 +9,31 @@ import {
   Edit, 
   Eye,
   Package,
-  Truck,
-  MapPin,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Download
+  MapPin
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { apiClient } from '@/lib/api-client'
 
-import { DataTable, createSortableHeader, createStatusBadge, formatDate } from '@/components/shared/data-table'
+import { DataTable, createSortableHeader, formatDate } from '@/components/shared/data-table'
 
 interface Pengiriman {
-  id: string
-  nomor_pengiriman: string
+  id_pengiriman: number
   tanggal_kirim: string
-  toko_nama: string
-  alamat_tujuan: string
-  total_item: number
-  status: 'pending' | 'dikirim' | 'selesai' | 'batal'
-  catatan: string
-  created_at: string
-  updated_at: string
-}
-
-const statusConfig = {
-  pending: {
-    label: 'Pending',
-    color: 'bg-yellow-100 text-yellow-800',
-    icon: Clock
-  },
-  dikirim: {
-    label: 'Dikirim',
-    color: 'bg-blue-100 text-blue-800',
-    icon: Truck
-  },
-  selesai: {
-    label: 'Selesai',
-    color: 'bg-green-100 text-green-800',
-    icon: CheckCircle
-  },
-  batal: {
-    label: 'Dibatal',
-    color: 'bg-red-100 text-red-800',
-    icon: XCircle
+  toko: {
+    nama_toko: string
+    alamat: string
+    kabupaten: string
+    sales: {
+      nama_sales: string
+    }
   }
+  detail_pengiriman: Array<{
+    jumlah_kirim: number
+    produk: {
+      nama_produk: string
+    }
+  }>
+  total_barang?: number
 }
 
 export default function ShippingPage() {
@@ -63,7 +43,7 @@ export default function ShippingPage() {
 
   const columns = useMemo<ColumnDef<Pengiriman>[]>(() => [
     {
-      accessorKey: 'nomor_pengiriman',
+      accessorKey: 'id_pengiriman',
       header: createSortableHeader('No. Pengiriman'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
@@ -71,41 +51,82 @@ export default function ShippingPage() {
             <Package className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <div className="font-medium text-gray-900">{row.getValue('nomor_pengiriman')}</div>
+            <div className="font-medium text-gray-900">PGR-{String(row.getValue('id_pengiriman')).padStart(3, '0')}</div>
             <div className="text-sm text-gray-500">{formatDate(row.original.tanggal_kirim)}</div>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'toko_nama',
+      id: 'toko_nama',
+      accessorFn: (row) => row.toko?.nama_toko,
       header: createSortableHeader('Toko Tujuan'),
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-gray-900">{row.getValue('toko_nama')}</div>
+          <div className="font-medium text-gray-900">{row.original.toko?.nama_toko || 'N/A'}</div>
           <div className="text-sm text-gray-500 flex items-center gap-1">
             <MapPin className="w-3 h-3" />
-            {row.original.alamat_tujuan}
+            {row.original.toko?.alamat || 'N/A'}
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'total_item',
-      header: createSortableHeader('Total Item'),
+      id: 'sales_nama',
+      accessorFn: (row) => row.toko?.sales?.nama_sales,
+      header: createSortableHeader('Sales Pengirim'),
       cell: ({ row }) => (
-        <div className="text-center">
-          <span className="font-medium text-gray-900">{row.getValue('total_item')}</span>
-          <span className="text-sm text-gray-500 ml-1">item</span>
-        </div>
+        <div className="font-medium text-gray-900">{row.original.toko?.sales?.nama_sales || 'N/A'}</div>
       ),
     },
     {
-      accessorKey: 'status',
-      header: createSortableHeader('Status'),
-      cell: ({ row }) => createStatusBadge(row.getValue('status'), statusConfig),
+      id: 'toko_kabupaten',
+      accessorFn: (row) => row.toko?.kabupaten,
+      header: createSortableHeader('Kabupaten'),
+      cell: ({ row }) => (
+        <div className="font-medium text-gray-900">{row.original.toko?.kabupaten || 'N/A'}</div>
+      ),
     },
-
+    {
+      accessorKey: 'total_barang',
+      header: createSortableHeader('Total Barang'),
+      cell: ({ row }) => {
+        const details = row.original.detail_pengiriman || []
+        
+        if (details.length === 0) {
+          return (
+            <div className="text-center">
+              <span className="font-medium text-gray-900">{row.original.total_barang || 0}</span>
+              <span className="text-sm text-gray-500 ml-1">item</span>
+            </div>
+          )
+        }
+        
+        const tooltipContent = details.map((detail: any) => {
+          const productName = detail.produk?.nama_produk || 'Produk'
+          const quantity = detail.jumlah_kirim || 0
+          return `${productName} : ${quantity}`
+        }).join('\n')
+        
+        return (
+          <div className="text-center">
+            <div 
+              className="relative inline-block cursor-help border-b border-dotted border-gray-400 hover:border-gray-600 group"
+              title={tooltipContent}
+            >
+              <span className="font-medium text-gray-900">{row.original.total_barang || 0}</span>
+              <span className="text-sm text-gray-500 ml-1">item</span>
+              
+              {/* Custom tooltip with better visibility */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-pre-line z-50 min-w-max">
+                {tooltipContent || 'Tidak ada detail produk'}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+              </div>
+            </div>
+          </div>
+        )
+      },
+    }
   ], [])
 
 
@@ -116,20 +137,30 @@ export default function ShippingPage() {
 
   const fetchShipments = async () => {
     try {
-      // Simulate API call
-      const mockData: Pengiriman[] = Array.from({ length: 50 }, (_, i) => ({
-        id: `PGR-${String(i + 1).padStart(3, '0')}`,
-        nomor_pengiriman: `PGR-${String(i + 1).padStart(3, '0')}`,
-        toko_nama: `Toko ${['Maju Jaya', 'Berkah', 'Sejahtera', 'Mandiri', 'Sukses'][i % 5]}`,
-        alamat_tujuan: `Jl. ${['Sudirman', 'Thamrin', 'Gatot Subroto', 'Kuningan', 'Senayan'][i % 5]} No. ${i + 1}`,
-        tanggal_kirim: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        total_item: Math.floor(Math.random() * 50) + 1,
-        status: ['pending', 'dikirim', 'selesai', 'batal'][Math.floor(Math.random() * 4)] as 'pending' | 'dikirim' | 'selesai' | 'batal',
-        catatan: 'Pengiriman rutin',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      const result = await apiClient.getShipments(true)
+      
+      // Handle different response structures
+      let dataArray: any[]
+      if (Array.isArray(result)) {
+        // Direct array response
+        dataArray = result
+      } else if (result && Array.isArray(result.data)) {
+        // Wrapped in data property
+        dataArray = result.data
+      } else {
+        console.warn('Invalid API response structure:', result)
+        setShipments([])
+        return
+      }
+      
+
+      
+      const shipmentsData = dataArray.map((item: any) => ({
+        ...item,
+        total_barang: item.detail_pengiriman?.reduce((sum: number, detail: any) => sum + detail.jumlah_kirim, 0) || 0
       }))
-      setShipments(mockData)
+      
+      setShipments(shipmentsData)
     } catch (error) {
       console.error('Error fetching shipments:', error)
       toast({
@@ -137,35 +168,17 @@ export default function ShippingPage() {
         description: 'Gagal memuat data pengiriman',
         variant: 'destructive'
       })
+      setShipments([]) // Set empty array on error
     } finally {
       setLoading(false)
     }
   }
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    try {
-      setShipments(prev => prev.map(item => 
-        item.id === id ? { ...item, status: newStatus as any } : item
-      ))
-      toast({
-        title: 'Berhasil',
-        description: 'Status pengiriman berhasil diperbarui'
-      })
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Gagal memperbarui status',
-        variant: 'destructive'
-      })
-    }
-  }
-
   const stats = {
     total: shipments.length,
-    pending: shipments.filter(s => s.status === 'pending').length,
-    shipped: shipments.filter(s => s.status === 'dikirim').length,
-    completed: shipments.filter(s => s.status === 'selesai').length,
-    cancelled: shipments.filter(s => s.status === 'batal').length
+    totalBarang: shipments.reduce((sum, s) => sum + (s.total_barang || 0), 0),
+    uniqueSales: new Set(shipments.map(s => s.toko?.sales?.nama_sales)).size,
+    uniqueKabupaten: new Set(shipments.map(s => s.toko?.kabupaten)).size
   }
 
   if (loading) {
@@ -184,23 +197,30 @@ export default function ShippingPage() {
     )
   }
 
+  const uniqueSalesOptions = Array.from(new Set(shipments.map(s => s.toko?.sales?.nama_sales).filter(Boolean)))
+    .map(sales => ({ value: sales, label: sales }))
+  
+  const uniqueKabupatenOptions = Array.from(new Set(shipments.map(s => s.toko?.kabupaten).filter(Boolean)))
+    .map(kabupaten => ({ value: kabupaten, label: kabupaten }))
+
   const filters = [
     {
-      key: 'status',
-      label: 'Semua Status',
+      key: 'sales_nama',
+      label: 'Filter Sales',
       type: 'select' as const,
-      options: [
-        { value: 'pending', label: 'Pending', count: stats.pending },
-        { value: 'dikirim', label: 'Dikirim', count: stats.shipped },
-        { value: 'selesai', label: 'Selesai', count: stats.completed },
-        { value: 'batal', label: 'Dibatal', count: stats.cancelled }
-      ]
+      options: Array.from(new Set(shipments.map(s => s.toko?.sales?.nama_sales).filter(Boolean))).map(nama => ({
+        label: nama,
+        value: nama
+      }))
     },
     {
-      key: 'toko_nama',
-      label: 'Cari toko...',
-      type: 'search' as const,
-      placeholder: 'Nama toko'
+      key: 'toko_kabupaten',
+      label: 'Filter Kabupaten',
+      type: 'select' as const,
+      options: Array.from(new Set(shipments.map(s => s.toko?.kabupaten).filter(Boolean))).map(kabupaten => ({
+        label: kabupaten,
+        value: kabupaten
+      }))
     }
   ]
 
@@ -208,22 +228,14 @@ export default function ShippingPage() {
     {
       label: 'Lihat Detail',
       icon: Eye,
-      onClick: (row: Pengiriman) => window.location.href = `/dashboard/pengiriman/${row.id}`,
+      onClick: (row: Pengiriman) => window.location.href = `/dashboard/pengiriman/${row.id_pengiriman}`,
       variant: 'view' as const
     },
     {
       label: 'Edit',
       icon: Edit,
-      onClick: (row: Pengiriman) => window.location.href = `/dashboard/pengiriman/${row.id}/edit`,
+      onClick: (row: Pengiriman) => window.location.href = `/dashboard/pengiriman/${row.id_pengiriman}/edit`,
       variant: 'edit' as const
-    },
-    {
-      label: 'Kirim',
-      icon: Truck,
-      onClick: (row: Pengiriman) => updateStatus(row.id, 'dikirim'),
-      variant: 'custom' as const,
-      className: 'text-green-600 hover:text-green-700 hover:bg-green-50',
-      show: (row: Pengiriman) => row.status === 'pending'
     }
   ]
 
@@ -233,7 +245,7 @@ export default function ShippingPage() {
           data={shipments}
           columns={columns}
           title="Daftar Pengiriman"
-          description={`Terdapat total ${stats.total} pengiriman, ${stats.pending} pending, ${stats.shipped} dikirim, ${stats.completed} selesai, dan ${stats.cancelled} batal`}
+          description={`Terdapat total ${stats.total} pengiriman dengan ${stats.totalBarang} barang dari ${stats.uniqueSales} sales di ${stats.uniqueKabupaten} kabupaten`}
           searchPlaceholder="Cari pengiriman..."
           filters={filters}
           actions={actions}
