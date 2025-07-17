@@ -3,16 +3,23 @@ import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResp
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
+    // Get sales data with proper deduplication
     const { data, error } = await supabaseAdmin
       .from('sales')
-      .select('*')
+      .select('id_sales, nama_sales, nomor_telepon, status_aktif, dibuat_pada, diperbarui_pada')
+      .eq('status_aktif', true)
       .order('nama_sales')
+    
+    // Remove duplicates based on nama_sales
+    const uniqueData = data ? data.filter((sales, index, self) => 
+      index === self.findIndex(s => s.nama_sales === sales.nama_sales)
+    ) : []
 
     if (error) {
       return createErrorResponse(error.message)
     }
 
-    return createSuccessResponse(data)
+    return createSuccessResponse(uniqueData)
   })
 }
 

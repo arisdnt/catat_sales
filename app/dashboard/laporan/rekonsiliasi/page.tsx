@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,109 +14,67 @@ import {
   BarChart3
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useLaporanQuery } from '@/lib/queries/laporan'
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency, formatDate } from '@/components/shared/data-table'
-
+import { exportReconciliationData } from '@/lib/excel-export'
 
 interface RekonsiliasiData {
-  periode: string
-  toko_id: string
-  toko_nama: string
-  sales_nama: string
-  total_pengiriman: number
-  total_penjualan: number
-  total_penagihan: number
+  id_setoran: number
+  tanggal_setoran: string
   total_setoran: number
+  penerima_setoran: string
+  total_penagihan_cash: number
   selisih: number
-  status: 'sesuai' | 'selisih' | 'pending'
-  last_updated: string
 }
 
-interface Summary {
-  totalToko: number
-  totalSesuai: number
-  totalSelisih: number
-  totalPending: number
-  totalNilaiPenjualan: number
-  totalNilaiSetoran: number
-  totalSelisihNilai: number
-}
-
-const statusConfig = {
-  sesuai: {
-    label: 'Sesuai',
-    color: 'bg-green-100 text-green-800',
-    icon: CheckCircle
-  },
-  selisih: {
-    label: 'Ada Selisih',
-    color: 'bg-red-100 text-red-800',
-    icon: AlertTriangle
-  },
-  pending: {
-    label: 'Pending',
-    color: 'bg-yellow-100 text-yellow-800',
-    icon: AlertTriangle
-  }
-}
-
-export default function ReconciliationPage() {
-  const [data, setData] = useState<RekonsiliasiData[]>([])
-  const [summary, setSummary] = useState<Summary>({
-    totalToko: 0,
-    totalSesuai: 0,
-    totalSelisih: 0,
-    totalPending: 0,
-    totalNilaiPenjualan: 0,
-    totalNilaiSetoran: 0,
-    totalSelisihNilai: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [selectedPeriod, setSelectedPeriod] = useState('2024-01')
+export default function RekonsiliasiPage() {
+  const { data: response, isLoading, error, refetch } = useLaporanQuery('rekonsiliasi')
+  const reconData = response?.data || []
   const { toast } = useToast()
 
   const columns = useMemo<ColumnDef<RekonsiliasiData>[]>(() => [
     {
-      accessorKey: 'toko_nama',
-      header: createSortableHeader('Toko'),
+      accessorKey: 'id_setoran',
+      header: createSortableHeader('ID Setoran'),
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-50 rounded-lg">
-            <Building className="w-4 h-4 text-blue-600" />
+            <FileText className="w-4 h-4 text-blue-600" />
           </div>
           <div>
-            <div className="font-medium text-gray-900">{row.getValue('toko_nama')}</div>
-            <div className="text-sm text-gray-500 flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              {row.original.sales_nama}
+            <div className="font-medium text-gray-900">#{row.getValue('id_setoran')}</div>
+            <div className="text-sm text-gray-500">
+              {formatDate(row.original.tanggal_setoran)}
             </div>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'total_pengiriman',
-      header: createSortableHeader('Pengiriman'),
+      accessorKey: 'penerima_setoran',
+      header: createSortableHeader('Penerima'),
       cell: ({ row }) => (
-        <div className="text-right">
-          <span className="font-medium text-gray-900">{formatCurrency(row.getValue('total_pengiriman'))}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'total_penjualan',
-      header: createSortableHeader('Penjualan'),
-      cell: ({ row }) => (
-        <div className="text-right">
-          <span className="font-medium text-gray-900">{formatCurrency(row.getValue('total_penjualan'))}</span>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-gray-400" />
+          <span className="font-medium text-gray-900">{row.getValue('penerima_setoran')}</span>
         </div>
       ),
     },
     {
       accessorKey: 'total_setoran',
-      header: createSortableHeader('Setoran'),
+      header: createSortableHeader('Total Setoran'),
       cell: ({ row }) => (
-        <div className="text-right">
-          <span className="font-medium text-gray-900">{formatCurrency(row.getValue('total_setoran'))}</span>
+        <div className="text-right font-medium text-gray-900">
+          {formatCurrency(row.getValue('total_setoran'))}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'total_penagihan_cash',
+      header: createSortableHeader('Total Penagihan Cash'),
+      cell: ({ row }) => (
+        <div className="text-right font-medium text-gray-900">
+          {formatCurrency(row.getValue('total_penagihan_cash'))}
         </div>
       ),
     },
@@ -125,129 +83,117 @@ export default function ReconciliationPage() {
       header: createSortableHeader('Selisih'),
       cell: ({ row }) => {
         const selisih = row.getValue('selisih') as number
+        const isMatch = selisih === 0
         return (
           <div className="text-right">
-            <span className={`font-medium ${
-              selisih === 0 ? 'text-green-600' : 
-              selisih > 0 ? 'text-blue-600' : 'text-red-600'
-            }`}>
-              {selisih === 0 ? '-' : formatCurrency(Math.abs(selisih))}
-              {selisih > 0 && ' (+)'}
-              {selisih < 0 && ' (-)'}
-            </span>
+            <div className={`font-medium ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(selisih)}
+            </div>
+            <div className="flex items-center justify-end gap-1 mt-1">
+              {isMatch ? (
+                <CheckCircle className="w-3 h-3 text-green-500" />
+              ) : (
+                <AlertTriangle className="w-3 h-3 text-red-500" />
+              )}
+              <span className={`text-xs ${isMatch ? 'text-green-600' : 'text-red-600'}`}>
+                {isMatch ? 'Sesuai' : 'Selisih'}
+              </span>
+            </div>
           </div>
         )
       },
     },
-    {
-      accessorKey: 'status',
-      header: createSortableHeader('Status'),
-      cell: ({ row }) => createStatusBadge(row.getValue('status'), statusConfig),
-    },
   ], [])
 
-  useEffect(() => {
-    fetchReconciliationData()
-  }, [selectedPeriod])
-
-  const fetchReconciliationData = async () => {
-    try {
-      // Mock data for demo - expanded dataset
-      const mockData: RekonsiliasiData[] = Array.from({ length: 25 }, (_, i) => ({
-        periode: selectedPeriod,
-        toko_id: `${i + 1}`,
-        toko_nama: `Toko ${['Berkah', 'Maju Jaya', 'Sejahtera', 'Mandiri', 'Sukses'][i % 5]} ${Math.floor(i / 5) + 1}`,
-        sales_nama: ['John Doe', 'Jane Smith', 'Bob Wilson', 'Alice Brown', 'Charlie Davis'][i % 5],
-        total_pengiriman: Math.floor(Math.random() * 20000000) + 5000000,
-        total_penjualan: Math.floor(Math.random() * 18000000) + 4500000,
-        total_penagihan: Math.floor(Math.random() * 17000000) + 4200000,
-        total_setoran: Math.floor(Math.random() * 16000000) + 4000000,
-        selisih: Math.floor(Math.random() * 2000000) - 1000000,
-        status: ['sesuai', 'selisih', 'pending'][Math.floor(Math.random() * 3)] as 'sesuai' | 'selisih' | 'pending',
-        last_updated: new Date().toISOString()
-      }))
-      
-      const mockSummary: Summary = {
-        totalToko: mockData.length,
-        totalSesuai: mockData.filter(d => d.status === 'sesuai').length,
-        totalSelisih: mockData.filter(d => d.status === 'selisih').length,
-        totalPending: mockData.filter(d => d.status === 'pending').length,
-        totalNilaiPenjualan: mockData.reduce((sum, d) => sum + d.total_penjualan, 0),
-        totalNilaiSetoran: mockData.reduce((sum, d) => sum + d.total_setoran, 0),
-        totalSelisihNilai: mockData.reduce((sum, d) => sum + d.selisih, 0)
-      }
-      
-      setData(mockData)
-      setSummary(mockSummary)
-    } catch (error) {
-      console.error('Error fetching reconciliation data:', error)
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data rekonsiliasi',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const stats = {
-    total: summary.totalToko,
-    sesuai: summary.totalSesuai,
-    selisih: summary.totalSelisih,
-    pending: summary.totalPending
+    totalRecords: reconData.length,
+    matchingRecords: reconData.filter(r => r.selisih === 0).length,
+    differenceRecords: reconData.filter(r => r.selisih !== 0).length,
+    totalSetoran: reconData.reduce((sum, r) => sum + r.total_setoran, 0),
+    totalPenagihan: reconData.reduce((sum, r) => sum + r.total_penagihan_cash, 0),
+    totalSelisih: reconData.reduce((sum, r) => sum + Math.abs(r.selisih), 0),
   }
 
-  const filters = [
-    {
-      key: 'status',
-      label: 'Semua Status',
-      type: 'select' as const,
-      options: [
-        { value: 'sesuai', label: 'Sesuai', count: stats.sesuai },
-        { value: 'selisih', label: 'Ada Selisih', count: stats.selisih },
-        { value: 'pending', label: 'Pending', count: stats.pending }
-      ]
-    },
-    {
-      key: 'toko_nama',
-      label: 'Cari toko...',
-      type: 'search' as const,
-      placeholder: 'Nama toko atau sales'
-    }
-  ]
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    )
+  }
 
-  const actions = [
-    {
-      label: 'Lihat Detail',
-      icon: Eye,
-      onClick: (row: RekonsiliasiData) => console.log('View detail:', row),
-      variant: 'view' as const
-    },
-    {
-      label: 'Laporan',
-      icon: FileText,
-      onClick: (row: RekonsiliasiData) => console.log('Generate report:', row),
-      variant: 'custom' as const,
-      className: 'text-gray-600 hover:text-gray-700 hover:bg-gray-50'
-    }
-  ]
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">Error loading reconciliation data</div>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-8">
+    <div className="p-8 space-y-8">
       <DataTable
-        data={data}
+        data={reconData}
         columns={columns}
-        title="Data Rekonsiliasi"
-        description={`Periode ${selectedPeriod} - Terdapat total ${stats.total} toko, ${stats.sesuai} sesuai, ${stats.selisih} ada selisih, dan ${stats.pending} pending`}
-        searchPlaceholder="Cari toko atau sales..."
-        filters={filters}
-        actions={actions}
-        onExport={() => console.log('Export rekonsiliasi')}
-        onRefresh={fetchReconciliationData}
-        loading={loading}
-        emptyStateMessage="Tidak ada data rekonsiliasi yang ditemukan"
+        title="Laporan Rekonsiliasi Setoran"
+        description={`Terdapat total ${stats.totalRecords} rekonsiliasi, ${stats.matchingRecords} sesuai, ${stats.differenceRecords} selisih, total selisih ${formatCurrency(stats.totalSelisih)}`}
+        searchPlaceholder="Cari rekonsiliasi..."
+        onExport={() => {
+          const result = exportReconciliationData(reconData)
+          if (result.success) {
+            toast({
+              title: "Export Data",
+              description: `Data rekonsiliasi berhasil diexport ke ${result.filename}`,
+            })
+          } else {
+            toast({
+              title: "Export Error",
+              description: result.error || "Terjadi kesalahan saat export",
+              variant: "destructive",
+            })
+          }
+        }}
+        onRefresh={() => refetch()}
+        loading={isLoading}
+        emptyStateMessage="Tidak ada data rekonsiliasi ditemukan."
         emptyStateIcon={BarChart3}
+        showAddButton={false}
+        filters={[
+          {
+            key: 'selisih',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'all', label: 'Semua' },
+              { value: '0', label: 'Sesuai' },
+              { value: 'diff', label: 'Selisih' }
+            ]
+          }
+        ]}
+        actions={[
+          {
+            label: 'Lihat Detail',
+            icon: Eye,
+            onClick: (row: RekonsiliasiData) => {
+              toast({
+                title: "Detail Rekonsiliasi",
+                description: `Melihat detail rekonsiliasi setoran #${row.id_setoran}`,
+              })
+            },
+            variant: 'view'
+          }
+        ]}
       />
     </div>
   )

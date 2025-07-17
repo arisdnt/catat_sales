@@ -185,6 +185,57 @@ class ApiClient {
     })
   }
 
+  // Bulk Shipment API
+  async createBulkShipment(data: {
+    id_sales: number
+    tanggal_kirim: string
+    stores: Array<{
+      id_toko: number
+      details: Array<{
+        id_produk: number
+        jumlah_kirim: number
+      }>
+    }>
+    keterangan?: string
+  }) {
+    return this.request('/pengiriman/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async getBulkShipments(id_sales?: number, limit?: number) {
+    const params = new URLSearchParams()
+    if (id_sales) params.append('id_sales', id_sales.toString())
+    if (limit) params.append('limit', limit.toString())
+    const queryString = params.toString()
+    return this.request(`/pengiriman/bulk${queryString ? `?${queryString}` : ''}`)
+  }
+
+  // Priority Products API
+  async getPriorityProducts() {
+    return this.request('/produk/priority')
+  }
+
+  async updateProductPriority(id_produk: number, data: {
+    is_priority: boolean
+    priority_order?: number
+  }) {
+    return this.request('/produk/priority', {
+      method: 'PUT',
+      body: JSON.stringify({ id_produk, ...data })
+    })
+  }
+
+  async getNonPriorityProducts() {
+    return this.request('/produk/non-priority')
+  }
+
+  // Stores by Sales API
+  async getStoresBySales(id_sales: number) {
+    return this.request(`/toko/by-sales?id_sales=${id_sales}`)
+  }
+
   // Billing API
   async getBillings(includeDetails?: boolean) {
     const params = includeDetails ? '?include_details=true' : ''
@@ -243,6 +294,10 @@ class ApiClient {
   // Deposit API
   async getDeposits() {
     return this.request('/setoran')
+  }
+
+  async getCashBalance() {
+    return this.request('/setoran/cash-balance')
   }
 
   async getDepositById(id: number) {

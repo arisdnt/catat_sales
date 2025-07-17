@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,281 +17,241 @@ import {
   Download,
   FileText,
   Building,
-  User
+  User,
+  Trash2
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useSetoranQuery, useDeleteSetoranMutation, useCashBalanceQuery, type Setoran, CashBalance } from '@/lib/queries/setoran'
+import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency, formatDate } from '@/components/shared/data-table'
-
-interface Setoran {
-  id: string
-  nomor_setoran: string
-  tanggal_setoran: string
-  sales_nama: string
-  toko_nama: string
-  jumlah_setoran: number
-  metode_pembayaran: 'cash' | 'transfer' | 'cheque'
-  status: 'pending' | 'diterima' | 'ditolak'
-  keterangan: string
-  created_at: string
-  updated_at: string
-}
-
-const statusConfig = {
-  pending: {
-    label: 'Pending',
-    color: 'bg-yellow-100 text-yellow-800',
-    icon: Clock
-  },
-  diterima: {
-    label: 'Diterima',
-    color: 'bg-green-100 text-green-800',
-    icon: CheckCircle
-  },
-  ditolak: {
-    label: 'Ditolak',
-    color: 'bg-red-100 text-red-800',
-    icon: XCircle
-  }
-}
-
-const paymentMethodConfig = {
-  cash: {
-    label: 'Cash',
-    color: 'bg-green-100 text-green-800',
-    icon: Banknote
-  },
-  transfer: {
-    label: 'Transfer',
-    color: 'bg-blue-100 text-blue-800',
-    icon: CreditCard
-  },
-  cheque: {
-    label: 'Cheque',
-    color: 'bg-purple-100 text-purple-800',
-    icon: Receipt
-  }
-}
+import { exportDepositData } from '@/lib/excel-export'
 
 export default function DepositsPage() {
-  const [deposits, setDeposits] = useState<Setoran[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: response, isLoading, error, refetch } = useCashBalanceQuery()
+  const deposits = response?.data || []
+  const deleteDeposit = useDeleteSetoranMutation()
+  const { navigate } = useNavigation()
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchDeposits()
-  }, [])
-
-  const fetchDeposits = async () => {
-    try {
-      setLoading(true)
-      // Mock data - replace with actual API call
-      const mockData: Setoran[] = Array.from({ length: 50 }, (_, i) => ({
-        id: `${i + 1}`,
-        nomor_setoran: `SET-${String(i + 1).padStart(3, '0')}`,
-        sales_nama: ['Ahmad Rizki', 'Siti Nurhaliza', 'Budi Santoso', 'Dewi Sartika', 'Eko Prasetyo'][i % 5],
-        toko_nama: ['Toko Berkah', 'Warung Maju', 'Swalayan Sejahtera', 'Minimarket Bahagia', 'Toko Jaya'][i % 5],
-        jumlah_setoran: Math.floor(Math.random() * 5000000) + 500000,
-        tanggal_setoran: new Date(2024, 0, Math.floor(Math.random() * 30) + 1).toISOString().split('T')[0],
-        metode_pembayaran: ['cash', 'transfer', 'cheque'][Math.floor(Math.random() * 3)] as 'cash' | 'transfer' | 'cheque',
-        status: ['pending', 'diterima', 'ditolak'][Math.floor(Math.random() * 3)] as 'pending' | 'diterima' | 'ditolak',
-        keterangan: i % 3 === 0 ? `Setoran rutin periode ${i + 1}` : '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }))
-      
-      setDeposits(mockData)
-    } catch (error) {
-      console.error('Error fetching deposits:', error)
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data setoran',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
+  const handleDelete = (id: number) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus setoran ini?')) {
+      deleteDeposit.mutate(id)
     }
   }
 
-  const updateStatus = (id: string, newStatus: 'pending' | 'diterima' | 'ditolak') => {
-    setDeposits(prev => prev.map(deposit => 
-      deposit.id === id ? { ...deposit, status: newStatus } : deposit
-    ))
-  }
-
-  const columns = useMemo<ColumnDef<Setoran>[]>(() => [
+  const columns = useMemo<ColumnDef<CashBalance>[]>(() => [
     {
-      accessorKey: 'nomor_setoran',
-      header: createSortableHeader('Nomor Setoran'),
+      accessorKey: 'id_setoran',
+      header: 'ID',
       cell: ({ row }) => (
-        <div className="font-medium">{row.getValue('nomor_setoran')}</div>
-      )
-    },
-    {
-      accessorKey: 'sales_nama',
-      header: 'Sales',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-gray-400" />
-          <span>{row.getValue('sales_nama')}</span>
+        <div className="font-medium">
+          #{row.getValue('id_setoran')}
         </div>
-      )
-    },
-    {
-      accessorKey: 'toko_nama',
-      header: 'Toko',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Building className="w-4 h-4 text-gray-400" />
-          <span>{row.getValue('toko_nama')}</span>
-        </div>
-      )
-    },
-    {
-      accessorKey: 'jumlah_setoran',
-      header: createSortableHeader('Jumlah Setoran'),
-      cell: ({ row }) => (
-        <div className="font-semibold text-green-600">
-          {formatCurrency(row.getValue('jumlah_setoran'))}
-        </div>
-      )
-    },
-    {
-      accessorKey: 'metode_pembayaran',
-      header: 'Metode Pembayaran',
-      cell: ({ row }) => {
-        const method = row.getValue('metode_pembayaran') as keyof typeof paymentMethodConfig
-        const PaymentIcon = paymentMethodConfig[method].icon
-        return (
-          <Badge className={paymentMethodConfig[method].color}>
-            <PaymentIcon className="w-3 h-3 mr-1" />
-            {paymentMethodConfig[method].label}
-          </Badge>
-        )
-      }
+      ),
     },
     {
       accessorKey: 'tanggal_setoran',
-      header: createSortableHeader('Tanggal Setoran'),
+      header: 'Tanggal',
       cell: ({ row }) => (
-        <div>{formatDate(row.getValue('tanggal_setoran'))}</div>
-      )
+        <div>
+          {formatDate(row.getValue('tanggal_setoran'))}
+        </div>
+      ),
     },
     {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.getValue('status'), statusConfig)
+      accessorKey: 'penerima_setoran',
+      header: 'Penerima',
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {row.getValue('penerima_setoran')}
+        </div>
+      ),
     },
-
+    {
+      accessorKey: 'total_cash_diterima',
+      header: 'Pembayaran Cash',
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total_cash_diterima'))
+        return (
+          <div className="font-medium text-green-600">
+            {formatCurrency(amount)}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'total_transfer_diterima',
+      header: 'Pembayaran Transfer',
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total_transfer_diterima'))
+        return (
+          <div className="font-medium text-blue-600">
+            {formatCurrency(amount)}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'total_setoran',
+      header: 'Total Disetor',
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('total_setoran'))
+        return (
+          <div className="font-medium text-purple-600">
+            {formatCurrency(amount)}
+          </div>
+        )
+      },
+    },
   ], [])
 
-  const filters = [
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'select' as const,
-      options: [
-        { value: 'all', label: 'Semua Status' },
-        { value: 'pending', label: 'Pending' },
-        { value: 'diterima', label: 'Diterima' },
-        { value: 'ditolak', label: 'Ditolak' }
-      ]
-    },
-    {
-      key: 'metode_pembayaran',
-      label: 'Metode Pembayaran',
-      type: 'select' as const,
-      options: [
-        { value: 'all', label: 'Semua Metode' },
-        { value: 'cash', label: 'Cash' },
-        { value: 'transfer', label: 'Transfer' },
-        { value: 'cheque', label: 'Cheque' }
-      ]
-    },
-    {
-      key: 'sales_nama',
-      label: 'Sales',
-      type: 'select' as const,
-      options: [
-        { value: 'all', label: 'Semua Sales' },
-        ...Array.from(new Set(deposits.map(deposit => deposit.sales_nama))).map(sales => ({
-          value: sales,
-          label: sales
-        }))
-      ]
-    }
-  ]
+  // Calculate statistics
+  const totalCash = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_cash_diterima), 0)
+  const totalTransfer = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_transfer_diterima), 0)
+  const totalDeposits = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_setoran), 0)
+  const totalCount = deposits.length
+  const averageDeposit = totalCount > 0 ? totalDeposits / totalCount : 0
 
-  const actions = [
-    {
-      label: 'Terima',
-      icon: CheckCircle,
-      onClick: (row: Setoran) => updateStatus(row.id, 'diterima'),
+  const stats = {
+    totalDeposits: totalCount,
+    totalAmount: totalDeposits,
+    totalCash: totalCash,
+    totalTransfer: totalTransfer,
+    todayDeposits: deposits.filter(d => 
+      new Date(d.dibuat_pada).toDateString() === new Date().toDateString()
+    ).length,
+    avgDeposit: averageDeposit,
+  }
 
-      className: 'bg-green-500 hover:bg-green-600 text-white',
-      condition: (row: Setoran) => row.status === 'pending'
-    },
-    {
-      label: 'Tolak',
-      icon: XCircle,
-      onClick: (row: Setoran) => updateStatus(row.id, 'ditolak'),
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    )
+  }
 
-      className: 'border-red-200 text-red-600 hover:bg-red-50',
-      condition: (row: Setoran) => row.status === 'pending'
-    },
-    {
-      label: 'Lihat',
-      icon: Eye,
-      onClick: (row: Setoran) => window.location.href = `/dashboard/setoran/${row.id}`,
-
-      className: 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
-    },
-    {
-      label: 'Edit',
-      icon: Edit,
-      onClick: (row: Setoran) => window.location.href = `/dashboard/setoran/${row.id}/edit`,
-
-      className: 'text-gray-600 hover:text-gray-700 hover:bg-gray-50'
-    },
-    {
-      label: 'Cetak',
-      icon: FileText,
-      onClick: (row: Setoran) => window.open(`/dashboard/setoran/${row.id}/print`, '_blank'),
-
-      className: 'text-purple-600 hover:text-purple-700 hover:bg-purple-50'
-    }
-  ]
-
-
-
-  const depositStats = {
-    total: deposits.length,
-    pending: deposits.filter(d => d.status === 'pending').length,
-    accepted: deposits.filter(d => d.status === 'diterima').length,
-    rejected: deposits.filter(d => d.status === 'ditolak').length,
-    totalAmount: deposits.reduce((sum, d) => sum + d.jumlah_setoran, 0),
-    acceptedAmount: deposits.filter(d => d.status === 'diterima').reduce((sum, d) => sum + d.jumlah_setoran, 0),
-    pendingAmount: deposits.filter(d => d.status === 'pending').reduce((sum, d) => sum + d.jumlah_setoran, 0)
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">Error loading deposits data</div>
+          <Button onClick={() => refetch()}>Retry</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="p-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-8">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Setoran</p>
+              <p className="text-2xl font-bold">{stats.totalDeposits}</p>
+              <p className="text-xs text-gray-500">Total transaksi setoran</p>
+            </div>
+            <Banknote className="h-8 w-8 text-gray-400" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Pembayaran Cash</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalCash)}</p>
+              <p className="text-xs text-gray-500">Total diterima cash</p>
+            </div>
+            <CreditCard className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Pembayaran Transfer</p>
+              <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalTransfer)}</p>
+              <p className="text-xs text-gray-500">Total diterima transfer</p>
+            </div>
+            <CreditCard className="h-8 w-8 text-blue-600" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Disetor</p>
+              <p className="text-2xl font-bold text-purple-600">{formatCurrency(stats.totalAmount)}</p>
+              <p className="text-xs text-gray-500">Akumulasi semua setoran</p>
+            </div>
+            <Banknote className="h-8 w-8 text-purple-600" />
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-lg shadow">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Rata-rata Setoran</p>
+              <p className="text-2xl font-bold">{formatCurrency(stats.avgDeposit)}</p>
+              <p className="text-xs text-gray-500">Per transaksi</p>
+            </div>
+            <Receipt className="h-8 w-8 text-gray-400" />
+          </div>
+        </div>
+      </div>
       <DataTable
         data={deposits}
         columns={columns}
         title="Daftar Setoran"
-        description={loading ? "Loading..." : `Terdapat total ${depositStats.total} setoran, ${depositStats.pending} pending, ${depositStats.accepted} diterima, dan ${depositStats.rejected} ditolak`}
-
+        description={`Terdapat total ${stats.totalDeposits} setoran, ${stats.todayDeposits} hari ini, total ${formatCurrency(stats.totalAmount)}`}
         searchPlaceholder="Cari setoran..."
-        filters={filters}
-        actions={actions}
-        onAdd={() => window.location.href = '/dashboard/setoran/create'}
-        onExport={() => {}}
-        onRefresh={() => window.location.reload()}
-        addButtonLabel="Catat Setoran"
-        loading={loading}
+        onAdd={() => navigate('/dashboard/setoran/create')}
+        onExport={() => {
+          const result = exportDepositData(deposits)
+          if (result.success) {
+            toast({
+              title: "Export Data",
+              description: `Data setoran berhasil diexport ke ${result.filename}`,
+            })
+          } else {
+            toast({
+              title: "Export Error",
+              description: result.error || "Terjadi kesalahan saat export",
+              variant: "destructive",
+            })
+          }
+        }}
+        onRefresh={() => refetch()}
+        addButtonLabel="Tambah Setoran"
+        loading={isLoading}
         emptyStateMessage="Tidak ada setoran ditemukan."
         emptyStateIcon={Banknote}
+        actions={[
+          {
+            label: 'Lihat Detail',
+            icon: Eye,
+            onClick: (row: CashBalance) => navigate(`/dashboard/setoran/${row.id_setoran}`),
+            variant: 'view'
+          },
+          {
+            label: 'Edit',
+            icon: Edit,
+            onClick: (row: CashBalance) => navigate(`/dashboard/setoran/${row.id_setoran}/edit`),
+            variant: 'edit'
+          },
+          {
+            label: 'Hapus',
+            icon: Trash2,
+            onClick: (row: CashBalance) => handleDelete(row.id_setoran),
+            variant: 'delete'
+          }
+        ]}
       />
     </div>
   )

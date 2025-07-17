@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -23,23 +22,23 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/providers/auth-provider'
-
-
-interface DashboardStats {
-  totalSales: number
-  totalProducts: number
-  totalStores: number
-  totalSalesAmount: number
-  pendingShipments: number
-  completedShipments: number
-  pendingBills: number
-  completedDeposits: number
-  recentActivities: any[]
-}
+import { useDashboardStatsQuery } from '@/lib/queries/laporan'
+import { exportDashboardStats } from '@/lib/excel-export'
+import { useToast } from '@/components/ui/use-toast'
+import { Download } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [stats, setStats] = useState<DashboardStats>({
+  const { data: stats, isLoading, error, refetch } = useDashboardStatsQuery()
+  const { toast } = useToast()
+
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dashboard stats:', { stats, isLoading, error })
+  }
+
+  // Fallback stats if no data
+  const defaultStats = {
     totalSales: 0,
     totalProducts: 0,
     totalStores: 0,
@@ -49,54 +48,52 @@ export default function DashboardPage() {
     pendingBills: 0,
     completedDeposits: 0,
     recentActivities: []
-  })
-  const [loading, setLoading] = useState(true)
+  }
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Simulate API calls for demo
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        const mockStats: DashboardStats = {
-          totalSales: 156,
-          totalProducts: 89,
-          totalStores: 24,
-          totalSalesAmount: 125000000,
-          pendingShipments: 12,
-          completedShipments: 45,
-          pendingBills: 8,
-          completedDeposits: 32,
-          recentActivities: [
-            { id: 1, type: 'sale', description: 'Penjualan baru dari Toko Berkah', time: '2 menit lalu' },
-            { id: 2, type: 'shipment', description: 'Pengiriman ke Jakarta Selatan', time: '15 menit lalu' },
-            { id: 3, type: 'payment', description: 'Pembayaran dari Toko Sejahtera', time: '1 jam lalu' },
-            { id: 4, type: 'product', description: 'Produk baru ditambahkan', time: '2 jam lalu' }
-          ]
-        }
-        setStats(mockStats)
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Map API response to dashboard format
+  const dashboardStats = stats ? {
+    totalSales: stats.totalSales || 0,
+    totalProducts: stats.totalProduk || 0,
+    totalStores: stats.totalToko || 0,
+    totalSalesAmount: stats.pendapatanHarian || 0,
+    pendingShipments: 0,
+    completedShipments: stats.totalPengiriman || 0,
+    pendingBills: 0,
+    completedDeposits: stats.totalSetoran || 0,
+    recentActivities: []
+  } : defaultStats
 
-    fetchStats()
-  }, [])
+  // Show data availability status
+  const hasData = stats && Object.keys(stats).length > 0
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0
-    }).format(amount)
+    }).format(amount ?? 0)
+  }
+
+  const handleExportStats = () => {
+    const result = exportDashboardStats(dashboardStats)
+    if (result.success) {
+      toast({
+        title: "Export Data",
+        description: `Dashboard statistik berhasil diexport ke ${result.filename}`,
+      })
+    } else {
+      toast({
+        title: "Export Error",
+        description: result.error || "Terjadi kesalahan saat export",
+        variant: "destructive",
+      })
+    }
   }
 
   const statCards = [
     {
       title: 'Total Sales',
-      value: stats.totalSales,
+      value: dashboardStats.totalSales ?? 0,
       description: 'Penjualan bulan ini',
       icon: Users,
       color: 'from-blue-500 to-blue-600',
@@ -107,7 +104,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Produk',
-      value: stats.totalProducts,
+      value: dashboardStats.totalProducts ?? 0,
       description: 'Produk terdaftar',
       icon: Package,
       color: 'from-emerald-500 to-emerald-600',
@@ -118,7 +115,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Toko',
-      value: stats.totalStores,
+      value: dashboardStats.totalStores ?? 0,
       description: 'Toko mitra',
       icon: Store,
       color: 'from-purple-500 to-purple-600',
@@ -129,7 +126,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Total Penjualan',
-      value: formatCurrency(stats.totalSalesAmount),
+      value: formatCurrency(dashboardStats.totalSalesAmount),
       description: 'Bulan ini',
       icon: DollarSign,
       color: 'from-orange-500 to-orange-600',
@@ -171,7 +168,7 @@ export default function DashboardPage() {
     }
   ]
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="animate-pulse">
@@ -186,8 +183,45 @@ export default function DashboardPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="text-center space-y-4">
+          <div className="text-red-600 mb-4">
+            <h2 className="text-xl font-semibold mb-2">Error loading dashboard data</h2>
+            <p className="text-sm text-gray-600">
+              {error?.message || 'Terjadi kesalahan saat memuat data dashboard'}
+            </p>
+          </div>
+          <div className="space-x-2">
+            <Button onClick={() => refetch()}>Coba Lagi</Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Refresh Halaman
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-8 space-y-8">
+      {/* Header with Export Button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">Ringkasan aktivitas dan performa bisnis</p>
+          {!hasData && (
+            <div className="mt-2 text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-md inline-block">
+              Data sedang dimuat atau belum tersedia
+            </div>
+          )}
+        </div>
+        <Button onClick={handleExportStats} className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Export Statistik
+        </Button>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -217,7 +251,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-bold text-gray-900">
-                    {typeof card.value === 'string' ? card.value : card.value.toLocaleString()}
+                    {typeof card.value === 'string' ? card.value : (card.value ?? 0).toLocaleString()}
                   </h3>
                   <p className="text-sm text-gray-600">{card.description}</p>
                 </div>
@@ -271,7 +305,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stats.recentActivities.map((activity) => (
+                {(dashboardStats.recentActivities || []).map((activity) => (
                   <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className={`p-2 rounded-full ${
                       activity.type === 'sale' ? 'bg-blue-100 text-blue-600' :
@@ -309,12 +343,12 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Selesai</span>
-              <span className="text-sm font-medium">{stats.completedShipments}</span>
+              <span className="text-sm font-medium">{dashboardStats.completedShipments ?? 0}</span>
             </div>
             <Progress value={78} className="h-2" />
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Pending</span>
-              <span className="text-sm font-medium">{stats.pendingShipments}</span>
+              <span className="text-sm font-medium">{dashboardStats.pendingShipments ?? 0}</span>
             </div>
             <Progress value={22} className="h-2" />
           </CardContent>
@@ -328,12 +362,12 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Lunas</span>
-              <span className="text-sm font-medium">{stats.completedDeposits}</span>
+              <span className="text-sm font-medium">{dashboardStats.completedDeposits ?? 0}</span>
             </div>
             <Progress value={80} className="h-2" />
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Pending</span>
-              <span className="text-sm font-medium">{stats.pendingBills}</span>
+              <span className="text-sm font-medium">{dashboardStats.pendingBills ?? 0}</span>
             </div>
             <Progress value={20} className="h-2" />
           </CardContent>

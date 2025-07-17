@@ -34,7 +34,7 @@ export function createErrorResponse(message: string, status: number = 400) {
 }
 
 export function createSuccessResponse(data: any, status: number = 200) {
-  return NextResponse.json(data, { status })
+  return NextResponse.json({ success: true, data }, { status })
 }
 
 export async function handleApiRequest(

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,79 +18,36 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useSalesQuery, useDeleteSalesMutation } from '@/lib/queries/sales'
+import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency } from '@/components/shared/data-table'
+import { exportSalesData } from '@/lib/excel-export'
 
 interface Sales {
-  id: string
+  id_sales: number
   nama_sales: string
-  alamat: string
-  telepon: string
-  email: string
-  status: 'aktif' | 'nonaktif'
-  target_bulanan: number
-  komisi_persen: number
-  created_at: string
-  updated_at: string
+  nomor_telepon: string | null
+  status_aktif: boolean
+  dibuat_pada: string
+  diperbarui_pada: string
 }
 
 const statusConfig = {
-  aktif: { label: 'Aktif', color: 'bg-green-100 text-green-800 border-green-200' },
-  nonaktif: { label: 'Non-aktif', color: 'bg-red-100 text-red-800 border-red-200' }
+  true: { label: 'Aktif', color: 'bg-green-100 text-green-800 border-green-200' },
+  false: { label: 'Non-aktif', color: 'bg-red-100 text-red-800 border-red-200' }
 }
 
 export default function SalesPage() {
-  const [salesData, setSalesData] = useState<Sales[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: response, isLoading, error, refetch } = useSalesQuery()
+  const salesData = response?.data || []
+  const deleteSales = useDeleteSalesMutation()
+  const { navigate } = useNavigation()
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchSales()
-  }, [])
-
-  const fetchSales = async () => {
-    try {
-      // Mock data for demo - generating 50 records
-      const mockData: Sales[] = Array.from({ length: 50 }, (_, i) => ({
-        id: (i + 1).toString(),
-        nama_sales: `Sales ${i + 1}`,
-        alamat: `Jl. ${['Merdeka', 'Sudirman', 'Thamrin', 'Gatot Subroto', 'Kuningan'][i % 5]} No. ${Math.floor(Math.random() * 999) + 1}`,
-        telepon: `081${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`,
-        email: `sales${i + 1}@example.com`,
-        status: Math.random() > 0.3 ? 'aktif' : 'nonaktif',
-        target_bulanan: (Math.floor(Math.random() * 50) + 20) * 1000000,
-        komisi_persen: Math.floor(Math.random() * 8) + 3,
-        created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString()
-      }))
-      setSalesData(mockData)
-    } catch (error) {
-      console.error('Error fetching sales:', error)
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data sales',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus sales ini?')) {
-      try {
-        setSalesData(salesData.filter(s => s.id !== id))
-        toast({
-          title: 'Berhasil',
-          description: 'Sales berhasil dihapus'
-        })
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Gagal menghapus sales',
-          variant: 'destructive'
-        })
-      }
+      deleteSales.mutate(id)
     }
   }
 
@@ -105,79 +62,68 @@ export default function SalesPage() {
           </div>
           <div>
             <div className="font-medium text-gray-900">{row.original.nama_sales}</div>
-            <div className="text-sm text-gray-500">{row.original.email}</div>
+            <div className="text-sm text-gray-500">ID: {row.original.id_sales}</div>
           </div>
         </div>
       )
     },
     {
-      accessorKey: 'telepon',
+      accessorKey: 'nomor_telepon',
       header: 'Telepon',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Phone className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-900">{row.original.telepon}</span>
+          <span className="text-gray-900">{row.original.nomor_telepon || '-'}</span>
         </div>
       )
     },
     {
-      accessorKey: 'alamat',
-      header: 'Alamat',
-      cell: ({ row }) => (
-        <div className="flex items-start gap-2">
-          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-          <span className="text-gray-600 text-sm">{row.original.alamat}</span>
-        </div>
-      )
-    },
-    {
-      accessorKey: 'target_bulanan',
-      header: createSortableHeader('Target Bulanan'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-gray-400" />
-          <span className="font-medium text-gray-900">{formatCurrency(row.original.target_bulanan)}</span>
-        </div>
-      )
-    },
-    {
-      accessorKey: 'komisi_persen',
-      header: createSortableHeader('Komisi'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Star className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-900">{row.original.komisi_persen}%</span>
-        </div>
-      )
-    },
-    {
-      accessorKey: 'status',
+      accessorKey: 'status_aktif',
       header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.getValue('status'), statusConfig),
+      cell: ({ row }) => createStatusBadge(row.getValue('status_aktif'), statusConfig),
       filterFn: (row, id, value) => {
-        return value === 'all' || row.getValue(id) === value
+        return value === 'all' || row.getValue(id) === (value === 'true')
       }
+    },
+    {
+      accessorKey: 'dibuat_pada',
+      header: createSortableHeader('Dibuat Pada'),
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-600">
+          {new Date(row.original.dibuat_pada).toLocaleDateString('id-ID')}
+        </div>
+      )
     },
   ], [])
 
   const stats = {
     totalSales: salesData.length,
-    activeSales: salesData.filter(s => s.status === 'aktif').length,
-    inactiveSales: salesData.filter(s => s.status === 'nonaktif').length,
-    avgTarget: salesData.length > 0 ? salesData.reduce((sum, s) => sum + s.target_bulanan, 0) / salesData.length : 0
+    activeSales: salesData.filter(s => s.status_aktif).length,
+    inactiveSales: salesData.filter(s => !s.status_aktif).length,
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
           <div className="h-96 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">Error loading sales data</div>
+          <Button onClick={() => refetch()}>Retry</Button>
         </div>
       </div>
     )
@@ -189,32 +135,37 @@ export default function SalesPage() {
           data={salesData}
           columns={columns}
           title="Daftar Sales"
-          description={`Terdapat total ${stats.totalSales} sales, ${stats.activeSales} aktif, ${stats.inactiveSales} nonaktif, dengan rata-rata target ${formatCurrency(stats.avgTarget)}`}
+          description={`Terdapat total ${stats.totalSales} sales, ${stats.activeSales} aktif, ${stats.inactiveSales} nonaktif`}
           searchPlaceholder="Cari sales..."
-          onAdd={() => window.location.href = '/dashboard/master-data/sales/add'}
+          onAdd={() => navigate('/dashboard/master-data/sales/add')}
           onExport={() => {
-            toast({
-              title: "Export Data",
-              description: "Data sales berhasil diexport",
-            })
+            const result = exportSalesData(salesData)
+            if (result.success) {
+              toast({
+                title: "Export Data",
+                description: `Data sales berhasil diexport ke ${result.filename}`,
+              })
+            } else {
+              toast({
+                title: "Export Error",
+                description: result.error || "Terjadi kesalahan saat export",
+                variant: "destructive",
+              })
+            }
           }}
-          onRefresh={() => {
-            setLoading(true)
-            // Simulate refresh
-            setTimeout(() => setLoading(false), 1000)
-          }}
+          onRefresh={() => refetch()}
           addButtonLabel="Tambah Sales"
-          loading={loading}
+          loading={isLoading}
           emptyStateMessage="Belum ada data sales"
           emptyStateIcon={Users}
           filters={[
             {
-              key: 'status',
+              key: 'status_aktif',
               label: 'Status',
               type: 'select',
               options: [
-                { label: 'Aktif', value: 'aktif' },
-                { label: 'Non-aktif', value: 'nonaktif' }
+                { label: 'Aktif', value: 'true' },
+                { label: 'Non-aktif', value: 'false' }
               ]
             }
           ]}
@@ -222,19 +173,19 @@ export default function SalesPage() {
             {
               label: 'Lihat Detail',
               icon: Eye,
-              onClick: (row: Sales) => window.location.href = `/dashboard/master-data/sales/${row.id}`,
+              onClick: (row: Sales) => navigate(`/dashboard/master-data/sales/${row.id_sales}`),
               variant: 'view'
             },
             {
               label: 'Edit',
               icon: Edit,
-              onClick: (row: Sales) => window.location.href = `/dashboard/master-data/sales/${row.id}/edit`,
+              onClick: (row: Sales) => navigate(`/dashboard/master-data/sales/${row.id_sales}/edit`),
               variant: 'edit'
             },
             {
               label: 'Hapus',
               icon: Trash2,
-              onClick: (row: Sales) => handleDelete(row.id),
+              onClick: (row: Sales) => handleDelete(row.id_sales),
               variant: 'delete'
             }
           ]}

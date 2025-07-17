@@ -46,21 +46,15 @@ export const tokoSchema = z.object({
   })
 })
 
-// Produk validation schema
+// Produk validation schema (sesuai dengan struktur database)
 export const produkSchema = z.object({
   nama_produk: z.string()
     .min(2, 'Nama produk harus minimal 2 karakter')
-    .max(100, 'Nama produk maksimal 100 karakter'),
+    .max(255, 'Nama produk maksimal 255 karakter'),
   harga_satuan: currencySchema,
-  kategori: z.string()
-    .min(2, 'Kategori harus minimal 2 karakter')
-    .max(50, 'Kategori maksimal 50 karakter'),
   status_produk: z.boolean({
     required_error: 'Status produk harus dipilih'
-  }),
-  deskripsi: z.string()
-    .max(500, 'Deskripsi maksimal 500 karakter')
-    .optional()
+  })
 })
 
 // Sales validation schema
@@ -114,21 +108,12 @@ export const penagihanSchema = z.object({
   }).optional()
 })
 
-// Setoran validation schema
+// Setoran validation schema (sesuai dengan struktur database)
 export const setoranSchema = z.object({
-  toko_id: z.string()
-    .min(1, 'Toko harus dipilih'),
-  sales_id: z.string()
-    .min(1, 'Sales harus dipilih'),
-  jumlah_setoran: currencySchema,
-  tanggal_setoran: z.string()
-    .min(1, 'Tanggal setoran harus diisi'),
-  metode_pembayaran: z.enum(['Cash', 'Transfer', 'Cheque'], {
-    required_error: 'Metode pembayaran harus dipilih'
-  }),
-  keterangan: z.string()
-    .max(500, 'Keterangan maksimal 500 karakter')
-    .optional()
+  total_setoran: currencySchema,
+  penerima_setoran: z.string()
+    .min(1, 'Penerima setoran harus diisi')
+    .max(100, 'Penerima setoran maksimal 100 karakter')
 })
 
 // Form field types

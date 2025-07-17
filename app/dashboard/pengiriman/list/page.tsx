@@ -169,7 +169,16 @@ export default function ShippingPage() {
         loading={isLoading}
         emptyStateMessage="Belum ada data pengiriman"
         emptyStateIcon={Truck}
-        customActions={[]}
+        customActions={[
+          <Button
+            key="bulk-add"
+            onClick={() => navigate('/dashboard/pengiriman/bulk')}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+          >
+            <Truck className="w-4 h-4 mr-2" />
+            Input Bulk
+          </Button>
+        ]}
         actions={[
           {
             label: 'Lihat Detail',

@@ -110,12 +110,16 @@ async function getDashboardStats() {
       { count: penagihanCount },
       { count: setoranCount },
       { count: tokoCount },
+      { count: produkCount },
+      { count: salesCount },
       { data: pendapatanData }
     ] = await Promise.all([
       supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('penagihan').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('setoran').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('toko').select('*', { count: 'exact', head: true }).eq('status_toko', true),
+      supabaseAdmin.from('produk').select('*', { count: 'exact', head: true }).eq('status_produk', true),
+      supabaseAdmin.from('sales').select('*', { count: 'exact', head: true }).eq('status_aktif', true),
       supabaseAdmin
         .from('penagihan')
         .select('total_uang_diterima')
@@ -130,6 +134,8 @@ async function getDashboardStats() {
       totalPenagihan: penagihanCount || 0,
       totalSetoran: setoranCount || 0,
       totalToko: tokoCount || 0,
+      totalProduk: produkCount || 0,
+      totalSales: salesCount || 0,
       pendapatanHarian,
     }
 

@@ -40,9 +40,19 @@ export async function GET(request: NextRequest) {
         id_pengiriman,
         tanggal_kirim,
         dibuat_pada,
+        diperbarui_pada,
         toko!inner(
+          id_toko,
           nama_toko,
-          sales!inner(nama_sales)
+          alamat,
+          desa,
+          kecamatan,
+          kabupaten,
+          sales!inner(
+            id_sales,
+            nama_sales,
+            nomor_telepon
+          )
         )
       `)
       .order('tanggal_kirim', { ascending: false })

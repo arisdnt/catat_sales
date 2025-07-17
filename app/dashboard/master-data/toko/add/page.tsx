@@ -1,18 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from '@tanstack/react-form'
-import { zodValidator } from '@tanstack/zod-form-adapter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-
-import { FormField } from '@/components/forms/form-field'
+import { ArrowLeft, Save, Store, AlertCircle, Plus, X, Building2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { tokoSchema, type TokoFormData } from '@/lib/form-utils'
-import { ArrowLeft, Save, Store } from 'lucide-react'
+import { useSalesQuery } from '@/lib/queries/sales'
 
-const initialData: TokoFormData = {
+// Types
+interface TokoRow extends TokoFormData {
+  id: string
+  isValid: boolean
+}
+
+interface FormData {
+  selectedSales: number | null
+}
+
+const initialTokoData: TokoFormData = {
   nama_toko: '',
   alamat: '',
   desa: '',
@@ -25,14 +36,6 @@ const initialData: TokoFormData = {
   status: 'aktif'
 }
 
-const salesOptions = [
-  { value: '1', label: 'Ahmad Susanto' },
-  { value: '2', label: 'Budi Santoso' },
-  { value: '3', label: 'Citra Dewi' },
-  { value: '4', label: 'Denny Prasetyo' },
-  { value: '5', label: 'Eka Sari' }
-]
-
 const statusOptions = [
   { value: 'aktif', label: 'Aktif' },
   { value: 'nonaktif', label: 'Nonaktif' }
@@ -41,279 +44,411 @@ const statusOptions = [
 export default function AddTokoPage() {
   const router = useRouter()
   const { toast } = useToast()
+  
+  // Loading and error states
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Form data
+  const [formData, setFormData] = useState<FormData>({
+    selectedSales: null
+  })
+  
+  // Toko rows for bulk input
+  const [tokoRows, setTokoRows] = useState<TokoRow[]>([])
+  
+  const { data: salesResponse, isLoading: salesLoading, error: salesError } = useSalesQuery()
+  const salesData = salesResponse?.data || []
+  
+  // Add new toko row
+  const addTokoRow = () => {
+    const newRow: TokoRow = {
+      ...initialTokoData,
+      sales_id: formData.selectedSales?.toString() || '',
+      id: Date.now().toString(),
+      isValid: false
+    }
+    setTokoRows(prev => [...prev, newRow])
+  }
+  
+  // Remove toko row
+  const removeTokoRow = (id: string) => {
+    setTokoRows(prev => prev.filter(row => row.id !== id))
+  }
+  
+  // Update toko row
+  const updateTokoRow = (id: string, field: keyof TokoFormData, value: string) => {
+    setTokoRows(prev => prev.map(row => {
+      if (row.id === id) {
+        const updatedRow = { ...row, [field]: value }
+        // Validate the row
+        const validation = tokoSchema.safeParse(updatedRow)
+        return { ...updatedRow, isValid: validation.success }
+      }
+      return row
+    }))
+  }
+  
+  // Update form data
+  const updateFormData = (updates: Partial<FormData>) => {
+    setFormData(prev => ({ ...prev, ...updates }))
+  }
+  
+  // Add initial row when sales is selected
+  useEffect(() => {
+    if (formData.selectedSales && tokoRows.length === 0) {
+      addTokoRow()
+    }
+  }, [formData.selectedSales])
+  
+  // Validate form
+  const validateForm = (): string | null => {
+    if (!formData.selectedSales) return 'Silakan pilih sales'
+    if (tokoRows.length === 0) return 'Silakan tambahkan minimal satu toko'
+    
+    const invalidRows = tokoRows.filter(row => !row.isValid)
+    if (invalidRows.length > 0) {
+      return 'Silakan lengkapi semua data toko yang diperlukan'
+    }
+    
+    return null
+  }
+  
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const validationError = validateForm()
+    if (validationError) {
+      toast({
+        title: 'Error',
+        description: validationError,
+        variant: 'destructive'
+      })
+      return
+    }
 
-  const form = useForm({
-    defaultValues: initialData,
-    onSubmit: async ({ value }) => {
-      setIsSubmitting(true)
-      try {
-        const response = await fetch('/api/toko', {
+    setIsSubmitting(true)
+    setError(null)
+    
+    try {
+      // Submit all toko data
+      const promises = tokoRows.map(row => 
+        fetch('/api/toko', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(value)
+          body: JSON.stringify({
+            nama_toko: row.nama_toko,
+            alamat: row.alamat,
+            desa: row.desa,
+            kecamatan: row.kecamatan,
+            kabupaten: row.kabupaten,
+            pic_nama: row.pic_nama,
+            pic_telepon: row.pic_telepon,
+            link_gmaps: row.link_gmaps,
+            sales_id: row.sales_id,
+            status: row.status
+          })
         })
-
-        if (!response.ok) {
-          throw new Error('Gagal menyimpan data toko')
-        }
-
-        toast({
-          title: 'Berhasil',
-          description: 'Data toko berhasil disimpan'
-        })
-
-        router.push('/dashboard/master-data/toko')
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: error instanceof Error ? error.message : 'Terjadi kesalahan',
-          variant: 'destructive'
-        })
-      } finally {
-        setIsSubmitting(false)
+      )
+      
+      const responses = await Promise.all(promises)
+      
+      // Check if all requests were successful
+      const failedResponses = responses.filter(response => !response.ok)
+      if (failedResponses.length > 0) {
+        throw new Error(`Gagal menyimpan ${failedResponses.length} dari ${responses.length} toko`)
       }
-      }
-  })
+
+      toast({
+        title: 'Berhasil',
+        description: `${tokoRows.length} toko berhasil disimpan`
+      })
+
+      router.push('/dashboard/master-data/toko')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan'
+      setError(errorMessage)
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (salesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Memuat data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (salesError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Gagal memuat data sales: {salesError.message}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-8">
-        <Card className="max-w-4xl mx-auto border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="w-5 h-5" />
-              Informasi Toko
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                form.handleSubmit()
-              }}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field
-                  name="nama_toko"
-                  validators={{
-                    onChange: tokoSchema.shape.nama_toko
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Nama Toko"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                      placeholder="Masukkan nama toko"
-                      required
-                    />
-                  )}
-                />
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-                <form.Field
-                  name="sales_id"
-                  validators={{
-                    onChange: tokoSchema.shape.sales_id
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Sales"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                      type="select"
-                      options={salesOptions}
-                      placeholder="Pilih sales"
-                      required
-                    />
-                  )}
-                />
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50">
+            <CardTitle className="flex items-center justify-between text-purple-900">
+              <div className="flex items-center gap-2">
+                <Store className="w-5 h-5" />
+                Form Tambah Toko (Bulk)
               </div>
-
-              <form.Field
-                name="alamat"
-                validators={{
-                  onChange: tokoSchema.shape.alamat
-                }}
-                children={(field) => (
-                  <FormField
-                    label="Alamat"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onBlur={field.handleBlur}
-                    error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                     type="textarea"
-                    placeholder="Masukkan alamat lengkap"
-                    required
-                  />
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <form.Field
-                  name="desa"
-                  validators={{
-                    onChange: tokoSchema.shape.desa
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Desa"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       placeholder="Masukkan nama desa"
-                      required
-                    />
-                  )}
-                />
-
-                <form.Field
-                  name="kecamatan"
-                  validators={{
-                    onChange: tokoSchema.shape.kecamatan
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Kecamatan"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       placeholder="Masukkan nama kecamatan"
-                      required
-                    />
-                  )}
-                />
-
-                <form.Field
-                  name="kabupaten"
-                  validators={{
-                    onChange: tokoSchema.shape.kabupaten
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Kabupaten"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       placeholder="Masukkan nama kabupaten"
-                      required
-                    />
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field
-                  name="pic_nama"
-                  validators={{
-                    onChange: tokoSchema.shape.pic_nama
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Nama PIC"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       placeholder="Masukkan nama person in charge"
-                      required
-                    />
-                  )}
-                />
-
-                <form.Field
-                  name="pic_telepon"
-                  validators={{
-                    onChange: tokoSchema.shape.pic_telepon
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Telepon PIC"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       type="tel"
-                      placeholder="Contoh: 08123456789"
-                      required
-                    />
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field
-                  name="link_gmaps"
-                  validators={{
-                    onChange: tokoSchema.shape.link_gmaps
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Link Google Maps"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       placeholder="https://maps.google.com/..."
-                    />
-                  )}
-                />
-
-                <form.Field
-                  name="status"
-                  validators={{
-                    onChange: tokoSchema.shape.status
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Status"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={typeof field.state.meta.errors?.[0] === 'string' ? field.state.meta.errors[0] : field.state.meta.errors?.[0]?.message}
-                       type="select"
-                       options={statusOptions}
-                      required
-                    />
-                  )}
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-4 pt-6 border-t">
+              <div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => router.back()}
-                  disabled={isSubmitting}
+                  className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
                 >
+                  <ArrowLeft className="w-4 h-4" />
                   Batal
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !form.state.isValid}
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                  form="toko-form"
+                  disabled={isSubmitting || !formData.selectedSales || tokoRows.length === 0 || tokoRows.some(row => !row.isValid)}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-6 shadow-lg"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                  {isSubmitting ? 'Menyimpan...' : `Simpan ${tokoRows.length} Toko`}
                 </Button>
               </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 lg:p-8">
+            <form id="toko-form" onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
+              {/* Sales Selection */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                <div>
+                  <Label htmlFor="sales" className="text-sm font-medium text-blue-900">Pilih Sales</Label>
+                  <Select 
+                    value={formData.selectedSales?.toString() || ''} 
+                    onValueChange={(value) => updateFormData({ selectedSales: parseInt(value) })}
+                  >
+                    <SelectTrigger className="mt-1 bg-white">
+                      <SelectValue placeholder="-- Pilih Sales --" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salesData.map(sales => (
+                        <SelectItem key={sales.id_sales} value={sales.id_sales.toString()}>
+                          {sales.nama_sales}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Toko Input Section */}
+              {formData.selectedSales && (
+                <div className="space-y-6">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Data Toko ({tokoRows.length})
+                    </h3>
+                  </div>
+
+                  {tokoRows.map((row, index) => (
+                    <Card key={row.id} className={`border-2 ${row.isValid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-gray-900">Toko #{index + 1}</h4>
+                          <div className="flex items-center gap-2">
+                            {row.isValid ? (
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Valid</span>
+                            ) : (
+                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Belum Lengkap</span>
+                            )}
+                            {tokoRows.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeTokoRow(row.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {/* Basic Information - 3 Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          <div>
+                            <Label htmlFor={`nama_toko_${row.id}`} className="text-sm font-medium">Nama Toko</Label>
+                            <Input
+                              id={`nama_toko_${row.id}`}
+                              type="text"
+                              value={row.nama_toko}
+                              onChange={(e) => updateTokoRow(row.id, 'nama_toko', e.target.value)}
+                              placeholder="Masukkan nama toko"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`status_${row.id}`} className="text-sm font-medium">Status</Label>
+                            <Select
+                              value={row.status}
+                              onValueChange={(value) => updateTokoRow(row.id, 'status', value)}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Pilih status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {statusOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="md:col-span-2 xl:col-span-1">
+                            <Label htmlFor={`alamat_${row.id}`} className="text-sm font-medium">Alamat</Label>
+                            <Input
+                              id={`alamat_${row.id}`}
+                              type="text"
+                              value={row.alamat}
+                              onChange={(e) => updateTokoRow(row.id, 'alamat', e.target.value)}
+                              placeholder="Masukkan alamat lengkap"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        {/* Location Section - 3 Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <Label htmlFor={`desa_${row.id}`} className="text-sm font-medium">Desa</Label>
+                            <Input
+                              id={`desa_${row.id}`}
+                              type="text"
+                              value={row.desa}
+                              onChange={(e) => updateTokoRow(row.id, 'desa', e.target.value)}
+                              placeholder="Masukkan nama desa"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`kecamatan_${row.id}`} className="text-sm font-medium">Kecamatan</Label>
+                            <Input
+                              id={`kecamatan_${row.id}`}
+                              type="text"
+                              value={row.kecamatan}
+                              onChange={(e) => updateTokoRow(row.id, 'kecamatan', e.target.value)}
+                              placeholder="Masukkan nama kecamatan"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`kabupaten_${row.id}`} className="text-sm font-medium">Kabupaten</Label>
+                            <Input
+                              id={`kabupaten_${row.id}`}
+                              type="text"
+                              value={row.kabupaten}
+                              onChange={(e) => updateTokoRow(row.id, 'kabupaten', e.target.value)}
+                              placeholder="Masukkan nama kabupaten"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        {/* PIC & Additional Info - 3 Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          <div>
+                            <Label htmlFor={`pic_nama_${row.id}`} className="text-sm font-medium">Nama PIC</Label>
+                            <Input
+                              id={`pic_nama_${row.id}`}
+                              type="text"
+                              value={row.pic_nama}
+                              onChange={(e) => updateTokoRow(row.id, 'pic_nama', e.target.value)}
+                              placeholder="Masukkan nama PIC"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`pic_telepon_${row.id}`} className="text-sm font-medium">Telepon PIC</Label>
+                            <Input
+                              id={`pic_telepon_${row.id}`}
+                              type="tel"
+                              value={row.pic_telepon}
+                              onChange={(e) => updateTokoRow(row.id, 'pic_telepon', e.target.value)}
+                              placeholder="08123456789"
+                              className="mt-1"
+                              required
+                            />
+                          </div>
+                          <div className="md:col-span-2 xl:col-span-1">
+                            <Label htmlFor={`link_gmaps_${row.id}`} className="text-sm font-medium">Link Google Maps</Label>
+                            <Input
+                              id={`link_gmaps_${row.id}`}
+                              type="url"
+                              value={row.link_gmaps}
+                              onChange={(e) => updateTokoRow(row.id, 'link_gmaps', e.target.value)}
+                              placeholder="https://maps.google.com/"
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {/* Tombol Tambah Toko di bagian bawah sebelah kanan */}
+                  <div className="flex justify-end pt-4">
+                    <Button
+                      type="button"
+                      onClick={addTokoRow}
+                      className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 px-6 py-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Tambah Toko
+                    </Button>
+                  </div>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>

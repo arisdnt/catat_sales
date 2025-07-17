@@ -57,7 +57,7 @@ interface FormData {
   keterangan: string
 }
 
-export default function AddPengirimanPage() {
+export default function PengirimanPage() {
   const router = useRouter()
   const { toast } = useToast()
   

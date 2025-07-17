@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(head:*)",
+      "Bash(npm run dev:*)",
+      "Bash(find:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(rm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(sed:*)",
+      "Bash(node:*)",
+      "Bash(npx next lint:*)",
+      "Bash(tail:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(curl:*)",
+      "Bash(mkdir:*)",
+      "Bash(move page.tsx listpage.tsx)",
+      "Bash(mv:*)",
+      "Bash(cp:*)"
+    ],
+    "deny": []
+  }
+}

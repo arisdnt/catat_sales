@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -75,6 +75,8 @@ interface DataTableProps<T> {
   emptyStateMessage?: string
   emptyStateIcon?: React.ComponentType<{ className?: string }>
   pageSize?: number
+  customActions?: React.ReactNode[]
+  showAddButton?: boolean
 }
 
 const actionVariants = {
@@ -111,7 +113,9 @@ export function DataTable<T>({
   loading = false,
   emptyStateMessage = 'Tidak ada data yang ditemukan',
   emptyStateIcon: EmptyIcon = Search,
-  pageSize = 10
+  pageSize = 10,
+  customActions = [],
+  showAddButton = true
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -253,7 +257,7 @@ export function DataTable<T>({
                 Export
               </Button>
             )}
-            {onAdd && (
+            {onAdd && showAddButton && (
               <Button
                 onClick={onAdd}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
@@ -262,6 +266,11 @@ export function DataTable<T>({
                 {addButtonLabel}
               </Button>
             )}
+            {customActions.map((action, index) => (
+              <React.Fragment key={index}>
+                {action}
+              </React.Fragment>
+            ))}
           </div>
         </div>
         
@@ -474,6 +483,9 @@ export function createStatusBadge(status: string, config: Record<string, { label
 
 // Helper function to format currency
 export function formatCurrency(amount: number) {
+  if (amount === 0) {
+    return '-'
+  }
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',

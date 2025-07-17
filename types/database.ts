@@ -33,6 +33,8 @@ export interface Database {
           nama_produk: string
           harga_satuan: number
           status_produk: boolean
+          is_priority: boolean | null
+          priority_order: number | null
           dibuat_pada: string
           diperbarui_pada: string
         }
@@ -41,6 +43,8 @@ export interface Database {
           nama_produk: string
           harga_satuan: number
           status_produk?: boolean
+          is_priority?: boolean | null
+          priority_order?: number | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }
@@ -49,6 +53,8 @@ export interface Database {
           nama_produk?: string
           harga_satuan?: number
           status_produk?: boolean
+          is_priority?: boolean | null
+          priority_order?: number | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }
@@ -99,6 +105,7 @@ export interface Database {
           id_pengiriman: number
           id_toko: number
           tanggal_kirim: string
+          id_bulk_pengiriman: number | null
           dibuat_pada: string
           diperbarui_pada: string
         }
@@ -106,6 +113,7 @@ export interface Database {
           id_pengiriman?: number
           id_toko: number
           tanggal_kirim: string
+          id_bulk_pengiriman?: number | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }
@@ -113,6 +121,39 @@ export interface Database {
           id_pengiriman?: number
           id_toko?: number
           tanggal_kirim?: string
+          id_bulk_pengiriman?: number | null
+          dibuat_pada?: string
+          diperbarui_pada?: string
+        }
+      }
+      bulk_pengiriman: {
+        Row: {
+          id_bulk_pengiriman: number
+          id_sales: number
+          tanggal_kirim: string
+          total_toko: number
+          total_item: number
+          keterangan: string | null
+          dibuat_pada: string
+          diperbarui_pada: string
+        }
+        Insert: {
+          id_bulk_pengiriman?: number
+          id_sales: number
+          tanggal_kirim: string
+          total_toko: number
+          total_item: number
+          keterangan?: string | null
+          dibuat_pada?: string
+          diperbarui_pada?: string
+        }
+        Update: {
+          id_bulk_pengiriman?: number
+          id_sales?: number
+          tanggal_kirim?: string
+          total_toko?: number
+          total_item?: number
+          keterangan?: string | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }
@@ -286,6 +327,23 @@ export interface Database {
           penerima_setoran: string
           total_penagihan_cash: number
           selisih: number
+        }
+      }
+      v_produk_prioritas: {
+        Row: {
+          id_produk: number
+          nama_produk: string
+          harga_satuan: number
+          priority_order: number
+          status_produk: boolean
+        }
+      }
+      v_produk_non_prioritas: {
+        Row: {
+          id_produk: number
+          nama_produk: string
+          harga_satuan: number
+          status_produk: boolean
         }
       }
     }
