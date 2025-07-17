@@ -14,22 +14,13 @@ import {
   BarChart3
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { useLaporanQuery } from '@/lib/queries/laporan'
+import { useLaporanQuery, type RekonsiliasiData } from '@/lib/queries/laporan'
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency, formatDate } from '@/components/shared/data-table'
 import { exportReconciliationData } from '@/lib/excel-export'
 
-interface RekonsiliasiData {
-  id_setoran: number
-  tanggal_setoran: string
-  total_setoran: number
-  penerima_setoran: string
-  total_penagihan_cash: number
-  selisih: number
-}
-
 export default function RekonsiliasiPage() {
   const { data: response, isLoading, error, refetch } = useLaporanQuery('rekonsiliasi')
-  const reconData = response?.data || []
+  const reconData = (response as any)?.data || []
   const { toast } = useToast()
 
   const columns = useMemo<ColumnDef<RekonsiliasiData>[]>(() => [
@@ -106,12 +97,12 @@ export default function RekonsiliasiPage() {
   ], [])
 
   const stats = {
-    totalRecords: reconData.length,
-    matchingRecords: reconData.filter(r => r.selisih === 0).length,
-    differenceRecords: reconData.filter(r => r.selisih !== 0).length,
-    totalSetoran: reconData.reduce((sum, r) => sum + r.total_setoran, 0),
-    totalPenagihan: reconData.reduce((sum, r) => sum + r.total_penagihan_cash, 0),
-    totalSelisih: reconData.reduce((sum, r) => sum + Math.abs(r.selisih), 0),
+    totalRecords: (reconData as any[]).length,
+    matchingRecords: (reconData as any[]).filter((r: any) => r.selisih === 0).length,
+    differenceRecords: (reconData as any[]).filter((r: any) => r.selisih !== 0).length,
+    totalSetoran: (reconData as any[]).reduce((sum: number, r: any) => sum + r.total_setoran, 0),
+    totalPenagihan: (reconData as any[]).reduce((sum: number, r: any) => sum + r.total_penagihan_cash, 0),
+    totalSelisih: (reconData as any[]).reduce((sum: number, r: any) => sum + Math.abs(r.selisih), 0),
   }
 
   if (isLoading) {

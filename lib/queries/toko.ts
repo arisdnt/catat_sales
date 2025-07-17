@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
 
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
 export interface Toko {
   id_toko: number
   id_sales: number
@@ -43,7 +48,7 @@ export const tokoKeys = {
 export function useTokoQuery(status?: 'active', includeSales?: boolean) {
   return useQuery({
     queryKey: tokoKeys.list({ status, includeSales }),
-    queryFn: () => apiClient.getStores(status, includeSales),
+    queryFn: () => apiClient.getStores(status, includeSales) as Promise<ApiResponse<Toko[]>>,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
@@ -51,7 +56,7 @@ export function useTokoQuery(status?: 'active', includeSales?: boolean) {
 export function useTokoDetailQuery(id: number) {
   return useQuery({
     queryKey: tokoKeys.detail(id),
-    queryFn: () => apiClient.getStoreById(id),
+    queryFn: () => apiClient.getStoreById(id) as Promise<ApiResponse<Toko>>,
     enabled: !!id,
   })
 }

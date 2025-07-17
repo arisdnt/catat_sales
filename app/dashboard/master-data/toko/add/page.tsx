@@ -58,7 +58,7 @@ export default function AddTokoPage() {
   const [tokoRows, setTokoRows] = useState<TokoRow[]>([])
   
   const { data: salesResponse, isLoading: salesLoading, error: salesError } = useSalesQuery()
-  const salesData = salesResponse?.data || []
+  const salesData: any[] = (salesResponse as any)?.data || []
   
   // Add new toko row
   const addTokoRow = () => {

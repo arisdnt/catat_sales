@@ -89,7 +89,7 @@ export default function CreatePenagihanPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   
   const { data: salesResponse, isLoading: salesLoading, error: salesError } = useSalesQuery()
-  const salesData = salesResponse?.data || []
+  const salesData = (salesResponse as any)?.data || []
 
   // Load products on mount
   useEffect(() => {
@@ -103,16 +103,16 @@ export default function CreatePenagihanPage() {
           apiClient.getNonPriorityProducts()
         ])
         
-        if (priorityResponse.success) {
-          setPriorityProducts(priorityResponse.data)
+        if ((priorityResponse as any).success) {
+          setPriorityProducts((priorityResponse as any).data)
         } else {
-          throw new Error(priorityResponse.message || 'Failed to load priority products')
+          throw new Error((priorityResponse as any).message || 'Failed to load priority products')
         }
         
-        if (nonPriorityResponse.success) {
-          setNonPriorityProducts(nonPriorityResponse.data)
+        if ((nonPriorityResponse as any).success) {
+          setNonPriorityProducts((nonPriorityResponse as any).data)
         } else {
-          throw new Error(nonPriorityResponse.message || 'Failed to load non-priority products')
+          throw new Error((nonPriorityResponse as any).message || 'Failed to load non-priority products')
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load products'
@@ -147,13 +147,13 @@ export default function CreatePenagihanPage() {
       try {
         const response = await apiClient.getStoresBySales(formData.selectedSales)
         
-        if (response.success) {
-          setStores(response.data.stores)
+        if ((response as any).success) {
+          setStores((response as any).data.stores)
           setStoreRows([])
           setSearchQuery('')
           setFilteredStores([])
         } else {
-          throw new Error(response.message || 'Failed to load stores')
+          throw new Error((response as any).message || 'Failed to load stores')
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load stores'
@@ -563,7 +563,7 @@ export default function CreatePenagihanPage() {
                       <SelectValue placeholder="-- Pilih Sales --" />
                     </SelectTrigger>
                     <SelectContent>
-                      {salesData.map(sales => (
+                      {(salesData as any[]).map((sales: any) => (
                         <SelectItem key={sales.id_sales} value={sales.id_sales.toString()}>
                           {sales.nama_sales}
                         </SelectItem>

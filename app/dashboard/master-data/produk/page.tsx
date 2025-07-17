@@ -35,7 +35,7 @@ const statusConfig = {
 
 export default function ProductsPage() {
   const { data: response, isLoading, error, refetch } = useProdukQuery()
-  const products = response?.data || []
+  const products: any[] = (response as any)?.data || []
   const deleteProduct = useDeleteProdukMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()

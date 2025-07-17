@@ -51,20 +51,20 @@ export default function DashboardPage() {
   }
 
   // Map API response to dashboard format
-  const dashboardStats = stats ? {
-    totalSales: stats.totalSales || 0,
-    totalProducts: stats.totalProduk || 0,
-    totalStores: stats.totalToko || 0,
-    totalSalesAmount: stats.pendapatanHarian || 0,
+  const dashboardStats = (stats as any)?.data ? {
+    totalSales: (stats as any).data.totalSales || 0,
+    totalProducts: (stats as any).data.totalProduk || 0,
+    totalStores: (stats as any).data.totalToko || 0,
+    totalSalesAmount: (stats as any).data.pendapatanHarian || 0,
     pendingShipments: 0,
-    completedShipments: stats.totalPengiriman || 0,
+    completedShipments: (stats as any).data.totalPengiriman || 0,
     pendingBills: 0,
-    completedDeposits: stats.totalSetoran || 0,
+    completedDeposits: (stats as any).data.totalSetoran || 0,
     recentActivities: []
   } : defaultStats
 
   // Show data availability status
-  const hasData = stats && Object.keys(stats).length > 0
+  const hasData = (stats as any)?.data && Object.keys((stats as any).data).length > 0
 
   const formatCurrency = (amount: number | undefined | null) => {
     return new Intl.NumberFormat('id-ID', {
@@ -305,7 +305,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {(dashboardStats.recentActivities || []).map((activity) => (
+                {(dashboardStats.recentActivities || []).map((activity: any) => (
                   <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className={`p-2 rounded-full ${
                       activity.type === 'sale' ? 'bg-blue-100 text-blue-600' :

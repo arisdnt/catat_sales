@@ -40,7 +40,7 @@ const statusConfig = {
 
 export default function SalesPage() {
   const { data: response, isLoading, error, refetch } = useSalesQuery()
-  const salesData = response?.data || []
+  const salesData: any[] = (response as any)?.data || []
   const deleteSales = useDeleteSalesMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()

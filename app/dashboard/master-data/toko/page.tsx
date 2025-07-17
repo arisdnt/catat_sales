@@ -31,7 +31,7 @@ const statusConfig = {
 
 export default function TokoTablePage() {
   const { data: response, isLoading, error, refetch } = useTokoQuery('active', true)
-  const stores = response?.data || []
+  const stores: any[] = (response as any)?.data || []
   const deleteStore = useDeleteTokoMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()

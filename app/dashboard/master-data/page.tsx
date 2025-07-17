@@ -28,9 +28,9 @@ export default function MasterDataPage() {
   const { data: produkResponse } = useProdukQuery()
   const { data: tokoResponse } = useTokoQuery('active', true)
   
-  const salesData = salesResponse?.data || []
-  const produkData = produkResponse?.data || []
-  const tokoData = tokoResponse?.data || []
+  const salesData: any[] = (salesResponse as any)?.data || []
+  const produkData: any[] = (produkResponse as any)?.data || []
+  const tokoData: any[] = (tokoResponse as any)?.data || []
 
   const modules: MasterDataModule[] = [
     {

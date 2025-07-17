@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { FormField } from '@/components/forms/form-field'
 import { setoranSchema, type SetoranFormData } from '@/lib/form-utils'
 import { ArrowLeft, Save, Banknote } from 'lucide-react'
+import { z } from 'zod'
 
 const tokoOptions = [
   { value: '1', label: 'Toko Berkah Jaya 1' },
@@ -30,7 +31,16 @@ const metodePembayaranOptions = [
   { value: 'Cheque', label: 'Cheque' }
 ]
 
-const initialData: SetoranFormData = {
+interface CustomSetoranFormData {
+  toko_id: string
+  sales_id: string
+  jumlah_setoran: number
+  tanggal_setoran: string
+  metode_pembayaran: string
+  keterangan: string
+}
+
+const initialData: CustomSetoranFormData = {
   toko_id: '',
   sales_id: '',
   jumlah_setoran: 0,
@@ -102,7 +112,7 @@ export default function AddSetoranPage() {
                 <form.Field
                   name="toko_id"
                   validators={{
-                    onChange: setoranSchema.shape.toko_id
+                    onChange: z.string().min(1, 'Toko harus dipilih')
                   }}
                   children={(field) => (
                     <FormField
@@ -123,7 +133,7 @@ export default function AddSetoranPage() {
                 <form.Field
                   name="sales_id"
                   validators={{
-                    onChange: setoranSchema.shape.sales_id
+                    onChange: z.string().min(1, 'Sales harus dipilih')
                   }}
                   children={(field) => (
                     <FormField
@@ -146,7 +156,7 @@ export default function AddSetoranPage() {
                 <form.Field
                   name="jumlah_setoran"
                   validators={{
-                    onChange: setoranSchema.shape.jumlah_setoran
+                    onChange: z.number().min(0, 'Jumlah setoran harus lebih besar dari 0')
                   }}
                   children={(field) => (
                     <FormField
@@ -167,7 +177,7 @@ export default function AddSetoranPage() {
                 <form.Field
                   name="tanggal_setoran"
                   validators={{
-                    onChange: setoranSchema.shape.tanggal_setoran
+                    onChange: z.string().min(1, 'Tanggal setoran harus diisi')
                   }}
                   children={(field) => (
                     <FormField
@@ -187,7 +197,7 @@ export default function AddSetoranPage() {
               <form.Field
                 name="metode_pembayaran"
                 validators={{
-                  onChange: setoranSchema.shape.metode_pembayaran
+                  onChange: z.string().min(1, 'Metode pembayaran harus dipilih')
                 }}
                 children={(field) => (
                   <FormField
@@ -207,8 +217,8 @@ export default function AddSetoranPage() {
               <form.Field
                 name="keterangan"
                 validators={{
-                  onChange: setoranSchema.shape.keterangan
-                }}
+                    onChange: z.string().max(500, 'Keterangan maksimal 500 karakter')
+                  }}
                 children={(field) => (
                   <FormField
                     label="Keterangan"

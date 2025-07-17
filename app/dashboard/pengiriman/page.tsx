@@ -24,7 +24,7 @@ import { exportShipmentData } from '@/lib/excel-export'
 
 export default function ShippingPage() {
   const { data: shipmentsResponse, isLoading, error, refetch } = usePengirimanQuery(true)
-  const shipments = shipmentsResponse?.data || []
+  const shipments = (shipmentsResponse as any)?.data || []
   const deleteShipment = useDeletePengirimanMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -101,11 +101,11 @@ export default function ShippingPage() {
   ], [])
 
   const stats = {
-    totalShipments: shipments.length,
-    todayShipments: shipments.filter(s => 
+    totalShipments: (shipments as any[]).length,
+    todayShipments: (shipments as any[]).filter((s: any) =>
       new Date(s.tanggal_kirim).toDateString() === new Date().toDateString()
     ).length,
-    thisWeekShipments: shipments.filter(s => {
+    thisWeekShipments: (shipments as any[]).filter((s: any) => {
       const shipDate = new Date(s.tanggal_kirim)
       const today = new Date()
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)

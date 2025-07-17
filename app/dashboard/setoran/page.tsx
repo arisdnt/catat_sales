@@ -29,7 +29,7 @@ import { exportDepositData } from '@/lib/excel-export'
 
 export default function DepositsPage() {
   const { data: response, isLoading, error, refetch } = useCashBalanceQuery()
-  const deposits = response?.data || []
+  const deposits = (response as any)?.data || []
   const deleteDeposit = useDeleteSetoranMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -107,10 +107,10 @@ export default function DepositsPage() {
   ], [])
 
   // Calculate statistics
-  const totalCash = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_cash_diterima), 0)
-  const totalTransfer = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_transfer_diterima), 0)
-  const totalDeposits = deposits.reduce((sum, deposit) => sum + parseFloat(deposit.total_setoran), 0)
-  const totalCount = deposits.length
+  const totalCash = (deposits as any[]).reduce((sum: number, deposit: any) => sum + parseFloat(deposit.total_cash_diterima), 0)
+  const totalTransfer = (deposits as any[]).reduce((sum: number, deposit: any) => sum + parseFloat(deposit.total_transfer_diterima), 0)
+  const totalDeposits = (deposits as any[]).reduce((sum: number, deposit: any) => sum + parseFloat(deposit.total_setoran), 0)
+  const totalCount = (deposits as any[]).length
   const averageDeposit = totalCount > 0 ? totalDeposits / totalCount : 0
 
   const stats = {
@@ -118,7 +118,7 @@ export default function DepositsPage() {
     totalAmount: totalDeposits,
     totalCash: totalCash,
     totalTransfer: totalTransfer,
-    todayDeposits: deposits.filter(d => 
+    todayDeposits: (deposits as any[]).filter((d: any) =>
       new Date(d.dibuat_pada).toDateString() === new Date().toDateString()
     ).length,
     avgDeposit: averageDeposit,

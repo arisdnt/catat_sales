@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
 
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
 export interface Produk {
   id_produk: number
   nama_produk: string
@@ -33,7 +38,7 @@ export const produkKeys = {
 export function useProdukQuery(status?: 'active') {
   return useQuery({
     queryKey: produkKeys.list({ status }),
-    queryFn: () => apiClient.getProducts(status),
+    queryFn: () => apiClient.getProducts(status) as Promise<ApiResponse<Produk[]>>,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
@@ -41,7 +46,7 @@ export function useProdukQuery(status?: 'active') {
 export function useProdukDetailQuery(id: number) {
   return useQuery({
     queryKey: produkKeys.detail(id),
-    queryFn: () => apiClient.getProductById(id),
+    queryFn: () => apiClient.getProductById(id) as Promise<ApiResponse<Produk>>,
     enabled: !!id,
   })
 }

@@ -39,7 +39,7 @@ const statusConfig = {
 
 export default function BillingPage() {
   const { data: response, isLoading, error, refetch } = usePenagihanQuery(true)
-  const billings = response?.data || []
+  const billings = (response as any)?.data || []
   const deleteBilling = useDeletePenagihanMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -106,11 +106,11 @@ export default function BillingPage() {
   ], [])
 
   const stats = {
-    totalBillings: billings.length,
-    cashPayments: billings.filter(b => b.metode_pembayaran === 'Cash').length,
-    transferPayments: billings.filter(b => b.metode_pembayaran === 'Transfer').length,
-    totalAmount: billings.reduce((sum, b) => sum + b.total_uang_diterima, 0),
-    withDeductions: billings.filter(b => b.ada_potongan).length,
+    totalBillings: (billings as any[]).length,
+    cashPayments: (billings as any[]).filter((b: any) => b.metode_pembayaran === 'Cash').length,
+    transferPayments: (billings as any[]).filter((b: any) => b.metode_pembayaran === 'Transfer').length,
+    totalAmount: (billings as any[]).reduce((sum: number, b: any) => sum + b.total_uang_diterima, 0),
+    withDeductions: (billings as any[]).filter((b: any) => b.ada_potongan).length,
   }
 
   if (isLoading) {
