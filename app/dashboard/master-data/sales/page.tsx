@@ -18,7 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { useSalesQuery, useDeleteSalesMutation } from '@/lib/queries/sales'
+import { useSalesQuery, useDeleteSalesMutation, useSalesStatsQuery, type SalesStats } from '@/lib/queries/sales'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency } from '@/components/shared/data-table'
@@ -41,6 +41,8 @@ const statusConfig = {
 export default function SalesPage() {
   const { data: response, isLoading, error, refetch } = useSalesQuery()
   const salesData: any[] = (response as any)?.data || []
+  const { data: statsResponse } = useSalesStatsQuery()
+  const salesStats: SalesStats[] = (statsResponse as any)?.data || []
   const deleteSales = useDeleteSalesMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -76,6 +78,27 @@ export default function SalesPage() {
           <span className="text-gray-900">{row.original.nomor_telepon || '-'}</span>
         </div>
       )
+    },
+    {
+      accessorKey: 'statistics',
+      header: 'Statistik',
+      cell: ({ row }) => {
+        const stats = salesStats.find(s => s.id_sales === row.original.id_sales)
+        return (
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-50 rounded-lg">
+              <Target className="w-4 h-4 text-purple-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{stats?.total_stores || 0} Toko</div>
+              <div className="flex items-center gap-3 text-sm mt-1">
+                <span className="text-red-600">Terkirim: {stats?.total_shipped_items || 0}</span>
+                <span className="text-green-600">Pendapatan: {formatCurrency(stats?.total_revenue || 0)}</span>
+              </div>
+            </div>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'status_aktif',

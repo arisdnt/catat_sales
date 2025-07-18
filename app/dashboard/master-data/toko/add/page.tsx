@@ -25,12 +25,9 @@ interface FormData {
 
 const initialTokoData: TokoFormData = {
   nama_toko: '',
-  alamat: '',
-  desa: '',
   kecamatan: '',
   kabupaten: '',
-  pic_nama: '',
-  pic_telepon: '',
+  no_telepon: '',
   link_gmaps: '',
   sales_id: '',
   status: 'aktif'
@@ -139,12 +136,9 @@ export default function AddTokoPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             nama_toko: row.nama_toko,
-            alamat: row.alamat,
-            desa: row.desa,
             kecamatan: row.kecamatan,
             kabupaten: row.kabupaten,
-            pic_nama: row.pic_nama,
-            pic_telepon: row.pic_telepon,
+            no_telepon: row.no_telepon,
             link_gmaps: row.link_gmaps,
             sales_id: row.sales_id,
             status: row.status
@@ -308,8 +302,8 @@ export default function AddTokoPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {/* Basic Information - 3 Columns */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {/* Basic Information - 2 Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <Label htmlFor={`nama_toko_${row.id}`} className="text-sm font-medium">Nama Toko</Label>
                             <Input
@@ -340,34 +334,10 @@ export default function AddTokoPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="md:col-span-2 xl:col-span-1">
-                            <Label htmlFor={`alamat_${row.id}`} className="text-sm font-medium">Alamat</Label>
-                            <Input
-                              id={`alamat_${row.id}`}
-                              type="text"
-                              value={row.alamat}
-                              onChange={(e) => updateTokoRow(row.id, 'alamat', e.target.value)}
-                              placeholder="Masukkan alamat lengkap"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
                         </div>
 
-                        {/* Location Section - 3 Columns */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div>
-                            <Label htmlFor={`desa_${row.id}`} className="text-sm font-medium">Desa</Label>
-                            <Input
-                              id={`desa_${row.id}`}
-                              type="text"
-                              value={row.desa}
-                              onChange={(e) => updateTokoRow(row.id, 'desa', e.target.value)}
-                              placeholder="Masukkan nama desa"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
+                        {/* Location Section - 2 Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <Label htmlFor={`kecamatan_${row.id}`} className="text-sm font-medium">Kecamatan</Label>
                             <Input
@@ -394,33 +364,20 @@ export default function AddTokoPage() {
                           </div>
                         </div>
 
-                        {/* PIC & Additional Info - 3 Columns */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        {/* Contact & Additional Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <Label htmlFor={`pic_nama_${row.id}`} className="text-sm font-medium">Nama PIC</Label>
+                            <Label htmlFor={`no_telepon_${row.id}`} className="text-sm font-medium">No. Telepon</Label>
                             <Input
-                              id={`pic_nama_${row.id}`}
-                              type="text"
-                              value={row.pic_nama}
-                              onChange={(e) => updateTokoRow(row.id, 'pic_nama', e.target.value)}
-                              placeholder="Masukkan nama PIC"
-                              className="mt-1"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`pic_telepon_${row.id}`} className="text-sm font-medium">Telepon PIC</Label>
-                            <Input
-                              id={`pic_telepon_${row.id}`}
+                              id={`no_telepon_${row.id}`}
                               type="tel"
-                              value={row.pic_telepon}
-                              onChange={(e) => updateTokoRow(row.id, 'pic_telepon', e.target.value)}
-                              placeholder="08123456789"
+                              value={row.no_telepon}
+                              onChange={(e) => updateTokoRow(row.id, 'no_telepon', e.target.value)}
+                              placeholder="Contoh: 081234567890"
                               className="mt-1"
-                              required
                             />
                           </div>
-                          <div className="md:col-span-2 xl:col-span-1">
+                          <div>
                             <Label htmlFor={`link_gmaps_${row.id}`} className="text-sm font-medium">Link Google Maps</Label>
                             <Input
                               id={`link_gmaps_${row.id}`}

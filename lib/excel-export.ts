@@ -144,8 +144,6 @@ export function exportStoreData(data: any[]) {
     { key: 'id_toko', header: 'ID Toko', width: 10 },
     { key: 'nama_toko', header: 'Nama Toko', width: 25 },
     { key: 'id_sales', header: 'ID Sales', width: 10 },
-    { key: 'alamat', header: 'Alamat', width: 30 },
-    { key: 'desa', header: 'Desa', width: 15 },
     { key: 'kecamatan', header: 'Kecamatan', width: 15 },
     { key: 'kabupaten', header: 'Kabupaten', width: 15 },
     { key: 'link_gmaps', header: 'Link Google Maps', width: 20 },

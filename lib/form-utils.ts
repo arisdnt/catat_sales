@@ -19,22 +19,18 @@ export const tokoSchema = z.object({
   nama_toko: z.string()
     .min(2, 'Nama toko harus minimal 2 karakter')
     .max(100, 'Nama toko maksimal 100 karakter'),
-  alamat: z.string()
-    .min(5, 'Alamat harus minimal 5 karakter')
-    .max(255, 'Alamat maksimal 255 karakter'),
-  desa: z.string()
-    .min(2, 'Nama desa harus minimal 2 karakter')
-    .max(100, 'Nama desa maksimal 100 karakter'),
   kecamatan: z.string()
     .min(2, 'Nama kecamatan harus minimal 2 karakter')
     .max(100, 'Nama kecamatan maksimal 100 karakter'),
   kabupaten: z.string()
     .min(2, 'Nama kabupaten harus minimal 2 karakter')
     .max(100, 'Nama kabupaten maksimal 100 karakter'),
-  pic_nama: z.string()
-    .min(2, 'Nama PIC harus minimal 2 karakter')
-    .max(100, 'Nama PIC maksimal 100 karakter'),
-  pic_telepon: phoneSchema,
+  no_telepon: z.string()
+    .regex(/^[0-9+\-\s()]+$/, 'Format nomor telepon tidak valid')
+    .min(8, 'Nomor telepon minimal 8 digit')
+    .max(20, 'Nomor telepon maksimal 20 karakter')
+    .optional()
+    .or(z.literal('')),
   link_gmaps: z.string()
     .url('Link Google Maps tidak valid')
     .optional()

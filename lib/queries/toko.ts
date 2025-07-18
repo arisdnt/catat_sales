@@ -11,10 +11,9 @@ export interface Toko {
   id_toko: number
   id_sales: number
   nama_toko: string
-  alamat: string | null
-  desa: string | null
   kecamatan: string | null
   kabupaten: string | null
+  no_telepon: string | null
   link_gmaps: string | null
   status_toko: boolean
   dibuat_pada: string
@@ -24,10 +23,9 @@ export interface Toko {
 export interface CreateTokoData {
   nama_toko: string
   id_sales: number
-  alamat?: string
-  desa?: string
   kecamatan?: string
   kabupaten?: string
+  no_telepon?: string
   link_gmaps?: string
 }
 
@@ -39,7 +37,7 @@ export interface UpdateTokoData extends CreateTokoData {
 export const tokoKeys = {
   all: ['toko'] as const,
   lists: () => [...tokoKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...tokoKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...tokoKeys.lists(), { filters }] as const,
   details: () => [...tokoKeys.all, 'detail'] as const,
   detail: (id: number) => [...tokoKeys.details(), id] as const,
 }
@@ -75,7 +73,7 @@ export function useCreateTokoMutation() {
         description: 'Toko berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan toko',
@@ -100,7 +98,7 @@ export function useUpdateTokoMutation() {
         description: 'Toko berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui toko',
@@ -123,7 +121,7 @@ export function useDeleteTokoMutation() {
         description: 'Toko berhasil dihapus',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menghapus toko',

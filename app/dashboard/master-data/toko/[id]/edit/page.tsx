@@ -35,12 +35,9 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
   const form = useForm({
     defaultValues: {
       nama_toko: '',
-      alamat: '',
-      desa: '',
       kecamatan: '',
       kabupaten: '',
-      pic_nama: '',
-      pic_telepon: '',
+      no_telepon: '',
       link_gmaps: '',
       sales_id: '',
       status: 'aktif' as const
@@ -90,12 +87,9 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       // Mock data for demo - replace with actual API call
       const mockData = {
         nama_toko: 'Toko Berkah Jaya 1',
-        alamat: 'Jl. Raya No. 101',
-        desa: 'Sukamaju',
         kecamatan: 'Kec. Sukamaju',
         kabupaten: 'Kab. Sukabumi',
-        pic_nama: 'Ahmad Suharto',
-        pic_telepon: '081234567801',
+        no_telepon: '081234567890',
         link_gmaps: 'https://goo.gl/maps/example1',
         sales_id: '1',
         status: 'aktif' as const
@@ -103,12 +97,9 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       
       // Set form values
       form.setFieldValue('nama_toko', mockData.nama_toko)
-      form.setFieldValue('alamat', mockData.alamat)
-      form.setFieldValue('desa', mockData.desa)
       form.setFieldValue('kecamatan', mockData.kecamatan)
       form.setFieldValue('kabupaten', mockData.kabupaten)
-      form.setFieldValue('pic_nama', mockData.pic_nama)
-      form.setFieldValue('pic_telepon', mockData.pic_telepon)
+      form.setFieldValue('no_telepon', mockData.no_telepon)
       form.setFieldValue('link_gmaps', mockData.link_gmaps)
       form.setFieldValue('sales_id', mockData.sales_id)
       form.setFieldValue('status', mockData.status)
@@ -194,46 +185,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                 />
               </div>
 
-              <form.Field
-                name="alamat"
-                validators={{
-                  onChange: tokoSchema.shape.alamat
-                }}
-                children={(field) => (
-                  <FormField
-                    label="Alamat"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message}
-                    type="textarea"
-                    placeholder="Masukkan alamat lengkap"
-                    required
-                  />
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <form.Field
-                  name="desa"
-                  validators={{
-                    onChange: tokoSchema.shape.desa
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Desa"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
-                      placeholder="Masukkan nama desa"
-                      required
-                    />
-                  )}
-                />
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form.Field
                   name="kecamatan"
                   validators={{
@@ -275,46 +227,24 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form.Field
-                  name="pic_nama"
+                  name="no_telepon"
                   validators={{
-                    onChange: tokoSchema.shape.pic_nama
+                    onChange: tokoSchema.shape.no_telepon
                   }}
                   children={(field) => (
                     <FormField
-                      label="Nama PIC"
+                      label="No. Telepon"
                       name={field.name}
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
                       error={field.state.meta.errors?.[0]?.message}
-                      placeholder="Masukkan nama person in charge"
-                      required
-                    />
-                  )}
-                />
-
-                <form.Field
-                  name="pic_telepon"
-                  validators={{
-                    onChange: tokoSchema.shape.pic_telepon
-                  }}
-                  children={(field) => (
-                    <FormField
-                      label="Telepon PIC"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
+                      placeholder="Contoh: 081234567890"
                       type="tel"
-                      placeholder="Contoh: 08123456789"
-                      required
                     />
                   )}
                 />
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form.Field
                   name="link_gmaps"
                   children={(field) => (

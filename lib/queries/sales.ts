@@ -25,13 +25,22 @@ export interface UpdateSalesData extends CreateSalesData {
   status_aktif?: boolean
 }
 
+export interface SalesStats {
+  id_sales: number
+  nama_sales: string
+  total_stores: number
+  total_shipped_items: number
+  total_revenue: number
+}
+
 // Query Keys
 export const salesKeys = {
   all: ['sales'] as const,
   lists: () => [...salesKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...salesKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...salesKeys.lists(), { filters }] as const,
   details: () => [...salesKeys.all, 'detail'] as const,
   detail: (id: number) => [...salesKeys.details(), id] as const,
+  stats: () => [...salesKeys.all, 'stats'] as const,
 }
 
 // Queries
@@ -51,6 +60,14 @@ export function useSalesDetailQuery(id: number) {
   })
 }
 
+export function useSalesStatsQuery() {
+  return useQuery({
+    queryKey: salesKeys.stats(),
+    queryFn: () => apiClient.getSalesStats() as Promise<ApiResponse<SalesStats[]>>,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
 // Mutations
 export function useCreateSalesMutation() {
   const queryClient = useQueryClient()
@@ -65,7 +82,7 @@ export function useCreateSalesMutation() {
         description: 'Sales berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan sales',
@@ -90,7 +107,7 @@ export function useUpdateSalesMutation() {
         description: 'Sales berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui sales',

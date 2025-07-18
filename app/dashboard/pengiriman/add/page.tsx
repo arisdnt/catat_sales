@@ -31,8 +31,6 @@ interface NonPriorityProduct {
 interface Store {
   id_toko: number
   nama_toko: string
-  alamat: string
-  desa: string
   kecamatan: string
   kabupaten: string
 }
@@ -40,8 +38,6 @@ interface Store {
 interface StoreRow {
   id_toko: number
   nama_toko: string
-  alamat: string
-  desa: string
   kecamatan: string
   priority_quantities: { [key: number]: number }
   has_non_priority: boolean
@@ -179,9 +175,8 @@ export default function AddPengirimanPage() {
     const filtered = stores.filter(store => 
       !storeRows.some(row => row.id_toko === store.id_toko) && (
         store.nama_toko.toLowerCase().includes(query) ||
-        store.alamat.toLowerCase().includes(query) ||
-        store.desa.toLowerCase().includes(query) ||
-        store.kecamatan.toLowerCase().includes(query)
+        store.kecamatan.toLowerCase().includes(query) ||
+        store.kabupaten.toLowerCase().includes(query)
       )
     )
     setFilteredStores(filtered)
@@ -207,8 +202,6 @@ export default function AddPengirimanPage() {
     setStoreRows(prev => [...prev, {
       id_toko: store.id_toko,
       nama_toko: store.nama_toko,
-      alamat: store.alamat,
-      desa: store.desa,
       kecamatan: store.kecamatan,
       priority_quantities: {},
       has_non_priority: false,
@@ -557,7 +550,7 @@ export default function AddPengirimanPage() {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <Input
                           type="text"
-                          placeholder="Ketik nama toko, alamat, atau desa..."
+                          placeholder="Ketik nama toko, kecamatan, atau kabupaten..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           onFocus={() => setShowSuggestions(true)}
@@ -578,7 +571,7 @@ export default function AddPengirimanPage() {
                                 >
                                   <div className="font-medium text-gray-900">{store.nama_toko}</div>
                                   <div className="text-sm text-gray-500">
-                                    {store.alamat}, {store.desa}, {store.kecamatan}
+                                    {store.kecamatan}, {store.kabupaten}
                                   </div>
                                 </button>
                               ))
@@ -638,7 +631,7 @@ export default function AddPengirimanPage() {
                                   <td className="border-b p-3">
                                     <div className="font-medium text-gray-900">{row.nama_toko}</div>
                                     <div className="text-sm text-gray-500">
-                                      {row.alamat}, {row.desa}, {row.kecamatan}
+                                      {row.kecamatan}, {row.kabupaten}
                                     </div>
                                   </td>
                                   {priorityProducts.map(product => (

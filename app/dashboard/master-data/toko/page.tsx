@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useTokoQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
+import { useSalesQuery } from '@/lib/queries/sales'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge, formatCurrency } from '@/components/shared/data-table'
@@ -32,6 +33,8 @@ const statusConfig = {
 export default function TokoTablePage() {
   const { data: response, isLoading, error, refetch } = useTokoQuery('active', true)
   const stores: any[] = (response as any)?.data || []
+  const { data: salesResponse } = useSalesQuery()
+  const salesData: any[] = (salesResponse as any)?.data || []
   const deleteStore = useDeleteTokoMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -42,48 +45,109 @@ export default function TokoTablePage() {
     }
   }
 
+  // Generate unique options for filters
+  const salesOptions = useMemo(() => {
+    const uniqueSales = salesData.map(sales => ({
+      label: sales.nama_sales,
+      value: sales.id_sales.toString()
+    }))
+    return uniqueSales
+  }, [salesData])
+
+  const kabupatenOptions = useMemo(() => {
+    const uniqueKabupaten = [...new Set(stores.map(store => store.kabupaten).filter(Boolean))]
+    return uniqueKabupaten.map(kabupaten => ({
+      label: kabupaten,
+      value: kabupaten
+    }))
+  }, [stores])
+
+  const kecamatanOptions = useMemo(() => {
+    const uniqueKecamatan = [...new Set(stores.map(store => store.kecamatan).filter(Boolean))]
+    return uniqueKecamatan.map(kecamatan => ({
+      label: kecamatan,
+      value: kecamatan
+    }))
+  }, [stores])
+
   const columns = useMemo<ColumnDef<Toko>[]>(() => [
     {
       accessorKey: 'nama_toko',
       header: createSortableHeader('Nama Toko'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 rounded-lg">
-            <Store className="w-4 h-4 text-indigo-600" />
+      cell: ({ row }) => {
+        const linkGmaps = row.original.link_gmaps
+        return (
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <Store className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{row.getValue('nama_toko')}</div>
+              {linkGmaps ? (
+                <a 
+                  href={linkGmaps} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Google Maps
+                </a>
+              ) : (
+                <div className="text-sm text-red-600">
+                  Link Google Maps Tidak tersedia
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <div className="font-medium text-gray-900">{row.getValue('nama_toko')}</div>
-            <div className="text-sm text-gray-500">ID: {row.original.id_toko}</div>
-          </div>
-        </div>
-      ),
+        )
+      },
     },
     {
-      accessorKey: 'alamat',
-      header: 'Alamat',
+      accessorKey: 'kecamatan',
+      header: 'Lokasi',
       cell: ({ row }) => (
         <div className="flex items-start gap-2">
           <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
           <div>
-            <div className="text-sm text-gray-900">{row.original.alamat || '-'}</div>
-            <div className="text-xs text-gray-500">
-              {[row.original.desa, row.original.kecamatan, row.original.kabupaten]
+            <div className="text-sm text-gray-900">
+              {[row.original.kecamatan, row.original.kabupaten]
                 .filter(Boolean)
-                .join(', ')}
+                .join(', ') || '-'}
+            </div>
+            <div className="text-sm text-red-600 mt-1">
+              {row.original.no_telepon || "Nomor telepon belum ada"}
             </div>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'id_sales',
-      header: 'Sales',
+      accessorKey: 'kabupaten',
+      header: 'Kabupaten',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-900">Sales ID: {row.original.id_sales}</span>
+        <div className="text-sm text-gray-900">
+          {row.original.kabupaten || '-'}
         </div>
       ),
+    },
+    {
+      accessorKey: 'id_sales',
+      header: 'Sales',
+      cell: ({ row }) => {
+        const sales = salesData.find(s => s.id_sales === row.original.id_sales)
+        return (
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <Users className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{sales?.nama_sales || 'Sales Tidak Ditemukan'}</div>
+              <div className="text-sm text-gray-500">ID: {row.original.id_sales}</div>
+            </div>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'status_toko',
@@ -92,15 +156,6 @@ export default function TokoTablePage() {
       filterFn: (row, id, value) => {
         return value === 'all' || row.getValue(id) === (value === 'true')
       }
-    },
-    {
-      accessorKey: 'dibuat_pada',
-      header: createSortableHeader('Dibuat Pada'),
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-600">
-          {new Date(row.original.dibuat_pada).toLocaleDateString('id-ID')}
-        </div>
-      )
     },
   ], [])
 
@@ -175,6 +230,24 @@ export default function TokoTablePage() {
               { label: 'Aktif', value: 'true' },
               { label: 'Non-aktif', value: 'false' }
             ]
+          },
+          {
+            key: 'id_sales',
+            label: 'Sales',
+            type: 'select',
+            options: salesOptions
+          },
+          {
+            key: 'kabupaten',
+            label: 'Kabupaten',
+            type: 'select',
+            options: kabupatenOptions
+          },
+          {
+            key: 'kecamatan',
+            label: 'Kecamatan',
+            type: 'select',
+            options: kecamatanOptions
           }
         ]}
         actions={[

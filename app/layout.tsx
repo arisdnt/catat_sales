@@ -7,8 +7,8 @@ import { QueryProvider } from "@/components/providers/query-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sistem Penjualan Titip Bayar",
-  description: "Sistem manajemen penjualan dengan fitur titip bayar",
+  title: "Tera Cendani - Seles Center",
+  description: "Tim Babat Alas",
 }
 
 export default function RootLayout({

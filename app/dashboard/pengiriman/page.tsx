@@ -29,6 +29,28 @@ export default function ShippingPage() {
   const { navigate } = useNavigation()
   const { toast } = useToast()
 
+  // Extract unique values for filters
+  const salesOptions = useMemo(() => {
+    const uniqueSales = Array.from(new Set(
+      shipments.map((s: Pengiriman) => s.toko?.sales?.nama_sales).filter(Boolean)
+    ))
+    return uniqueSales.map(sales => ({ value: sales, label: sales }))
+  }, [shipments])
+
+  const kabupatenOptions = useMemo(() => {
+    const uniqueKabupaten = Array.from(new Set(
+      shipments.map((s: Pengiriman) => s.toko?.kabupaten).filter(Boolean)
+    ))
+    return uniqueKabupaten.map(kabupaten => ({ value: kabupaten, label: kabupaten }))
+  }, [shipments])
+
+  const kecamatanOptions = useMemo(() => {
+    const uniqueKecamatan = Array.from(new Set(
+      shipments.map((s: Pengiriman) => s.toko?.kecamatan).filter(Boolean)
+    ))
+    return uniqueKecamatan.map(kecamatan => ({ value: kecamatan, label: kecamatan }))
+  }, [shipments])
+
   const handleDelete = (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus pengiriman ini?')) {
       deleteShipment.mutate(id)
@@ -61,13 +83,25 @@ export default function ShippingPage() {
           <MapPin className="w-4 h-4 text-gray-400" />
           <div>
             <div className="font-medium text-gray-900">{row.original.toko.nama_toko}</div>
-            <div className="text-sm text-gray-500">ID: {row.original.toko.id_toko}</div>
+            {row.original.toko.link_gmaps ? (
+              <a 
+                href={row.original.toko.link_gmaps} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                Lihat di Google Maps
+              </a>
+            ) : (
+              <div className="text-sm text-red-600">Link Google Maps Tidak tersedia</div>
+            )}
           </div>
         </div>
       ),
     },
     {
-      accessorKey: 'toko.sales.nama_sales',
+      id: 'sales_name',
+      accessorFn: (row) => row.toko?.sales?.nama_sales,
       header: createSortableHeader('Sales'),
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
@@ -78,6 +112,25 @@ export default function ShippingPage() {
           </div>
         </div>
       ),
+      filterFn: 'includesString',
+    },
+    {
+      id: 'kabupaten',
+      accessorFn: (row) => row.toko?.kabupaten,
+      header: createSortableHeader('Kabupaten'),
+      cell: ({ row }) => (
+        <div className="text-gray-900">{row.original.toko.kabupaten}</div>
+      ),
+      filterFn: 'includesString',
+    },
+    {
+      id: 'kecamatan',
+      accessorFn: (row) => row.toko?.kecamatan,
+      header: createSortableHeader('Kecamatan'),
+      cell: ({ row }) => (
+        <div className="text-gray-900">{row.original.toko.kecamatan}</div>
+      ),
+      filterFn: 'includesString',
     },
     {
       accessorKey: 'tanggal_kirim',
@@ -90,13 +143,38 @@ export default function ShippingPage() {
       ),
     },
     {
-      accessorKey: 'dibuat_pada',
-      header: createSortableHeader('Dibuat Pada'),
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-600">
-          {new Date(row.original.dibuat_pada).toLocaleDateString('id-ID')}
-        </div>
-      )
+      id: 'total_quantity',
+      header: createSortableHeader('Total Quantity'),
+      cell: ({ row }) => {
+        const totalQty = row.original.detail_pengiriman?.reduce((sum, detail) => sum + detail.jumlah_kirim, 0) || 0
+        const details = row.original.detail_pengiriman || []
+        
+        return (
+          <div className="relative group">
+            <div className="flex items-center gap-2 cursor-help">
+              <Package className="w-4 h-4 text-gray-400" />
+              <span className="font-medium text-gray-900">{totalQty}</span>
+            </div>
+            
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
+              <div className="font-semibold mb-1">Detail Barang:</div>
+              {details.length > 0 ? (
+                details.map((detail, index) => (
+                  <div key={index} className="flex justify-between gap-2">
+                    <span>{detail.produk.nama_produk}:</span>
+                    <span>{detail.jumlah_kirim} pcs</span>
+                  </div>
+                ))
+              ) : (
+                <div>Tidak ada detail barang</div>
+              )}
+              {/* Arrow */}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+            </div>
+          </div>
+        )
+      },
     },
   ], [])
 
@@ -148,6 +226,26 @@ export default function ShippingPage() {
         title="Daftar Pengiriman"
         description={`Terdapat total ${stats.totalShipments} pengiriman, ${stats.todayShipments} hari ini, ${stats.thisWeekShipments} minggu ini`}
         searchPlaceholder="Cari pengiriman..."
+        filters={[
+          {
+            key: 'sales_name',
+            label: 'Filter berdasarkan Sales',
+            type: 'select',
+            options: salesOptions
+          },
+          {
+            key: 'kabupaten',
+            label: 'Filter berdasarkan Kabupaten',
+            type: 'select',
+            options: kabupatenOptions
+          },
+          {
+            key: 'kecamatan',
+            label: 'Filter berdasarkan Kecamatan',
+            type: 'select',
+            options: kecamatanOptions
+          }
+        ]}
         onAdd={() => navigate('/dashboard/pengiriman/add')}
         onExport={() => {
           const result = exportShipmentData(shipments)

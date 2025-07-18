@@ -10,6 +10,33 @@ export interface Penagihan {
   ada_potongan: boolean
   dibuat_pada: string
   diperbarui_pada: string
+  toko?: {
+    id_toko: number
+    nama_toko: string
+    kecamatan: string
+    kabupaten: string
+    link_gmaps?: string
+    sales: {
+      id_sales: number
+      nama_sales: string
+      nomor_telepon?: string
+    }
+  }
+  detail_penagihan?: Array<{
+    id_detail_tagih: number
+    jumlah_terjual: number
+    jumlah_kembali: number
+    produk: {
+      id_produk: number
+      nama_produk: string
+      harga_satuan: number
+    }
+  }>
+  potongan_penagihan?: Array<{
+    id_potongan: number
+    jumlah_potongan: number
+    alasan?: string
+  }>
 }
 
 export interface CreatePenagihanData {

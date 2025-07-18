@@ -166,8 +166,6 @@ export async function POST(request: NextRequest) {
             toko!inner(
               id_toko,
               nama_toko,
-              alamat,
-              desa,
               kecamatan,
               kabupaten
             ),

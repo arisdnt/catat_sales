@@ -64,8 +64,6 @@ export interface Database {
           id_toko: number
           id_sales: number
           nama_toko: string
-          alamat: string | null
-          desa: string | null
           kecamatan: string | null
           kabupaten: string | null
           link_gmaps: string | null
@@ -77,8 +75,6 @@ export interface Database {
           id_toko?: number
           id_sales: number
           nama_toko: string
-          alamat?: string | null
-          desa?: string | null
           kecamatan?: string | null
           kabupaten?: string | null
           link_gmaps?: string | null
@@ -90,8 +86,6 @@ export interface Database {
           id_toko?: number
           id_sales?: number
           nama_toko?: string
-          alamat?: string | null
-          desa?: string | null
           kecamatan?: string | null
           kabupaten?: string | null
           link_gmaps?: string | null

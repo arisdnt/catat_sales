@@ -12,6 +12,7 @@ export interface Produk {
   nama_produk: string
   harga_satuan: number
   status_produk: boolean
+  is_priority: boolean | null
   dibuat_pada: string
   diperbarui_pada: string
 }
@@ -19,17 +20,19 @@ export interface Produk {
 export interface CreateProdukData {
   nama_produk: string
   harga_satuan: number
+  is_priority?: boolean
 }
 
 export interface UpdateProdukData extends CreateProdukData {
   status_produk?: boolean
+  is_priority?: boolean
 }
 
 // Query Keys
 export const produkKeys = {
   all: ['produk'] as const,
   lists: () => [...produkKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...produkKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...produkKeys.lists(), { filters }] as const,
   details: () => [...produkKeys.all, 'detail'] as const,
   detail: (id: number) => [...produkKeys.details(), id] as const,
 }
@@ -65,13 +68,27 @@ export function useCreateProdukMutation() {
         description: 'Produk berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan produk',
         variant: 'destructive',
       })
     },
+  })
+}
+
+export interface ProdukStats {
+  id_produk: number
+  total_terkirim: number
+  total_terbayar: number
+}
+
+export function useProdukStatsQuery() {
+  return useQuery({
+    queryKey: ['produk', 'stats'],
+    queryFn: () => apiClient.getProductStats(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
@@ -90,7 +107,7 @@ export function useUpdateProdukMutation() {
         description: 'Produk berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui produk',

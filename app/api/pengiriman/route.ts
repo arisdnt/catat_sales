@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
         toko!inner(
           id_toko,
           nama_toko,
-          alamat,
-          desa,
           kecamatan,
           kabupaten,
           link_gmaps,
@@ -44,8 +42,6 @@ export async function GET(request: NextRequest) {
         toko!inner(
           id_toko,
           nama_toko,
-          alamat,
-          desa,
           kecamatan,
           kabupaten,
           sales!inner(

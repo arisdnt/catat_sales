@@ -72,7 +72,15 @@ class ApiClient {
     return this.request(`/produk/${id}`)
   }
 
-  async createProduct(data: { nama_produk: string; harga_satuan: number }) {
+  async getProductStats() {
+    return this.request('/produk/stats')
+  }
+
+  async getSalesStats() {
+    return this.request('/sales/stats')
+  }
+
+  async createProduct(data: { nama_produk: string; harga_satuan: number; is_priority?: boolean; priority_order?: number }) {
     return this.request('/produk', {
       method: 'POST',
       body: JSON.stringify(data)

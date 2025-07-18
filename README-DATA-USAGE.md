@@ -94,17 +94,16 @@ Password: password123
    - Sales person name
    - User icon
 
-3. Alamat (searchable)
-   - Full address
+3. Lokasi (searchable)
    - Kecamatan, Kabupaten
 
-4. PIC (sortable, searchable)
-   - Contact person name
-   - Phone number
-
-5. Kabupaten (sortable, searchable)
+4. Kabupaten (sortable, searchable)
    - Location pin icon
    - Regency name
+
+5. No. Telepon (sortable, searchable)
+   - Phone icon
+   - Contact number
 
 6. Status (sortable, searchable)
    - Color-coded badges
@@ -124,9 +123,9 @@ Password: password123
 // Search across:
 - Nama toko
 - Sales name
-- Alamat
-- PIC name
+- Kecamatan
 - Kabupaten
+- No. Telepon
 - Status
 ```
 

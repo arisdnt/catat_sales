@@ -17,6 +17,8 @@ interface ProdukRow {
   nama_produk: string
   harga_satuan: number
   status_produk: boolean
+  is_priority: boolean
+  priority_order: number
   isValid: boolean
   errors: Record<string, string>
 }
@@ -29,7 +31,9 @@ interface FormData {
 const initialProdukData: Omit<ProdukRow, 'id' | 'isValid' | 'errors'> = {
   nama_produk: '',
   harga_satuan: 0,
-  status_produk: true
+  status_produk: true,
+  is_priority: false,
+  priority_order: 0
 }
 
 export default function AddProdukPage() {
@@ -129,7 +133,9 @@ export default function AddProdukPage() {
           body: JSON.stringify({
             nama_produk: row.nama_produk,
             harga_satuan: row.harga_satuan,
-            status_produk: row.status_produk
+            status_produk: row.status_produk,
+            is_priority: row.is_priority,
+            priority_order: row.priority_order
           })
         })
       )
@@ -297,6 +303,43 @@ export default function AddProdukPage() {
                               <p className="text-sm text-red-600">{row.errors.status_produk}</p>
                             )}
                           </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Prioritas Produk</Label>
+                            <div className="flex items-center space-x-2 pt-2">
+                              <Checkbox
+                                checked={row.is_priority}
+                                onCheckedChange={(checked) => updateProdukRow(row.id, 'is_priority', checked)}
+                              />
+                              <Label className="text-sm">Produk Prioritas</Label>
+                            </div>
+                            <p className="text-xs text-gray-500">Produk prioritas akan ditampilkan lebih dulu dalam daftar</p>
+                            {row.errors.is_priority && (
+                              <p className="text-sm text-red-600">{row.errors.is_priority}</p>
+                            )}
+                          </div>
+                          
+                          {row.is_priority && (
+                            <div className="space-y-2">
+                              <Label htmlFor={`priority_order_${row.id}`} className="text-sm font-medium">Order Prioritas</Label>
+                              <Input
+                                id={`priority_order_${row.id}`}
+                                type="number"
+                                min="1"
+                                max="999"
+                                placeholder="Masukkan urutan prioritas"
+                                value={row.priority_order || ''}
+                                onChange={(e) => updateProdukRow(row.id, 'priority_order', parseInt(e.target.value) || 0)}
+                                className="w-full"
+                              />
+                              <p className="text-xs text-gray-500">Angka yang lebih kecil akan ditampilkan lebih dulu (1, 2, 3, ...)</p>
+                              {row.errors.priority_order && (
+                                <p className="text-sm text-red-600">{row.errors.priority_order}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

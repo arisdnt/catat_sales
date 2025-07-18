@@ -25,12 +25,9 @@ import {
 interface TokoDetail {
   id: string
   nama_toko: string
-  alamat: string
-  desa: string
   kecamatan: string
   kabupaten: string
-  pic_nama: string
-  pic_telepon: string
+  no_telepon: string
   link_gmaps: string
   sales_nama: string
   status: 'aktif' | 'nonaktif'
@@ -61,12 +58,9 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
       const mockToko: TokoDetail = {
         id: tokoId,
         nama_toko: 'Toko Berkah Jaya 1',
-        alamat: 'Jl. Raya No. 101',
-        desa: 'Sukamaju',
         kecamatan: 'Kec. Sukamaju',
         kabupaten: 'Kab. Sukabumi',
-        pic_nama: 'Ahmad Suharto',
-        pic_telepon: '081234567801',
+        no_telepon: '081234567890',
         link_gmaps: 'https://goo.gl/maps/example1',
         sales_nama: 'Ahmad Susanto',
         status: 'aktif',
@@ -213,17 +207,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Alamat Lengkap</label>
-                  <p className="text-gray-900">{toko.alamat}</p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Desa</label>
-                    <p className="text-gray-900">{toko.desa}</p>
-                  </div>
-                  
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-600">Kecamatan</label>
                     <p className="text-gray-900">{toko.kecamatan}</p>
@@ -237,6 +221,16 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   </div>
                 </div>
+
+                {toko.no_telepon && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">No. Telepon</label>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      <p className="text-gray-900">{toko.no_telepon}</p>
+                    </div>
+                  </div>
+                )}
 
                 {toko.link_gmaps && (
                   <div>
@@ -258,31 +252,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
             </CardContent>
           </Card>
 
-          {/* Contact Information */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Informasi Kontak
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Nama PIC</label>
-                  <p className="text-gray-900 font-medium">{toko.pic_nama}</p>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Telepon PIC</label>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <p className="text-gray-900">{toko.pic_telepon}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
         </div>
     </div>
   )

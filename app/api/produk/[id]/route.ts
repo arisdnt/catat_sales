@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   return handleApiRequest(request, async () => {
     const { id } = await params
     const body = await request.json()
-    const { nama_produk, harga_satuan, status_produk } = body
+    const { nama_produk, harga_satuan, status_produk, is_priority } = body
 
     if (!nama_produk || !harga_satuan) {
       return createErrorResponse('Nama produk and harga satuan are required')
@@ -37,7 +37,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .update({
         nama_produk,
         harga_satuan: parseFloat(harga_satuan),
-        status_produk: status_produk !== undefined ? status_produk : true
+        status_produk: status_produk !== undefined ? status_produk : true,
+        is_priority: is_priority !== undefined ? is_priority : false
       })
       .eq('id_produk', id)
       .select()

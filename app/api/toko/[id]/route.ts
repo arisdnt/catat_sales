@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   return handleApiRequest(request, async () => {
     const { id } = await params
     const body = await request.json()
-    const { nama_toko, id_sales, alamat, desa, kecamatan, kabupaten, link_gmaps, status_toko } = body
+    const { nama_toko, id_sales, kecamatan, kabupaten, link_gmaps, status_toko } = body
 
     if (!nama_toko || !id_sales) {
       return createErrorResponse('Nama toko and id_sales are required')
@@ -53,8 +53,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .update({
         nama_toko,
         id_sales: parseInt(id_sales),
-        alamat: alamat || null,
-        desa: desa || null,
         kecamatan: kecamatan || null,
         kabupaten: kabupaten || null,
         link_gmaps: link_gmaps || null,

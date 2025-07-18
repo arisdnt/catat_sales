@@ -14,8 +14,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         toko!inner(
           id_toko,
           nama_toko,
-          alamat,
-          desa,
           kecamatan,
           kabupaten,
           link_gmaps,

@@ -14,7 +14,7 @@ import {
   Download
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { useProdukQuery, useDeleteProdukMutation, type Produk } from '@/lib/queries/produk'
+import { useProdukQuery, useDeleteProdukMutation, useProdukStatsQuery, type Produk, type ProdukStats } from '@/lib/queries/produk'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable } from '@/components/shared/data-table'
@@ -33,9 +33,22 @@ const statusConfig = {
   }
 }
 
+const priorityConfig = {
+  true: {
+    label: 'Prioritas',
+    color: 'bg-orange-100 text-orange-800'
+  },
+  false: {
+    label: 'Standar',
+    color: 'bg-blue-100 text-blue-800'
+  }
+}
+
 export default function ProductsPage() {
   const { data: response, isLoading, error, refetch } = useProdukQuery()
   const products: any[] = (response as any)?.data || []
+  const { data: statsResponse } = useProdukStatsQuery()
+  const productStats: ProdukStats[] = (statsResponse as any)?.data || []
   const deleteProduct = useDeleteProdukMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -60,17 +73,28 @@ export default function ProductsPage() {
     {
       accessorKey: 'nama_produk',
       header: createSortableHeader('Nama Produk'),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-50 rounded-lg">
-            <Package className="w-4 h-4 text-purple-600" />
+      cell: ({ row }) => {
+        const productId = row.original.id_produk
+        const stats = productStats.find(s => s.id_produk === productId)
+        return (
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-50 rounded-lg">
+              <Package className="w-4 h-4 text-purple-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{row.getValue('nama_produk')}</div>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-red-600 font-medium">
+                  Terkirim: {stats?.total_terkirim || 0}
+                </span>
+                <span className="text-green-600 font-medium">
+                  Terbayar: {stats?.total_terbayar || 0}
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="font-medium text-gray-900">{row.getValue('nama_produk')}</div>
-            <div className="text-sm text-gray-500">ID: {row.original.id_produk}</div>
-          </div>
-        </div>
-      )
+        )
+      }
     },
     {
       accessorKey: 'harga_satuan',
@@ -85,6 +109,31 @@ export default function ProductsPage() {
       accessorKey: 'status_produk',
       header: 'Status',
       cell: ({ row }) => createStatusBadge(row.getValue('status_produk'), statusConfig),
+      filterFn: (row, id, value) => {
+        return value === 'all' || row.getValue(id) === (value === 'true')
+      }
+    },
+    {
+      accessorKey: 'is_priority',
+      header: 'Prioritas',
+      cell: ({ row }) => {
+        const isPriority = row.getValue('is_priority')
+        const priorityOrder = row.original.priority_order
+        const config = priorityConfig[isPriority ? 'true' : 'false']
+        
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge className={config.color}>
+              {config.label}
+            </Badge>
+            {isPriority && priorityOrder > 0 && (
+              <span className="text-xs text-gray-500">
+                Order: {priorityOrder}
+              </span>
+            )}
+          </div>
+        )
+      },
       filterFn: (row, id, value) => {
         return value === 'all' || row.getValue(id) === (value === 'true')
       }
@@ -170,6 +219,15 @@ export default function ProductsPage() {
             options: [
               { label: 'Aktif', value: 'true' },
               { label: 'Non-aktif', value: 'false' }
+            ]
+          },
+          {
+            key: 'is_priority',
+            label: 'Prioritas',
+            type: 'select',
+            options: [
+              { label: 'Prioritas', value: 'true' },
+              { label: 'Standar', value: 'false' }
             ]
           }
         ]}

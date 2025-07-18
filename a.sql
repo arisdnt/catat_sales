@@ -1,0 +1,3543 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 17.4
+-- Dumped by pg_dump version 17.0
+
+-- Started on 2025-07-18 11:11:31
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 13 (class 2615 OID 2200)
+-- Name: public; Type: SCHEMA; Schema: -; Owner: pg_database_owner
+--
+
+CREATE SCHEMA public;
+
+
+ALTER SCHEMA public OWNER TO pg_database_owner;
+
+--
+-- TOC entry 3841 (class 0 OID 0)
+-- Dependencies: 13
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- TOC entry 413 (class 1255 OID 18697)
+-- Name: get_toko_by_sales(integer); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.get_toko_by_sales(sales_id integer) RETURNS TABLE(id_toko integer, nama_toko character varying, kecamatan character varying, kabupaten character varying)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        t.id_toko,
+        t.nama_toko,
+        t.kecamatan,
+        t.kabupaten
+    FROM toko t
+    WHERE t.id_sales = sales_id AND t.status_toko = TRUE
+    ORDER BY t.nama_toko;
+END;
+$$;
+
+
+ALTER FUNCTION public.get_toko_by_sales(sales_id integer) OWNER TO postgres;
+
+--
+-- TOC entry 412 (class 1255 OID 17415)
+-- Name: update_diperbarui_pada_column(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_diperbarui_pada_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.diperbarui_pada = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_diperbarui_pada_column() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 306 (class 1259 OID 17543)
+-- Name: bulk_pengiriman; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bulk_pengiriman (
+    id_bulk_pengiriman integer NOT NULL,
+    id_sales integer NOT NULL,
+    tanggal_kirim date NOT NULL,
+    total_toko integer NOT NULL,
+    total_item integer NOT NULL,
+    keterangan text,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.bulk_pengiriman OWNER TO postgres;
+
+--
+-- TOC entry 305 (class 1259 OID 17542)
+-- Name: bulk_pengiriman_id_bulk_pengiriman_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq OWNER TO postgres;
+
+--
+-- TOC entry 3846 (class 0 OID 0)
+-- Dependencies: 305
+-- Name: bulk_pengiriman_id_bulk_pengiriman_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq OWNED BY public.bulk_pengiriman.id_bulk_pengiriman;
+
+
+--
+-- TOC entry 295 (class 1259 OID 17357)
+-- Name: detail_penagihan; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.detail_penagihan (
+    id_detail_tagih integer NOT NULL,
+    id_penagihan integer NOT NULL,
+    id_produk integer NOT NULL,
+    jumlah_terjual integer NOT NULL,
+    jumlah_kembali integer NOT NULL,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT detail_penagihan_jumlah_kembali_check CHECK ((jumlah_kembali >= 0)),
+    CONSTRAINT detail_penagihan_jumlah_terjual_check CHECK ((jumlah_terjual >= 0))
+);
+
+
+ALTER TABLE public.detail_penagihan OWNER TO postgres;
+
+--
+-- TOC entry 294 (class 1259 OID 17356)
+-- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.detail_penagihan_id_detail_tagih_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.detail_penagihan_id_detail_tagih_seq OWNER TO postgres;
+
+--
+-- TOC entry 3849 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.detail_penagihan_id_detail_tagih_seq OWNED BY public.detail_penagihan.id_detail_tagih;
+
+
+--
+-- TOC entry 291 (class 1259 OID 17320)
+-- Name: detail_pengiriman; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.detail_pengiriman (
+    id_detail_kirim integer NOT NULL,
+    id_pengiriman integer NOT NULL,
+    id_produk integer NOT NULL,
+    jumlah_kirim integer NOT NULL,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT detail_pengiriman_jumlah_kirim_check CHECK ((jumlah_kirim > 0))
+);
+
+
+ALTER TABLE public.detail_pengiriman OWNER TO postgres;
+
+--
+-- TOC entry 290 (class 1259 OID 17319)
+-- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.detail_pengiriman_id_detail_kirim_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.detail_pengiriman_id_detail_kirim_seq OWNER TO postgres;
+
+--
+-- TOC entry 3852 (class 0 OID 0)
+-- Dependencies: 290
+-- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.detail_pengiriman_id_detail_kirim_seq OWNED BY public.detail_pengiriman.id_detail_kirim;
+
+
+--
+-- TOC entry 293 (class 1259 OID 17340)
+-- Name: penagihan; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.penagihan (
+    id_penagihan integer NOT NULL,
+    id_toko integer NOT NULL,
+    total_uang_diterima numeric(12,2) NOT NULL,
+    metode_pembayaran character varying(20) NOT NULL,
+    ada_potongan boolean DEFAULT false,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT penagihan_metode_pembayaran_check CHECK (((metode_pembayaran)::text = ANY ((ARRAY['Cash'::character varying, 'Transfer'::character varying])::text[]))),
+    CONSTRAINT penagihan_total_uang_diterima_check CHECK ((total_uang_diterima >= (0)::numeric))
+);
+
+
+ALTER TABLE public.penagihan OWNER TO postgres;
+
+--
+-- TOC entry 292 (class 1259 OID 17339)
+-- Name: penagihan_id_penagihan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.penagihan_id_penagihan_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNER TO postgres;
+
+--
+-- TOC entry 3855 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: penagihan_id_penagihan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNED BY public.penagihan.id_penagihan;
+
+
+--
+-- TOC entry 289 (class 1259 OID 17306)
+-- Name: pengiriman; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pengiriman (
+    id_pengiriman integer NOT NULL,
+    id_toko integer NOT NULL,
+    tanggal_kirim date NOT NULL,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    id_bulk_pengiriman integer
+);
+
+
+ALTER TABLE public.pengiriman OWNER TO postgres;
+
+--
+-- TOC entry 288 (class 1259 OID 17305)
+-- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.pengiriman_id_pengiriman_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNER TO postgres;
+
+--
+-- TOC entry 3858 (class 0 OID 0)
+-- Dependencies: 288
+-- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNED BY public.pengiriman.id_pengiriman;
+
+
+--
+-- TOC entry 297 (class 1259 OID 17378)
+-- Name: potongan_penagihan; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.potongan_penagihan (
+    id_potongan integer NOT NULL,
+    id_penagihan integer NOT NULL,
+    jumlah_potongan numeric(12,2) NOT NULL,
+    alasan text,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT potongan_penagihan_jumlah_potongan_check CHECK ((jumlah_potongan >= (0)::numeric))
+);
+
+
+ALTER TABLE public.potongan_penagihan OWNER TO postgres;
+
+--
+-- TOC entry 296 (class 1259 OID 17377)
+-- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.potongan_penagihan_id_potongan_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNER TO postgres;
+
+--
+-- TOC entry 3861 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNED BY public.potongan_penagihan.id_potongan;
+
+
+--
+-- TOC entry 285 (class 1259 OID 17279)
+-- Name: produk; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.produk (
+    id_produk integer NOT NULL,
+    nama_produk character varying(255) NOT NULL,
+    harga_satuan numeric(10,2) NOT NULL,
+    status_produk boolean DEFAULT true,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    is_priority boolean DEFAULT false,
+    priority_order integer DEFAULT 0
+);
+
+
+ALTER TABLE public.produk OWNER TO postgres;
+
+--
+-- TOC entry 284 (class 1259 OID 17278)
+-- Name: produk_id_produk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.produk_id_produk_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.produk_id_produk_seq OWNER TO postgres;
+
+--
+-- TOC entry 3864 (class 0 OID 0)
+-- Dependencies: 284
+-- Name: produk_id_produk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.produk_id_produk_seq OWNED BY public.produk.id_produk;
+
+
+--
+-- TOC entry 283 (class 1259 OID 17269)
+-- Name: sales; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.sales (
+    id_sales integer NOT NULL,
+    nama_sales character varying(255) NOT NULL,
+    nomor_telepon character varying(20),
+    status_aktif boolean DEFAULT true,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.sales OWNER TO postgres;
+
+--
+-- TOC entry 282 (class 1259 OID 17268)
+-- Name: sales_id_sales_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sales_id_sales_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sales_id_sales_seq OWNER TO postgres;
+
+--
+-- TOC entry 3867 (class 0 OID 0)
+-- Dependencies: 282
+-- Name: sales_id_sales_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.sales_id_sales_seq OWNED BY public.sales.id_sales;
+
+
+--
+-- TOC entry 299 (class 1259 OID 17395)
+-- Name: setoran; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.setoran (
+    id_setoran integer NOT NULL,
+    total_setoran numeric(14,2) NOT NULL,
+    penerima_setoran character varying(100) NOT NULL,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT setoran_total_setoran_check CHECK ((total_setoran >= (0)::numeric))
+);
+
+
+ALTER TABLE public.setoran OWNER TO postgres;
+
+--
+-- TOC entry 298 (class 1259 OID 17394)
+-- Name: setoran_id_setoran_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.setoran_id_setoran_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.setoran_id_setoran_seq OWNER TO postgres;
+
+--
+-- TOC entry 3870 (class 0 OID 0)
+-- Dependencies: 298
+-- Name: setoran_id_setoran_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.setoran_id_setoran_seq OWNED BY public.setoran.id_setoran;
+
+
+--
+-- TOC entry 287 (class 1259 OID 17289)
+-- Name: toko; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.toko (
+    id_toko integer NOT NULL,
+    id_sales integer NOT NULL,
+    nama_toko character varying(255) NOT NULL,
+    kecamatan character varying(100),
+    kabupaten character varying(100),
+    link_gmaps text,
+    status_toko boolean DEFAULT true,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    no_telepon character varying(20)
+);
+
+
+ALTER TABLE public.toko OWNER TO postgres;
+
+--
+-- TOC entry 3872 (class 0 OID 0)
+-- Dependencies: 287
+-- Name: COLUMN toko.no_telepon; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.toko.no_telepon IS 'Nomor telepon toko';
+
+
+--
+-- TOC entry 286 (class 1259 OID 17288)
+-- Name: toko_id_toko_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.toko_id_toko_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.toko_id_toko_seq OWNER TO postgres;
+
+--
+-- TOC entry 3874 (class 0 OID 0)
+-- Dependencies: 286
+-- Name: toko_id_toko_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.toko_id_toko_seq OWNED BY public.toko.id_toko;
+
+
+--
+-- TOC entry 301 (class 1259 OID 17439)
+-- Name: v_laporan_penagihan; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_laporan_penagihan AS
+ SELECT pn.id_penagihan,
+    (pn.dibuat_pada)::date AS tanggal_tagih,
+    t.nama_toko,
+    s.nama_sales,
+    pr.nama_produk,
+    dp.jumlah_terjual,
+    dp.jumlah_kembali,
+    ((dp.jumlah_terjual)::numeric * pr.harga_satuan) AS nilai_terjual,
+    pn.total_uang_diterima,
+    pn.metode_pembayaran,
+    pn.ada_potongan
+   FROM ((((public.penagihan pn
+     JOIN public.toko t ON ((pn.id_toko = t.id_toko)))
+     JOIN public.sales s ON ((t.id_sales = s.id_sales)))
+     JOIN public.detail_penagihan dp ON ((pn.id_penagihan = dp.id_penagihan)))
+     JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)));
+
+
+ALTER VIEW public.v_laporan_penagihan OWNER TO postgres;
+
+--
+-- TOC entry 300 (class 1259 OID 17434)
+-- Name: v_laporan_pengiriman; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_laporan_pengiriman AS
+ SELECT p.id_pengiriman,
+    p.tanggal_kirim,
+    t.nama_toko,
+    s.nama_sales,
+    pr.nama_produk,
+    dp.jumlah_kirim,
+    ((dp.jumlah_kirim)::numeric * pr.harga_satuan) AS nilai_kirim
+   FROM ((((public.pengiriman p
+     JOIN public.toko t ON ((p.id_toko = t.id_toko)))
+     JOIN public.sales s ON ((t.id_sales = s.id_sales)))
+     JOIN public.detail_pengiriman dp ON ((p.id_pengiriman = dp.id_pengiriman)))
+     JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)));
+
+
+ALTER VIEW public.v_laporan_pengiriman OWNER TO postgres;
+
+--
+-- TOC entry 304 (class 1259 OID 17538)
+-- Name: v_produk_non_prioritas; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_produk_non_prioritas AS
+ SELECT id_produk,
+    nama_produk,
+    harga_satuan,
+    status_produk
+   FROM public.produk
+  WHERE (((is_priority = false) OR (is_priority IS NULL)) AND (status_produk = true))
+  ORDER BY nama_produk;
+
+
+ALTER VIEW public.v_produk_non_prioritas OWNER TO postgres;
+
+--
+-- TOC entry 303 (class 1259 OID 17534)
+-- Name: v_produk_prioritas; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_produk_prioritas AS
+ SELECT id_produk,
+    nama_produk,
+    harga_satuan,
+    priority_order,
+    status_produk
+   FROM public.produk
+  WHERE ((is_priority = true) AND (status_produk = true))
+  ORDER BY priority_order;
+
+
+ALTER VIEW public.v_produk_prioritas OWNER TO postgres;
+
+--
+-- TOC entry 302 (class 1259 OID 17444)
+-- Name: v_rekonsiliasi_setoran; Type: VIEW; Schema: public; Owner: postgres
+--
+
+CREATE VIEW public.v_rekonsiliasi_setoran AS
+ SELECT s.id_setoran,
+    (s.dibuat_pada)::date AS tanggal_setoran,
+    s.total_setoran,
+    s.penerima_setoran,
+    COALESCE(sum(pn.total_uang_diterima), (0)::numeric) AS total_penagihan_cash,
+    (s.total_setoran - COALESCE(sum(pn.total_uang_diterima), (0)::numeric)) AS selisih
+   FROM (public.setoran s
+     LEFT JOIN public.penagihan pn ON ((((pn.dibuat_pada)::date = (s.dibuat_pada)::date) AND ((pn.metode_pembayaran)::text = 'Cash'::text))))
+  GROUP BY s.id_setoran, s.dibuat_pada, s.total_setoran, s.penerima_setoran;
+
+
+ALTER VIEW public.v_rekonsiliasi_setoran OWNER TO postgres;
+
+--
+-- TOC entry 3576 (class 2604 OID 17546)
+-- Name: bulk_pengiriman id_bulk_pengiriman; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bulk_pengiriman ALTER COLUMN id_bulk_pengiriman SET DEFAULT nextval('public.bulk_pengiriman_id_bulk_pengiriman_seq'::regclass);
+
+
+--
+-- TOC entry 3567 (class 2604 OID 17360)
+-- Name: detail_penagihan id_detail_tagih; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_penagihan ALTER COLUMN id_detail_tagih SET DEFAULT nextval('public.detail_penagihan_id_detail_tagih_seq'::regclass);
+
+
+--
+-- TOC entry 3560 (class 2604 OID 17323)
+-- Name: detail_pengiriman id_detail_kirim; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_pengiriman ALTER COLUMN id_detail_kirim SET DEFAULT nextval('public.detail_pengiriman_id_detail_kirim_seq'::regclass);
+
+
+--
+-- TOC entry 3563 (class 2604 OID 17343)
+-- Name: penagihan id_penagihan; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.penagihan ALTER COLUMN id_penagihan SET DEFAULT nextval('public.penagihan_id_penagihan_seq'::regclass);
+
+
+--
+-- TOC entry 3557 (class 2604 OID 17309)
+-- Name: pengiriman id_pengiriman; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pengiriman ALTER COLUMN id_pengiriman SET DEFAULT nextval('public.pengiriman_id_pengiriman_seq'::regclass);
+
+
+--
+-- TOC entry 3570 (class 2604 OID 17381)
+-- Name: potongan_penagihan id_potongan; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.potongan_penagihan ALTER COLUMN id_potongan SET DEFAULT nextval('public.potongan_penagihan_id_potongan_seq'::regclass);
+
+
+--
+-- TOC entry 3547 (class 2604 OID 17282)
+-- Name: produk id_produk; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.produk ALTER COLUMN id_produk SET DEFAULT nextval('public.produk_id_produk_seq'::regclass);
+
+
+--
+-- TOC entry 3543 (class 2604 OID 17272)
+-- Name: sales id_sales; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sales ALTER COLUMN id_sales SET DEFAULT nextval('public.sales_id_sales_seq'::regclass);
+
+
+--
+-- TOC entry 3573 (class 2604 OID 17398)
+-- Name: setoran id_setoran; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.setoran ALTER COLUMN id_setoran SET DEFAULT nextval('public.setoran_id_setoran_seq'::regclass);
+
+
+--
+-- TOC entry 3553 (class 2604 OID 17292)
+-- Name: toko id_toko; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.toko ALTER COLUMN id_toko SET DEFAULT nextval('public.toko_id_toko_seq'::regclass);
+
+
+--
+-- TOC entry 3835 (class 0 OID 17543)
+-- Dependencies: 306
+-- Data for Name: bulk_pengiriman; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bulk_pengiriman (id_bulk_pengiriman, id_sales, tanggal_kirim, total_toko, total_item, keterangan, dibuat_pada, diperbarui_pada) FROM stdin;
+1	1	2025-07-17	2	6	Pengiriman bulk ke 2 toko sales Ahmad	2025-07-17 06:44:15.159162	2025-07-17 06:44:15.159162
+\.
+
+
+--
+-- TOC entry 3829 (class 0 OID 17357)
+-- Dependencies: 295
+-- Data for Name: detail_penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.detail_penagihan (id_detail_tagih, id_penagihan, id_produk, jumlah_terjual, jumlah_kembali, dibuat_pada, diperbarui_pada) FROM stdin;
+1	1	1	45	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+2	1	2	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+3	1	5	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+4	1	9	95	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+5	1	12	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+6	2	1	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+7	2	3	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+8	2	7	13	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+9	2	10	75	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+10	2	14	22	3	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+11	3	2	38	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+12	3	4	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+13	3	6	32	3	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+14	3	11	9	1	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+15	3	13	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+16	4	1	58	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+17	4	5	38	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+18	4	8	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+19	4	12	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+20	4	16	13	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+21	5	3	33	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+22	5	7	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+23	5	9	85	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+24	5	15	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+25	5	17	16	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+26	6	1	43	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+27	6	4	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+28	6	11	11	1	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+29	6	14	20	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+30	7	2	33	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+31	7	6	26	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+32	7	13	33	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+33	7	18	13	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+34	8	5	48	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+35	8	8	16	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+36	8	12	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+37	8	19	8	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+38	9	1	38	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+39	9	9	80	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+40	9	15	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+41	9	16	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+42	10	3	30	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+43	10	7	20	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+44	10	10	70	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+45	10	17	14	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+46	11	2	36	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+47	11	5	43	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+48	11	11	13	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+49	11	14	26	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+50	12	4	40	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+51	12	8	18	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+52	12	13	38	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+53	12	18	10	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+54	13	1	53	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+55	13	6	31	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+56	13	12	26	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+57	13	19	6	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+58	14	3	46	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+59	14	9	90	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+60	14	15	28	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+61	14	16	23	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+62	15	2	31	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+63	15	7	17	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+64	15	10	65	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+65	15	17	12	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+66	16	1	40	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+67	16	8	21	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+68	16	13	36	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+69	16	18	9	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+70	17	4	35	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+71	17	11	16	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+72	17	14	30	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+73	17	19	7	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+74	18	5	49	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+75	18	9	83	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+76	18	15	25	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+77	18	16	20	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+78	19	2	37	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+79	19	6	27	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+80	19	12	24	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+81	19	17	15	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+82	20	3	42	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+83	20	7	19	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+84	20	10	77	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+85	20	18	11	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+86	21	1	45	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+87	21	8	22	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+88	21	13	39	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+89	21	19	5	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+90	22	4	34	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+91	22	11	14	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+92	22	14	27	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+93	22	16	22	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+94	23	5	47	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+95	23	9	87	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+96	23	15	29	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+97	23	17	17	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+98	24	2	39	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+99	24	6	29	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+100	24	12	22	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+101	24	18	13	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+102	25	3	44	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+103	25	7	16	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+104	25	10	80	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+105	25	19	3	2	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+106	1	1	45	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+107	1	5	28	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+108	1	9	95	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+109	1	13	18	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+110	1	17	13	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+111	2	2	38	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+112	2	6	23	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+113	2	10	75	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+114	2	14	16	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+115	2	18	10	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+116	3	3	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+117	3	7	20	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+118	3	11	55	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+119	3	15	23	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+120	3	19	8	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+121	4	4	43	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+122	4	8	26	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+123	4	12	65	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+124	4	16	18	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+125	4	20	6	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+126	5	1	36	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+127	5	9	90	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+128	5	13	20	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+129	5	17	16	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+130	5	2	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+131	6	3	40	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+132	6	7	24	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+133	6	11	60	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+134	6	15	26	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+135	6	19	10	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+136	7	5	31	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+137	7	9	83	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+138	7	13	17	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+139	7	17	14	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+140	7	1	38	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+141	8	2	35	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+142	8	6	22	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+143	8	10	70	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+144	8	14	19	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+145	8	18	12	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+146	9	4	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+147	9	8	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+148	9	12	63	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+149	9	16	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+150	9	20	7	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+151	10	1	42	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+152	10	5	29	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+153	10	9	87	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+154	10	13	22	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+155	10	17	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+156	11	1	53	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+157	12	2	56	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+158	13	3	59	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+159	14	4	22	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+160	15	5	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+161	16	6	28	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+162	17	7	31	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+163	18	8	34	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+164	19	9	37	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+165	20	10	40	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+166	21	11	43	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+167	22	12	46	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+168	23	13	49	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+169	24	14	52	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+170	25	15	55	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+171	26	16	58	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+172	27	17	21	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+173	28	18	24	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+174	29	19	27	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+175	30	20	30	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+176	31	1	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+177	32	2	36	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+178	33	3	39	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+179	34	4	42	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+180	35	5	45	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+181	36	6	48	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+182	37	7	51	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+183	38	8	54	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+184	39	9	57	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+185	40	10	20	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+186	41	11	23	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+187	42	12	26	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+188	43	13	29	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+189	44	14	32	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+190	45	15	35	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+191	46	16	38	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+192	47	17	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+193	48	18	44	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+194	49	19	47	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+195	50	20	50	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+196	51	1	53	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+197	52	2	56	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+198	53	3	59	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+199	54	4	22	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+200	55	5	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+201	56	6	28	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+202	57	7	31	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+203	58	8	34	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+204	59	9	37	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+205	60	10	40	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+206	61	11	43	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+207	62	12	46	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+208	63	13	49	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+209	64	14	52	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+210	65	15	55	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+211	66	16	58	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+212	67	17	21	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+213	68	18	24	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+214	69	19	27	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+215	70	20	30	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+216	71	1	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+217	72	2	36	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+218	73	3	39	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+219	74	4	42	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+220	75	5	45	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+221	76	6	48	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+222	77	7	51	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+223	78	8	54	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+224	79	9	57	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+225	80	10	20	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+226	81	11	23	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+227	82	12	26	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+228	83	13	29	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+229	84	14	32	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+230	85	15	35	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+231	86	16	38	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+232	87	17	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+233	88	18	44	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+234	89	19	47	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+235	90	20	50	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+236	91	1	53	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+237	92	2	56	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+238	93	3	59	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+239	94	4	22	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+240	95	5	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+241	96	6	28	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+242	97	7	31	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+243	98	8	34	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+244	99	9	37	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+245	100	10	40	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+246	101	11	43	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+247	102	12	46	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+248	103	13	49	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+249	104	14	52	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+250	105	15	55	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+251	106	16	58	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+252	107	17	21	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+253	108	18	24	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+254	109	19	27	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+255	110	20	30	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+256	111	1	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+257	112	2	36	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+258	113	3	39	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+259	114	4	42	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+260	115	5	45	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+261	116	6	48	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+262	117	7	51	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+263	118	8	54	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+264	119	9	57	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+265	120	10	20	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+266	121	11	23	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+267	122	12	26	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+268	123	13	29	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+269	124	14	32	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+270	125	15	35	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+271	126	16	38	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+272	127	17	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+273	128	18	44	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+274	129	19	47	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+275	130	20	50	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+276	131	1	53	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+277	132	2	56	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+278	133	3	59	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+279	134	4	22	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+280	135	5	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+281	136	6	28	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+282	137	7	31	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+283	138	8	34	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+284	139	9	37	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+285	140	10	40	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+286	141	11	43	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+287	142	12	46	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+288	143	13	49	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+289	144	14	52	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+290	145	15	55	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+291	146	16	58	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+292	147	17	21	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+293	148	18	24	4	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+294	149	19	27	5	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+295	150	20	30	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+296	11	2	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+297	12	3	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+298	13	4	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+299	14	5	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+300	15	6	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+301	16	7	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+302	17	8	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+303	18	9	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+304	19	10	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+305	20	11	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+306	21	12	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+307	22	13	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+308	23	14	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+309	24	15	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+310	25	16	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+311	26	17	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+312	27	18	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+313	28	19	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+314	29	20	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+315	30	2	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+316	31	3	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+317	32	4	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+318	33	5	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+319	34	6	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+320	35	7	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+321	36	8	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+322	37	9	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+323	38	10	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+324	39	11	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+325	40	12	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+326	41	13	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+327	42	14	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+328	43	15	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+329	44	16	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+330	45	17	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+331	46	18	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+332	47	19	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+333	48	20	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+334	49	2	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+335	50	3	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+336	51	4	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+337	52	5	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+338	53	6	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+339	54	7	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+340	55	8	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+341	56	9	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+342	57	10	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+343	58	11	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+344	59	12	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+345	60	13	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+346	61	14	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+347	62	15	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+348	63	16	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+349	64	17	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+350	65	18	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+351	66	19	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+352	67	20	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+353	68	2	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+354	69	3	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+355	70	4	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+356	71	5	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+357	72	6	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+358	73	7	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+359	74	8	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+360	75	9	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+361	76	10	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+362	77	11	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+363	78	12	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+364	79	13	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+365	80	14	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+366	81	15	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+367	82	16	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+368	83	17	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+369	84	18	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+370	85	19	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+371	86	20	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+372	87	2	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+373	88	3	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+374	89	4	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+375	90	5	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+376	91	6	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+377	92	7	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+378	93	8	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+379	94	9	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+380	95	10	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+381	96	11	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+382	97	12	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+383	98	13	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+384	99	14	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+385	100	15	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+386	101	16	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+387	102	17	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+388	103	18	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+389	104	19	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+390	105	20	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+391	106	2	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+392	107	3	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+393	108	4	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+394	109	5	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+395	110	6	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+396	111	7	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+397	112	8	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+398	113	9	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+399	114	10	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+400	115	11	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+401	116	12	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+402	117	13	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+403	118	14	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+404	119	15	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+405	120	16	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+406	121	17	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+407	122	18	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+408	123	19	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+409	124	20	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+410	125	2	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+411	126	3	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+412	127	4	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+413	128	5	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+414	129	6	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+415	130	7	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+416	131	8	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+417	132	9	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+418	133	10	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+419	134	11	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+420	135	12	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+421	136	13	17	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+422	137	14	19	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+423	138	15	21	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+424	139	16	23	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+425	140	17	25	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+426	141	18	27	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+427	142	19	29	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+428	143	20	31	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+429	144	2	33	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+430	145	3	35	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+431	146	4	37	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+432	147	5	39	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+433	148	6	41	3	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+434	149	7	43	1	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+435	150	8	15	2	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+\.
+
+
+--
+-- TOC entry 3825 (class 0 OID 17320)
+-- Dependencies: 291
+-- Data for Name: detail_pengiriman; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.detail_pengiriman (id_detail_kirim, id_pengiriman, id_produk, jumlah_kirim, dibuat_pada, diperbarui_pada) FROM stdin;
+1	1	5	1	2025-07-16 15:24:18.936938	2025-07-16 15:24:18.936938
+2	1	1	50	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+3	1	2	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+4	1	5	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+5	1	9	100	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+6	1	12	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+7	2	1	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+8	2	3	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+9	2	7	15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+10	2	10	80	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+11	2	14	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+12	3	2	40	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+13	3	4	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+14	3	6	35	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+15	3	11	10	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+16	3	13	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+17	4	1	60	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+18	4	5	40	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+19	4	8	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+20	4	12	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+21	4	16	15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+22	5	3	35	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+23	5	7	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+24	5	9	90	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+25	5	15	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+26	5	17	18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+27	6	1	45	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+28	6	4	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+29	6	11	12	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+30	6	14	22	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+31	7	2	35	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+32	7	6	28	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+33	7	13	35	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+34	7	18	15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+35	8	5	50	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+36	8	8	18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+37	8	12	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+38	8	19	10	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+39	9	1	40	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+40	9	9	85	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+41	9	15	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+42	9	16	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+43	10	3	32	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+44	10	7	22	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+45	10	10	75	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+46	10	17	16	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+47	11	2	38	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+48	11	5	45	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+49	11	11	15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+50	11	14	28	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+51	12	4	42	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+52	12	8	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+53	12	13	40	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+54	12	18	12	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+55	13	1	55	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+56	13	6	33	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+57	13	12	28	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+58	13	19	8	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+59	14	3	48	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+60	14	9	95	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+61	14	15	30	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+62	14	16	25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+63	15	2	33	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+64	15	7	19	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+65	15	10	70	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+66	15	17	14	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+67	16	1	42	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+68	16	8	23	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+69	16	13	38	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+70	16	18	11	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+71	17	4	37	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+72	17	11	18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+73	17	14	32	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+74	17	19	9	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+75	18	5	51	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+76	18	9	88	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+77	18	15	27	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+78	18	16	22	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+79	19	2	39	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+80	19	6	29	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+81	19	12	26	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+82	19	17	17	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+83	20	3	44	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+84	20	7	21	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+85	20	10	82	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+86	20	18	13	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+87	21	1	47	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+88	21	8	24	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+89	21	13	41	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+90	21	19	7	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+91	22	4	36	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+92	22	11	16	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+93	22	14	29	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+94	22	16	24	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+95	23	5	49	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+96	23	9	92	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+97	23	15	31	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+98	23	17	19	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+99	24	2	41	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+100	24	6	31	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+101	24	12	24	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+102	24	18	15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+103	25	3	46	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+104	25	7	18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+105	25	10	78	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+106	25	19	6	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+107	26	1	52	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+108	26	8	26	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+109	26	13	43	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+110	26	16	26	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+111	27	4	38	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+112	27	11	19	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+113	27	14	34	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+114	27	17	21	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+115	28	5	54	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+116	28	9	96	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+117	28	15	33	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+118	28	18	17	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+119	29	2	43	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+120	29	6	32	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+121	29	12	27	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+122	29	19	5	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+123	30	3	48	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+124	30	7	20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+125	30	10	85	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+126	30	16	28	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+127	1	1	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+128	1	5	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+129	1	9	100	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+130	1	13	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+131	1	17	15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+132	2	2	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+133	2	6	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+134	2	10	80	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+135	2	14	18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+136	2	18	12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+137	3	3	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+138	3	7	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+139	3	11	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+140	3	15	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+141	3	19	10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+142	4	4	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+143	4	8	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+144	4	12	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+145	4	16	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+146	4	20	8	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+147	5	1	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+148	5	9	95	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+149	5	13	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+150	5	17	18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+151	5	2	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+152	6	3	42	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+153	6	7	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+154	6	11	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+155	6	15	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+156	6	19	12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+157	7	5	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+158	7	9	88	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+159	7	13	19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+160	7	17	16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+161	7	1	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+162	8	2	37	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+163	8	6	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+164	8	10	75	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+165	8	14	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+166	8	18	14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+167	9	4	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+168	9	8	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+169	9	12	68	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+170	9	16	23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+171	9	20	9	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+172	10	1	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+173	10	5	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+174	10	9	92	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+175	10	13	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+176	10	17	17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+177	11	3	39	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+178	11	7	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+179	11	11	62	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+180	11	15	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+181	11	19	11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+182	12	2	43	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+183	12	6	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+184	12	10	77	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+185	12	14	19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+186	12	18	13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+187	13	4	36	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+188	13	8	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+189	13	12	71	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+190	13	16	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+191	13	20	7	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+192	14	1	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+193	14	5	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+194	14	9	89	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+195	14	13	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+196	14	17	15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+197	15	3	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+198	15	7	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+199	15	11	64	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+200	15	15	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+201	15	19	10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+202	16	2	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+203	16	6	32	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+204	16	10	79	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+205	16	14	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+206	16	18	12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+207	17	4	34	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+208	17	8	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+209	17	12	66	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+210	17	16	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+211	17	20	8	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+212	18	1	47	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+213	18	5	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+214	18	9	91	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+215	18	13	23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+216	18	17	16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+217	19	3	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+218	19	7	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+219	19	11	63	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+220	19	15	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+221	19	19	9	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+222	20	2	42	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+223	20	6	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+224	20	10	76	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+225	20	14	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+226	20	18	14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+227	21	4	37	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+228	21	8	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+229	21	12	69	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+230	21	16	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+231	21	20	6	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+232	22	1	46	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+233	22	5	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+234	22	9	93	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+235	22	13	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+236	22	17	18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+237	23	3	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+238	23	7	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+239	23	11	61	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+240	23	15	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+241	23	19	11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+242	24	2	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+243	24	6	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+244	24	10	78	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+245	24	14	19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+246	24	18	13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+247	25	4	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+248	25	8	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+249	25	12	67	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+250	25	16	23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+251	25	20	9	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+252	26	1	48	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+253	26	5	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+254	26	9	90	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+255	26	13	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+256	26	17	17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+257	27	3	36	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+258	27	7	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+259	27	11	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+260	27	15	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+261	27	19	12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+262	28	2	39	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+263	28	6	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+264	28	10	74	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+265	28	14	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+266	28	18	15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+267	29	4	43	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+268	29	8	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+269	29	12	72	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+270	29	16	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+271	29	20	8	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+272	30	1	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+273	30	5	32	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+274	30	9	94	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+275	30	13	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+276	30	17	19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+277	31	3	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+278	31	7	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+279	31	11	63	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+280	31	15	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+281	31	19	10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+282	32	2	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+283	32	6	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+284	32	10	76	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+285	32	14	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+286	32	18	14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+287	33	4	36	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+288	33	8	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+289	33	12	68	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+290	33	16	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+291	33	20	7	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+292	34	1	49	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+293	34	5	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+294	34	9	92	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+295	34	13	23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+296	34	17	16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+297	35	3	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+298	35	7	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+299	35	11	64	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+300	35	15	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+301	35	19	11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+302	36	2	43	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+303	36	6	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+304	36	10	77	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+305	36	14	19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+306	36	18	13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+307	37	4	37	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+308	37	8	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+309	37	12	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+310	37	16	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+311	37	20	8	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+312	38	1	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+313	38	5	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+314	38	9	89	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+315	38	13	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+316	38	17	17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+317	39	3	42	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+318	39	7	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+319	39	11	62	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+320	39	15	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+321	39	19	9	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+322	40	2	46	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+323	40	6	32	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+324	40	10	78	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+325	40	14	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+326	40	18	12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+327	41	4	34	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+328	41	8	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+329	41	12	71	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+330	41	16	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+331	41	20	6	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+332	42	1	47	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+333	42	5	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+334	42	9	91	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+335	42	13	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+336	42	17	18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+337	43	3	39	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+338	43	7	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+339	43	11	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+340	43	15	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+341	43	19	10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+342	44	2	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+343	44	6	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+344	44	10	73	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+345	44	14	21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+346	44	18	14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+347	45	4	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+348	45	8	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+349	45	12	69	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+350	45	16	23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+351	45	20	9	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+352	46	1	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+353	46	5	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+354	46	9	95	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+355	46	13	22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+356	46	17	15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+357	47	3	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+358	47	7	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+359	47	11	66	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+360	47	15	24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+361	47	19	11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+362	48	2	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+363	48	6	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+364	48	10	79	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+365	48	14	18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+366	48	18	13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+367	49	4	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+368	49	8	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+369	49	12	67	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+370	49	16	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+371	49	20	7	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+372	50	1	48	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+373	50	5	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+374	50	9	93	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+375	50	13	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+376	50	17	16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+377	51	1	28	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+378	52	2	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+379	53	3	34	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+380	54	4	37	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+381	55	5	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+382	56	6	43	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+383	57	7	46	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+384	58	8	49	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+385	59	9	52	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+386	60	10	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+387	61	11	58	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+388	62	12	61	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+389	63	13	64	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+390	64	14	67	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+391	65	15	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+392	66	16	73	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+393	67	17	26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+394	68	18	29	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+395	69	19	32	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+396	70	20	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+397	71	1	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+398	72	2	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+399	73	3	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+400	74	4	47	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+401	75	5	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+402	76	6	53	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+403	77	7	56	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+404	78	8	59	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+405	79	9	62	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+406	80	10	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+407	81	11	68	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+408	82	12	71	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+409	83	13	74	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+410	84	14	27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+411	85	15	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+412	86	16	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+413	87	17	36	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+414	88	18	39	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+415	89	19	42	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+416	90	20	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+417	91	1	48	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+418	92	2	51	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+419	93	3	54	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+420	94	4	57	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+421	95	5	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+422	96	6	63	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+423	97	7	66	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+424	98	8	69	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+425	99	9	72	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+426	100	10	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+427	101	1	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+428	102	2	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+429	103	3	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+430	104	4	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+431	105	5	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+432	106	6	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+433	107	7	75	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+434	108	8	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+435	109	9	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+436	110	10	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+437	111	11	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+438	112	12	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+439	113	13	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+440	114	14	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+441	115	15	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+442	116	16	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+443	117	17	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+444	118	18	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+445	119	19	75	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+446	120	20	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+447	121	1	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+448	122	2	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+449	123	3	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+450	124	4	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+451	125	5	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+452	126	6	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+453	127	7	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+454	128	8	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+455	129	9	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+456	130	10	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+457	131	11	75	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+458	132	12	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+459	133	13	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+460	134	14	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+461	135	15	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+462	136	16	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+463	137	17	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+464	138	18	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+465	139	19	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+466	140	20	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+467	141	1	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+468	142	2	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+469	143	3	75	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+470	144	4	20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+471	145	5	25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+472	146	6	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+473	147	7	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+474	148	8	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+475	149	9	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+476	150	10	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+477	151	1	52	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+478	152	2	59	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+479	153	3	66	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+480	154	4	73	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+481	155	5	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+482	156	6	42	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+483	157	7	49	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+484	158	8	56	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+485	159	9	63	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+486	160	10	70	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+487	161	11	32	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+488	162	12	39	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+489	163	13	46	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+490	164	14	53	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+491	165	15	60	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+492	166	16	67	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+493	167	17	74	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+494	168	18	36	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+495	169	19	43	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+496	170	20	50	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+497	171	1	57	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+498	172	2	64	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+499	173	3	71	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+500	174	4	33	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+501	175	5	40	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+502	176	6	47	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+503	177	7	54	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+504	178	8	61	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+505	179	9	68	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+506	180	10	30	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+507	181	11	37	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+508	182	12	44	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+509	183	13	51	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+510	184	14	58	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+511	185	15	65	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+512	186	16	72	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+513	187	17	34	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+514	188	18	41	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+515	189	19	48	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+516	190	20	55	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+517	191	1	62	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+518	192	2	69	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+519	193	3	31	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+520	194	4	38	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+521	195	5	45	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+522	196	6	52	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+523	197	7	59	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+524	198	8	66	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+525	199	9	73	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+526	200	10	35	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+\.
+
+
+--
+-- TOC entry 3827 (class 0 OID 17340)
+-- Dependencies: 293
+-- Data for Name: penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.penagihan (id_penagihan, id_toko, total_uang_diterima, metode_pembayaran, ada_potongan, dibuat_pada, diperbarui_pada) FROM stdin;
+1	1	750000.00	Cash	f	2024-01-06 10:30:00	2025-07-16 16:07:24.519594
+2	2	420000.00	Transfer	f	2024-01-06 14:15:00	2025-07-16 16:07:24.519594
+3	3	650000.00	Cash	t	2024-01-07 11:45:00	2025-07-16 16:07:24.519594
+4	4	890000.00	Transfer	f	2024-01-09 09:20:00	2025-07-16 16:07:24.519594
+5	5	520000.00	Cash	f	2024-01-11 16:00:00	2025-07-16 16:07:24.519594
+6	6	680000.00	Cash	t	2024-01-13 13:30:00	2025-07-16 16:07:24.519594
+7	7	470000.00	Transfer	f	2024-01-16 10:45:00	2025-07-16 16:07:24.519594
+8	8	720000.00	Cash	f	2024-01-19 15:20:00	2025-07-16 16:07:24.519594
+9	9	580000.00	Transfer	f	2024-02-03 11:15:00	2025-07-16 16:07:24.519594
+10	10	640000.00	Cash	f	2024-02-06 14:30:00	2025-07-16 16:07:24.519594
+11	11	760000.00	Cash	t	2024-02-09 09:45:00	2025-07-16 16:07:24.519594
+12	12	390000.00	Transfer	f	2024-02-11 16:20:00	2025-07-16 16:07:24.519594
+13	13	820000.00	Cash	f	2024-02-13 12:10:00	2025-07-16 16:07:24.519594
+14	14	590000.00	Transfer	f	2024-02-16 10:55:00	2025-07-16 16:07:24.519594
+15	15	710000.00	Cash	t	2024-02-19 15:40:00	2025-07-16 16:07:24.519594
+16	1	680000.00	Cash	f	2024-02-21 13:25:00	2025-07-16 16:07:24.519594
+17	2	450000.00	Transfer	f	2024-02-23 11:35:00	2025-07-16 16:07:24.519594
+18	3	720000.00	Cash	f	2024-03-03 10:20:00	2025-07-16 16:07:24.519594
+19	4	950000.00	Transfer	t	2024-03-06 14:45:00	2025-07-16 16:07:24.519594
+20	5	630000.00	Cash	f	2024-03-09 12:30:00	2025-07-16 16:07:24.519594
+21	6	780000.00	Cash	f	2024-03-11 16:15:00	2025-07-16 16:07:24.519594
+22	7	520000.00	Transfer	f	2024-03-13 09:50:00	2025-07-16 16:07:24.519594
+23	8	840000.00	Cash	t	2024-03-16 15:25:00	2025-07-16 16:07:24.519594
+24	9	670000.00	Transfer	f	2024-03-19 11:40:00	2025-07-16 16:07:24.519594
+25	10	750000.00	Cash	f	2024-03-21 13:55:00	2025-07-16 16:07:24.519594
+26	1	750000.00	Cash	f	2023-10-03 10:30:00	2025-07-16 21:12:32.415113
+27	5	620000.00	Transfer	f	2023-10-03 14:15:00	2025-07-16 21:12:32.415113
+28	10	850000.00	Cash	t	2023-10-04 11:45:00	2025-07-16 21:12:32.415113
+29	15	490000.00	Transfer	f	2023-10-04 16:20:00	2025-07-16 21:12:32.415113
+30	20	720000.00	Cash	f	2023-10-05 09:30:00	2025-07-16 21:12:32.415113
+31	25	580000.00	Cash	f	2023-10-05 15:45:00	2025-07-16 21:12:32.415113
+32	30	690000.00	Transfer	t	2023-10-06 10:15:00	2025-07-16 21:12:32.415113
+33	35	530000.00	Cash	f	2023-10-06 14:30:00	2025-07-16 21:12:32.415113
+34	40	780000.00	Transfer	f	2023-10-07 11:00:00	2025-07-16 21:12:32.415113
+35	45	640000.00	Cash	f	2023-10-07 16:15:00	2025-07-16 21:12:32.415113
+36	50	710000.00	Cash	t	2023-10-10 09:45:00	2025-07-16 21:12:32.415113
+37	55	560000.00	Transfer	f	2023-10-10 13:20:00	2025-07-16 21:12:32.415113
+38	60	820000.00	Cash	f	2023-10-11 10:50:00	2025-07-16 21:12:32.415113
+39	65	590000.00	Transfer	f	2023-10-11 15:30:00	2025-07-16 21:12:32.415113
+40	70	730000.00	Cash	f	2023-10-12 11:25:00	2025-07-16 21:12:32.415113
+41	75	670000.00	Cash	t	2023-10-12 16:40:00	2025-07-16 21:12:32.415113
+42	80	510000.00	Transfer	f	2023-10-13 09:15:00	2025-07-16 21:12:32.415113
+43	85	790000.00	Cash	f	2023-10-13 14:50:00	2025-07-16 21:12:32.415113
+44	90	610000.00	Transfer	f	2023-10-14 10:35:00	2025-07-16 21:12:32.415113
+45	95	750000.00	Cash	f	2023-10-14 15:20:00	2025-07-16 21:12:32.415113
+46	2	580000.00	Cash	f	2023-10-17 11:10:00	2025-07-16 21:12:32.415113
+47	7	690000.00	Transfer	t	2023-10-17 16:25:00	2025-07-16 21:12:32.415113
+48	12	720000.00	Cash	f	2023-11-02 10:20:00	2025-07-16 21:12:32.415113
+49	17	640000.00	Transfer	f	2023-11-02 14:45:00	2025-07-16 21:12:32.415113
+50	22	860000.00	Cash	t	2023-11-03 11:30:00	2025-07-16 21:12:32.415113
+51	27	520000.00	Transfer	f	2023-11-03 16:10:00	2025-07-16 21:12:32.415113
+52	32	780000.00	Cash	f	2023-11-04 09:50:00	2025-07-16 21:12:32.415113
+53	37	610000.00	Cash	f	2023-11-04 15:25:00	2025-07-16 21:12:32.415113
+54	42	730000.00	Transfer	t	2023-11-07 10:40:00	2025-07-16 21:12:32.415113
+55	47	570000.00	Cash	f	2023-11-07 14:15:00	2025-07-16 21:12:32.415113
+56	52	810000.00	Transfer	f	2023-11-08 11:55:00	2025-07-16 21:12:32.415113
+57	57	650000.00	Cash	f	2023-11-08 16:30:00	2025-07-16 21:12:32.415113
+58	62	720000.00	Cash	t	2023-11-09 09:35:00	2025-07-16 21:12:32.415113
+59	67	590000.00	Transfer	f	2023-11-09 13:50:00	2025-07-16 21:12:32.415113
+60	72	770000.00	Cash	f	2023-11-10 10:25:00	2025-07-16 21:12:32.415113
+61	77	530000.00	Transfer	f	2023-11-10 15:40:00	2025-07-16 21:12:32.415113
+62	82	690000.00	Cash	f	2023-11-11 11:15:00	2025-07-16 21:12:32.415113
+63	87	620000.00	Cash	t	2023-11-14 09:45:00	2025-07-16 21:12:32.415113
+64	92	750000.00	Transfer	f	2023-11-14 14:20:00	2025-07-16 21:12:32.415113
+65	97	580000.00	Cash	f	2023-11-15 10:55:00	2025-07-16 21:12:32.415113
+66	3	810000.00	Transfer	f	2023-11-15 15:30:00	2025-07-16 21:12:32.415113
+67	8	640000.00	Cash	f	2023-11-16 11:40:00	2025-07-16 21:12:32.415113
+68	13	720000.00	Cash	t	2023-11-16 16:25:00	2025-07-16 21:12:32.415113
+69	18	560000.00	Transfer	f	2023-11-17 09:10:00	2025-07-16 21:12:32.415113
+70	23	790000.00	Cash	f	2023-11-17 14:35:00	2025-07-16 21:12:32.415113
+71	28	610000.00	Transfer	f	2023-11-21 10:50:00	2025-07-16 21:12:32.415113
+72	33	730000.00	Cash	f	2023-11-21 15:15:00	2025-07-16 21:12:32.415113
+73	38	680000.00	Transfer	t	2023-12-02 10:30:00	2025-07-16 21:12:32.415113
+74	43	590000.00	Cash	f	2023-12-02 14:45:00	2025-07-16 21:12:32.415113
+75	48	770000.00	Cash	f	2023-12-05 11:20:00	2025-07-16 21:12:32.415113
+76	53	520000.00	Transfer	f	2023-12-05 16:35:00	2025-07-16 21:12:32.415113
+77	58	810000.00	Cash	f	2023-12-06 09:40:00	2025-07-16 21:12:32.415113
+78	63	640000.00	Transfer	f	2023-12-06 15:25:00	2025-07-16 21:12:32.415113
+79	68	720000.00	Cash	t	2023-12-07 10:15:00	2025-07-16 21:12:32.415113
+80	73	570000.00	Cash	f	2023-12-07 14:50:00	2025-07-16 21:12:32.415113
+81	78	690000.00	Transfer	f	2023-12-08 11:35:00	2025-07-16 21:12:32.415113
+82	83	610000.00	Cash	f	2023-12-08 16:10:00	2025-07-16 21:12:32.415113
+83	88	750000.00	Cash	f	2023-12-09 09:55:00	2025-07-16 21:12:32.415113
+84	93	580000.00	Transfer	t	2023-12-12 13:20:00	2025-07-16 21:12:32.415113
+85	98	820000.00	Cash	f	2023-12-12 15:45:00	2025-07-16 21:12:32.415113
+86	6	630000.00	Transfer	f	2023-12-13 10:40:00	2025-07-16 21:12:32.415113
+87	11	710000.00	Cash	f	2023-12-13 14:25:00	2025-07-16 21:12:32.415113
+88	16	560000.00	Cash	f	2023-12-14 11:50:00	2025-07-16 21:12:32.415113
+89	21	790000.00	Transfer	t	2023-12-14 16:15:00	2025-07-16 21:12:32.415113
+90	26	620000.00	Cash	f	2023-12-15 09:30:00	2025-07-16 21:12:32.415113
+91	31	740000.00	Cash	f	2023-12-15 15:40:00	2025-07-16 21:12:32.415113
+92	36	590000.00	Transfer	f	2023-12-16 10:25:00	2025-07-16 21:12:32.415113
+93	41	680000.00	Cash	f	2023-12-19 13:35:00	2025-07-16 21:12:32.415113
+94	46	550000.00	Transfer	f	2023-12-19 16:50:00	2025-07-16 21:12:32.415113
+95	51	770000.00	Cash	t	2023-12-20 10:15:00	2025-07-16 21:12:32.415113
+96	56	640000.00	Cash	f	2023-12-20 14:30:00	2025-07-16 21:12:32.415113
+97	61	720000.00	Transfer	f	2023-12-21 11:45:00	2025-07-16 21:12:32.415113
+98	66	580000.00	Cash	f	2023-12-21 16:20:00	2025-07-16 21:12:32.415113
+99	71	690000.00	Cash	f	2024-01-03 10:20:00	2025-07-16 21:12:32.415113
+100	76	610000.00	Transfer	f	2024-01-03 14:35:00	2025-07-16 21:12:32.415113
+101	81	750000.00	Cash	t	2024-01-04 11:50:00	2025-07-16 21:12:32.415113
+102	86	570000.00	Transfer	f	2024-01-04 16:15:00	2025-07-16 21:12:32.415113
+103	91	820000.00	Cash	f	2024-01-05 09:40:00	2025-07-16 21:12:32.415113
+104	96	640000.00	Cash	f	2024-01-05 15:25:00	2025-07-16 21:12:32.415113
+105	4	710000.00	Transfer	f	2024-01-06 10:55:00	2025-07-16 21:12:32.415113
+106	9	580000.00	Cash	f	2024-01-06 14:10:00	2025-07-16 21:12:32.415113
+107	14	790000.00	Cash	t	2024-01-09 11:30:00	2025-07-16 21:12:32.415113
+108	19	620000.00	Transfer	f	2024-01-09 16:45:00	2025-07-16 21:12:32.415113
+109	24	730000.00	Cash	f	2024-01-10 09:20:00	2025-07-16 21:12:32.415113
+110	29	560000.00	Cash	f	2024-01-10 15:35:00	2025-07-16 21:12:32.415113
+111	34	680000.00	Transfer	f	2024-01-11 10:40:00	2025-07-16 21:12:32.415113
+112	39	590000.00	Cash	f	2024-01-11 14:55:00	2025-07-16 21:12:32.415113
+113	44	770000.00	Transfer	t	2024-01-12 11:25:00	2025-07-16 21:12:32.415113
+114	49	630000.00	Cash	f	2024-01-12 16:10:00	2025-07-16 21:12:32.415113
+115	54	720000.00	Cash	f	2024-01-13 09:45:00	2025-07-16 21:12:32.415113
+116	59	580000.00	Transfer	f	2024-01-16 13:20:00	2025-07-16 21:12:32.415113
+117	64	810000.00	Cash	f	2024-01-16 15:40:00	2025-07-16 21:12:32.415113
+118	69	640000.00	Cash	t	2024-01-17 10:30:00	2025-07-16 21:12:32.415113
+119	74	700000.00	Transfer	f	2024-01-17 14:45:00	2025-07-16 21:12:32.415113
+120	79	560000.00	Cash	f	2024-01-18 11:15:00	2025-07-16 21:12:32.415113
+121	84	750000.00	Cash	f	2024-01-18 16:25:00	2025-07-16 21:12:32.415113
+122	89	620000.00	Transfer	f	2024-01-19 09:55:00	2025-07-16 21:12:32.415113
+123	94	680000.00	Cash	f	2024-01-19 15:10:00	2025-07-16 21:12:32.415113
+124	99	590000.00	Transfer	t	2024-01-23 10:35:00	2025-07-16 21:12:32.415113
+125	5	730000.00	Cash	f	2024-01-23 14:50:00	2025-07-16 21:12:32.415113
+126	10	760000.00	Cash	f	2024-02-02 10:25:00	2025-07-16 21:12:32.415113
+127	15	580000.00	Transfer	f	2024-02-02 14:40:00	2025-07-16 21:12:32.415113
+128	20	820000.00	Cash	t	2024-02-03 11:15:00	2025-07-16 21:12:32.415113
+129	25	640000.00	Transfer	f	2024-02-06 16:30:00	2025-07-16 21:12:32.415113
+130	30	710000.00	Cash	f	2024-02-06 09:50:00	2025-07-16 21:12:32.415113
+131	35	590000.00	Cash	f	2024-02-07 15:45:00	2025-07-16 21:12:32.415113
+132	40	740000.00	Transfer	f	2024-02-07 10:20:00	2025-07-16 21:12:32.415113
+133	45	620000.00	Cash	f	2024-02-08 14:35:00	2025-07-16 21:12:32.415113
+134	50	780000.00	Cash	t	2024-02-08 11:55:00	2025-07-16 21:12:32.415113
+135	55	560000.00	Transfer	f	2024-02-09 16:10:00	2025-07-16 21:12:32.415113
+136	60	690000.00	Cash	f	2024-02-09 09:30:00	2025-07-16 21:12:32.415113
+137	65	610000.00	Cash	f	2024-02-10 15:25:00	2025-07-16 21:12:32.415113
+138	70	750000.00	Transfer	f	2024-02-13 10:40:00	2025-07-16 21:12:32.415113
+139	75	580000.00	Cash	f	2024-02-13 14:55:00	2025-07-16 21:12:32.415113
+140	80	720000.00	Cash	t	2024-02-14 11:20:00	2025-07-16 21:12:32.415113
+141	85	640000.00	Transfer	f	2024-02-14 16:35:00	2025-07-16 21:12:32.415113
+142	90	790000.00	Cash	f	2024-02-15 09:45:00	2025-07-16 21:12:32.415113
+143	95	570000.00	Cash	f	2024-02-15 15:50:00	2025-07-16 21:12:32.415113
+144	1	680000.00	Transfer	f	2024-02-16 10:15:00	2025-07-16 21:12:32.415113
+145	6	610000.00	Cash	f	2024-02-16 14:30:00	2025-07-16 21:12:32.415113
+146	11	730000.00	Cash	t	2024-02-17 11:40:00	2025-07-16 21:12:32.415113
+147	16	590000.00	Transfer	f	2024-02-20 16:55:00	2025-07-16 21:12:32.415113
+148	21	760000.00	Cash	f	2024-02-20 09:25:00	2025-07-16 21:12:32.415113
+149	26	620000.00	Cash	f	2024-02-21 15:40:00	2025-07-16 21:12:32.415113
+150	31	710000.00	Transfer	f	2024-02-21 10:35:00	2025-07-16 21:12:32.415113
+151	36	580000.00	Cash	f	2024-02-22 14:50:00	2025-07-16 21:12:32.415113
+152	41	740000.00	Cash	t	2024-02-22 11:15:00	2025-07-16 21:12:32.415113
+153	46	630000.00	Transfer	f	2024-02-23 16:20:00	2025-07-16 21:12:32.415113
+154	51	780000.00	Cash	f	2024-03-02 10:30:00	2025-07-16 21:12:32.415113
+155	56	640000.00	Transfer	f	2024-03-02 14:45:00	2025-07-16 21:12:32.415113
+156	61	720000.00	Cash	t	2024-03-05 11:20:00	2025-07-16 21:12:32.415113
+157	66	590000.00	Transfer	f	2024-03-05 16:35:00	2025-07-16 21:12:32.415113
+158	71	750000.00	Cash	f	2024-03-06 09:50:00	2025-07-16 21:12:32.415113
+159	76	610000.00	Cash	f	2024-03-06 15:25:00	2025-07-16 21:12:32.415113
+160	81	690000.00	Transfer	f	2024-03-07 10:40:00	2025-07-16 21:12:32.415113
+161	86	570000.00	Cash	f	2024-03-07 14:55:00	2025-07-16 21:12:32.415113
+162	91	810000.00	Cash	t	2024-03-08 11:15:00	2025-07-16 21:12:32.415113
+163	96	630000.00	Transfer	f	2024-03-08 16:30:00	2025-07-16 21:12:32.415113
+164	2	740000.00	Cash	f	2024-03-09 09:45:00	2025-07-16 21:12:32.415113
+165	7	580000.00	Cash	f	2024-03-12 15:20:00	2025-07-16 21:12:32.415113
+166	12	720000.00	Transfer	f	2024-03-12 10:35:00	2025-07-16 21:12:32.415113
+167	17	640000.00	Cash	f	2024-03-13 14:50:00	2025-07-16 21:12:32.415113
+168	22	760000.00	Cash	t	2024-03-13 11:25:00	2025-07-16 21:12:32.415113
+169	27	590000.00	Transfer	f	2024-03-14 16:40:00	2025-07-16 21:12:32.415113
+170	32	710000.00	Cash	f	2024-03-14 09:15:00	2025-07-16 21:12:32.415113
+171	37	620000.00	Cash	f	2024-03-15 15:30:00	2025-07-16 21:12:32.415113
+172	42	780000.00	Transfer	f	2024-03-15 10:45:00	2025-07-16 21:12:32.415113
+173	47	560000.00	Cash	f	2024-03-19 14:20:00	2025-07-16 21:12:32.415113
+174	52	690000.00	Cash	t	2024-03-19 11:35:00	2025-07-16 21:12:32.415113
+175	57	630000.00	Transfer	f	2024-03-20 16:50:00	2025-07-16 21:12:32.415113
+\.
+
+
+--
+-- TOC entry 3823 (class 0 OID 17306)
+-- Dependencies: 289
+-- Data for Name: pengiriman; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.pengiriman (id_pengiriman, id_toko, tanggal_kirim, dibuat_pada, diperbarui_pada, id_bulk_pengiriman) FROM stdin;
+1	1	2025-07-16	2025-07-16 15:24:18.825149	2025-07-16 15:24:18.825149	\N
+2	1	2024-01-05	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+3	2	2024-01-05	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+4	3	2024-01-06	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+5	4	2024-01-08	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+6	5	2024-01-10	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+7	6	2024-01-12	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+8	7	2024-01-15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+9	8	2024-01-18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+10	9	2024-01-20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+11	10	2024-01-22	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+12	1	2024-01-25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+13	2	2024-01-28	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+14	3	2024-02-02	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+15	4	2024-02-05	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+16	5	2024-02-08	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+17	6	2024-02-10	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+18	7	2024-02-12	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+19	8	2024-02-15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+20	9	2024-02-18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+21	10	2024-02-20	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+22	11	2024-02-22	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+23	12	2024-02-25	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+24	13	2024-02-27	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+25	1	2024-03-02	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+26	2	2024-03-05	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+27	3	2024-03-08	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+28	4	2024-03-10	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+29	5	2024-03-12	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+30	6	2024-03-15	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+31	7	2024-03-18	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+32	1	2023-10-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+33	5	2023-10-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+34	10	2023-10-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+35	15	2023-10-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+36	20	2023-10-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+37	25	2023-10-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+38	30	2023-10-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+39	35	2023-10-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+40	40	2023-10-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+41	45	2023-10-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+42	50	2023-10-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+43	55	2023-10-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+44	60	2023-10-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+45	65	2023-10-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+46	70	2023-10-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+47	75	2023-10-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+48	80	2023-10-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+49	85	2023-10-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+50	90	2023-10-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+51	95	2023-10-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+52	2	2023-10-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+53	7	2023-10-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+54	12	2023-10-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+55	17	2023-10-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+56	22	2023-10-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+57	27	2023-10-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+58	32	2023-10-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+59	37	2023-10-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+60	42	2023-10-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+61	47	2023-10-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+62	3	2023-11-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+63	8	2023-11-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+64	13	2023-11-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+65	18	2023-11-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+66	23	2023-11-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+67	28	2023-11-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+68	33	2023-11-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+69	38	2023-11-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+70	43	2023-11-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+71	48	2023-11-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+72	53	2023-11-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+73	58	2023-11-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+74	63	2023-11-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+75	68	2023-11-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+76	73	2023-11-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+77	78	2023-11-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+78	83	2023-11-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+79	88	2023-11-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+80	93	2023-11-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+81	98	2023-11-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+82	4	2023-11-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+83	9	2023-11-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+84	14	2023-11-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+85	19	2023-11-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+86	24	2023-11-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+87	29	2023-11-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+88	34	2023-11-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+89	39	2023-11-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+90	44	2023-11-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+91	49	2023-11-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+92	54	2023-11-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+93	59	2023-11-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+94	6	2023-12-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+95	11	2023-12-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+96	16	2023-12-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+97	21	2023-12-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+98	26	2023-12-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+99	31	2023-12-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+100	36	2023-12-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+101	41	2023-12-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+102	46	2023-12-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+103	51	2023-12-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+104	56	2023-12-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+105	61	2023-12-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+106	66	2023-12-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+107	71	2023-12-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+108	76	2023-12-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+109	81	2023-12-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+110	86	2023-12-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+111	91	2023-12-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+112	96	2023-12-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+113	1	2023-12-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+114	5	2023-12-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+115	10	2023-12-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+116	15	2023-12-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+117	20	2023-12-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+118	25	2023-12-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+119	30	2023-12-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+120	35	2023-12-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+121	40	2023-12-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+122	45	2023-12-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+123	50	2023-12-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+124	55	2023-12-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+125	60	2023-12-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+126	65	2023-12-27	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+127	70	2024-01-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+128	75	2024-01-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+129	80	2024-01-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+130	85	2024-01-03	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+131	90	2024-01-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+132	95	2024-01-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+133	2	2024-01-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+134	7	2024-01-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+135	12	2024-01-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+136	17	2024-01-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+137	22	2024-01-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+138	27	2024-01-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+139	32	2024-01-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+140	37	2024-01-10	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+141	42	2024-01-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+142	47	2024-01-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+143	52	2024-01-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+144	57	2024-01-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+145	62	2024-01-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+146	67	2024-01-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+147	72	2024-01-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+148	77	2024-01-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+149	82	2024-01-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+150	87	2024-01-17	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+151	92	2024-01-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+152	97	2024-01-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+153	3	2024-01-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+154	8	2024-01-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+155	13	2024-01-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+156	18	2024-01-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+157	23	2024-01-23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+158	28	2024-01-23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+159	33	2024-01-24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+160	38	2024-01-24	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+161	43	2024-02-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+162	48	2024-02-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+163	53	2024-02-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+164	58	2024-02-02	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+165	63	2024-02-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+166	68	2024-02-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+167	73	2024-02-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+168	78	2024-02-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+169	83	2024-02-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+170	88	2024-02-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+171	93	2024-02-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+172	98	2024-02-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+173	4	2024-02-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+174	9	2024-02-09	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+175	14	2024-02-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+176	19	2024-02-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+177	24	2024-02-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+178	29	2024-02-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+179	34	2024-02-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+180	39	2024-02-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+181	44	2024-02-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+182	49	2024-02-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+183	54	2024-02-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+184	59	2024-02-16	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+185	64	2024-02-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+186	69	2024-02-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+187	74	2024-02-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+188	79	2024-02-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+189	84	2024-02-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+190	89	2024-02-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+191	94	2024-02-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+192	99	2024-02-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+193	6	2024-02-23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+194	11	2024-02-23	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+195	16	2024-02-26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+196	21	2024-03-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+197	26	2024-03-01	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+198	31	2024-03-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+199	36	2024-03-04	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+200	41	2024-03-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+201	46	2024-03-05	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+202	51	2024-03-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+203	56	2024-03-06	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+204	61	2024-03-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+205	66	2024-03-07	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+206	71	2024-03-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+207	76	2024-03-08	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+208	81	2024-03-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+209	86	2024-03-11	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+210	91	2024-03-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+211	96	2024-03-12	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+212	1	2024-03-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+213	5	2024-03-13	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+214	10	2024-03-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+215	15	2024-03-14	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+216	20	2024-03-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+217	25	2024-03-15	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+218	30	2024-03-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+219	35	2024-03-18	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+220	40	2024-03-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+221	45	2024-03-19	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+222	50	2024-03-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+223	55	2024-03-20	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+224	60	2024-03-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+225	65	2024-03-21	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+226	70	2024-03-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+227	75	2024-03-22	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+228	80	2024-03-25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+229	85	2024-03-25	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+230	90	2024-03-26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+231	95	2024-03-26	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+\.
+
+
+--
+-- TOC entry 3831 (class 0 OID 17378)
+-- Dependencies: 297
+-- Data for Name: potongan_penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.potongan_penagihan (id_potongan, id_penagihan, jumlah_potongan, alasan, dibuat_pada, diperbarui_pada) FROM stdin;
+1	3	25000.00	Produk rusak - kemasan terbuka	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+2	6	15000.00	Diskon loyalitas customer	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+3	11	30000.00	Produk expired - diganti baru	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+4	15	20000.00	Kompensasi keterlambatan pengiriman	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+5	19	40000.00	Promo akhir bulan	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+6	24	18000.00	Barang cacat kemasan penyok	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+7	3	25000.00	Produk rusak - kemasan terbuka	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+8	7	15000.00	Diskon loyalitas customer	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+9	11	30000.00	Produk expired - diganti baru	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+10	16	20000.00	Kompensasi keterlambatan pengiriman	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+11	22	18000.00	Barang cacat kemasan penyok	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+12	25	35000.00	Promo akhir bulan	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+13	29	22000.00	Diskon volume pembelian	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+14	33	28000.00	Produk rusak dalam pengiriman	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+15	38	16000.00	Kompensasi komplain customer	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+16	43	24000.00	Diskon member VIP	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+17	48	32000.00	Promo natal dan tahun baru	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+18	54	19000.00	Produk mendekati expired	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+19	59	26000.00	Diskon pembayaran tunai	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+20	65	21000.00	Kompensasi keterlambatan	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+21	69	33000.00	Produk cacat produksi	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+22	74	27000.00	Diskon pembeli lama	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+23	79	23000.00	Produk rusak minor	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+24	84	31000.00	Promo tahun baru	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+25	89	17000.00	Kompensasi service	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+26	95	29000.00	Diskon quantity	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+27	98	25000.00	Produk kemasan rusak	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+28	103	20000.00	Diskon valentine	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+29	108	34000.00	Kompensasi komplain	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+30	113	22000.00	Produk expired	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+31	118	28000.00	Diskon loyalitas	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+32	123	24000.00	Promo ramadhan	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+33	128	30000.00	Produk cacat minor	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+34	133	19000.00	Diskon pembayaran cash	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+35	138	26000.00	Kompensasi delay	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+36	143	21000.00	Produk rusak pengiriman	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+\.
+
+
+--
+-- TOC entry 3819 (class 0 OID 17279)
+-- Dependencies: 285
+-- Data for Name: produk; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.produk (id_produk, nama_produk, harga_satuan, status_produk, dibuat_pada, diperbarui_pada, is_priority, priority_order) FROM stdin;
+4	Detergen Bubuk 1kg	12000.00	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	f	0
+5	Minyak Goreng 1L	18000.00	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	f	0
+6	Sabun Mandi Lifebuoy 100gr	4500.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+7	Sabun Mandi Dettol 100gr	5200.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+8	Shampo Pantene 170ml	18000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+9	Shampo Head & Shoulders 170ml	22000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+10	Pasta Gigi Pepsodent 75gr	7500.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+11	Pasta Gigi Close Up 75gr	8200.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+12	Detergen Rinso 1kg	14000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+13	Detergen Surf 1kg	13500.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+14	Mie Instan Indomie Goreng	3000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+15	Mie Instan Indomie Kuah	3000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+16	Beras Premium 5kg	75000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+17	Minyak Goreng Tropical 1L	16000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+18	Gula Pasir 1kg	15000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+19	Kopi Kapal Api 165gr	12000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+20	Teh Sariwangi 50 kantong	8500.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+21	Tissue Paseo 250 lembar	12000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+22	Pembersih Lantai Vixal 800ml	9500.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+23	Sabun Cuci Piring Sunlight 800ml	11000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+24	Pemutih Pakaian Bayclin 1L	13000.00	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+25	Pengharum Ruangan Stella 300ml	15500.00	f	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	f	0
+26	Sabun Mandi Lifebuoy 100gr	4500.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+27	Sabun Mandi Dettol 100gr	5200.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+28	Shampo Pantene 170ml	18000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+29	Shampo Head & Shoulders 170ml	22000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+30	Pasta Gigi Pepsodent 75gr	7500.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+31	Pasta Gigi Close Up 75gr	8200.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+32	Detergen Rinso 1kg	14000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+33	Detergen Surf 1kg	13500.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+34	Mie Instan Indomie Goreng	3000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+35	Mie Instan Indomie Kuah	3000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+36	Beras Premium 5kg	75000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+37	Minyak Goreng Tropical 1L	16000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+38	Gula Pasir 1kg	15000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+39	Kopi Kapal Api 165gr	12000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+40	Teh Sariwangi 50 kantong	8500.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+41	Tissue Paseo 250 lembar	12000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+42	Pembersih Lantai Vixal 800ml	9500.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+43	Sabun Cuci Piring Sunlight 800ml	11000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+44	Pemutih Pakaian Bayclin 1L	13000.00	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+45	Pengharum Ruangan Stella 300ml	15500.00	f	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	f	0
+1	Sabun Mandi 100gr	5000.00	t	2025-07-16 14:28:45.473137	2025-07-17 06:44:15.159162	t	1
+2	Shampo Botol 200ml	15000.00	t	2025-07-16 14:28:45.473137	2025-07-17 06:44:15.159162	t	2
+3	Pasta Gigi 75gr	8000.00	t	2025-07-16 14:28:45.473137	2025-07-17 06:44:15.159162	t	3
+\.
+
+
+--
+-- TOC entry 3817 (class 0 OID 17269)
+-- Dependencies: 283
+-- Data for Name: sales; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.sales (id_sales, nama_sales, nomor_telepon, status_aktif, dibuat_pada, diperbarui_pada) FROM stdin;
+1	Ahmad Susanto	081234567890	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137
+2	Budi Santoso	081234567891	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137
+3	Citra Dewi	081234567892	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137
+4	Ahmad Susanto	081234567890	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+5	Budi Santoso	081234567891	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+6	Citra Dewi	081234567892	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+7	Denny Prasetyo	081234567893	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+8	Eka Sari	081234567894	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+9	Farid Rahman	081234567895	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+10	Gita Indira	081234567896	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+11	Hadi Nugroho	081234567897	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+12	Ika Putri	081234567898	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+13	Joko Widodo	081234567899	f	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594
+14	Ahmad Susanto	081234567890	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+15	Budi Santoso	081234567891	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+16	Citra Dewi	081234567892	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+17	Denny Prasetyo	081234567893	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+18	Eka Sari	081234567894	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+19	Farid Rahman	081234567895	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+20	Gita Indira	081234567896	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+21	Hadi Nugroho	081234567897	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+22	Ika Putri	081234567898	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+23	Joko Widodo	081234567899	f	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113
+\.
+
+
+--
+-- TOC entry 3833 (class 0 OID 17395)
+-- Dependencies: 299
+-- Data for Name: setoran; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.setoran (id_setoran, total_setoran, penerima_setoran, dibuat_pada, diperbarui_pada) FROM stdin;
+1	1450000.00	Ahmad Susanto	2024-01-06 18:00:00	2025-07-16 16:07:24.519594
+2	850000.00	Budi Santoso	2024-01-09 18:30:00	2025-07-16 16:07:24.519594
+3	1200000.00	Citra Dewi	2024-01-11 19:00:00	2025-07-16 16:07:24.519594
+4	920000.00	Ahmad Susanto	2024-01-13 18:15:00	2025-07-16 16:07:24.519594
+5	1100000.00	Denny Prasetyo	2024-01-16 17:45:00	2025-07-16 16:07:24.519594
+6	750000.00	Eka Sari	2024-01-19 18:20:00	2025-07-16 16:07:24.519594
+7	1350000.00	Farid Rahman	2024-01-21 19:30:00	2025-07-16 16:07:24.519594
+8	980000.00	Gita Indira	2024-01-23 18:45:00	2025-07-16 16:07:24.519594
+9	1250000.00	Hadi Nugroho	2024-01-26 17:30:00	2025-07-16 16:07:24.519594
+10	820000.00	Ahmad Susanto	2024-01-29 18:50:00	2025-07-16 16:07:24.519594
+11	1180000.00	Budi Santoso	2024-02-03 18:10:00	2025-07-16 16:07:24.519594
+12	900000.00	Citra Dewi	2024-02-06 19:15:00	2025-07-16 16:07:24.519594
+13	1420000.00	Denny Prasetyo	2024-02-09 17:40:00	2025-07-16 16:07:24.519594
+14	1050000.00	Eka Sari	2024-02-11 18:25:00	2025-07-16 16:07:24.519594
+15	780000.00	Farid Rahman	2024-02-13 19:05:00	2025-07-16 16:07:24.519594
+16	1320000.00	Gita Indira	2024-02-16 18:35:00	2025-07-16 16:07:24.519594
+17	950000.00	Hadi Nugroho	2024-02-19 17:55:00	2025-07-16 16:07:24.519594
+18	1480000.00	Ahmad Susanto	2024-03-03 18:40:00	2025-07-16 16:07:24.519594
+19	1100000.00	Budi Santoso	2024-03-06 19:20:00	2025-07-16 16:07:24.519594
+20	1650000.00	Citra Dewi	2024-03-09 18:15:00	2025-07-16 16:07:24.519594
+21	1450000.00	Ahmad Susanto	2023-10-06 18:00:00	2025-07-16 21:12:32.415113
+22	1200000.00	Budi Santoso	2023-10-06 18:30:00	2025-07-16 21:12:32.415113
+23	1580000.00	Citra Dewi	2023-10-09 18:15:00	2025-07-16 21:12:32.415113
+24	1320000.00	Denny Prasetyo	2023-10-09 18:45:00	2025-07-16 21:12:32.415113
+25	1750000.00	Eka Sari	2023-10-12 19:00:00	2025-07-16 21:12:32.415113
+26	1180000.00	Farid Rahman	2023-10-12 19:30:00	2025-07-16 21:12:32.415113
+27	1420000.00	Gita Indira	2023-10-13 18:20:00	2025-07-16 21:12:32.415113
+28	1680000.00	Hadi Nugroho	2023-10-13 18:50:00	2025-07-16 21:12:32.415113
+29	1350000.00	Ika Putri	2023-10-16 19:15:00	2025-07-16 21:12:32.415113
+30	1500000.00	Ahmad Susanto	2023-10-16 19:45:00	2025-07-16 21:12:32.415113
+31	1220000.00	Budi Santoso	2023-10-19 18:10:00	2025-07-16 21:12:32.415113
+32	1630000.00	Citra Dewi	2023-10-19 18:40:00	2025-07-16 21:12:32.415113
+33	1480000.00	Denny Prasetyo	2023-10-20 19:25:00	2025-07-16 21:12:32.415113
+34	1390000.00	Eka Sari	2023-10-20 19:55:00	2025-07-16 21:12:32.415113
+35	1720000.00	Farid Rahman	2023-10-23 18:30:00	2025-07-16 21:12:32.415113
+36	1560000.00	Gita Indira	2023-11-03 18:25:00	2025-07-16 21:12:32.415113
+37	1280000.00	Hadi Nugroho	2023-11-03 18:55:00	2025-07-16 21:12:32.415113
+38	1640000.00	Ika Putri	2023-11-06 19:10:00	2025-07-16 21:12:32.415113
+39	1420000.00	Ahmad Susanto	2023-11-06 19:40:00	2025-07-16 21:12:32.415113
+40	1750000.00	Budi Santoso	2023-11-09 18:15:00	2025-07-16 21:12:32.415113
+41	1180000.00	Citra Dewi	2023-11-09 18:45:00	2025-07-16 21:12:32.415113
+42	1590000.00	Denny Prasetyo	2023-11-10 19:20:00	2025-07-16 21:12:32.415113
+43	1330000.00	Eka Sari	2023-11-10 19:50:00	2025-07-16 21:12:32.415113
+44	1680000.00	Farid Rahman	2023-11-13 18:35:00	2025-07-16 21:12:32.415113
+45	1240000.00	Gita Indira	2023-11-13 19:05:00	2025-07-16 21:12:32.415113
+46	1520000.00	Hadi Nugroho	2023-11-16 18:20:00	2025-07-16 21:12:32.415113
+47	1460000.00	Ika Putri	2023-11-16 18:50:00	2025-07-16 21:12:32.415113
+48	1370000.00	Ahmad Susanto	2023-11-17 19:15:00	2025-07-16 21:12:32.415113
+49	1610000.00	Budi Santoso	2023-11-17 19:45:00	2025-07-16 21:12:32.415113
+50	1490000.00	Citra Dewi	2023-11-20 18:30:00	2025-07-16 21:12:32.415113
+51	1720000.00	Denny Prasetyo	2023-11-20 19:00:00	2025-07-16 21:12:32.415113
+52	1580000.00	Eka Sari	2023-12-04 18:40:00	2025-07-16 21:12:32.415113
+53	1320000.00	Farid Rahman	2023-12-04 19:10:00	2025-07-16 21:12:32.415113
+54	1650000.00	Gita Indira	2023-12-07 18:25:00	2025-07-16 21:12:32.415113
+55	1180000.00	Hadi Nugroho	2023-12-07 18:55:00	2025-07-16 21:12:32.415113
+56	1730000.00	Ika Putri	2023-12-08 19:20:00	2025-07-16 21:12:32.415113
+57	1420000.00	Ahmad Susanto	2023-12-08 19:50:00	2025-07-16 21:12:32.415113
+58	1560000.00	Budi Santoso	2023-12-11 18:15:00	2025-07-16 21:12:32.415113
+59	1290000.00	Citra Dewi	2023-12-11 18:45:00	2025-07-16 21:12:32.415113
+60	1680000.00	Denny Prasetyo	2023-12-14 19:30:00	2025-07-16 21:12:32.415113
+61	1350000.00	Eka Sari	2023-12-14 20:00:00	2025-07-16 21:12:32.415113
+62	1540000.00	Farid Rahman	2023-12-15 18:35:00	2025-07-16 21:12:32.415113
+63	1470000.00	Gita Indira	2023-12-15 19:05:00	2025-07-16 21:12:32.415113
+64	1620000.00	Hadi Nugroho	2023-12-18 18:20:00	2025-07-16 21:12:32.415113
+65	1380000.00	Ika Putri	2023-12-18 18:50:00	2025-07-16 21:12:32.415113
+66	1710000.00	Ahmad Susanto	2023-12-21 19:15:00	2025-07-16 21:12:32.415113
+67	1250000.00	Budi Santoso	2023-12-21 19:45:00	2025-07-16 21:12:32.415113
+68	1590000.00	Citra Dewi	2023-12-22 18:30:00	2025-07-16 21:12:32.415113
+69	1480000.00	Denny Prasetyo	2024-01-05 19:00:00	2025-07-16 21:12:32.415113
+70	1720000.00	Eka Sari	2024-01-05 19:30:00	2025-07-16 21:12:32.415113
+71	1340000.00	Farid Rahman	2024-01-08 18:45:00	2025-07-16 21:12:32.415113
+72	1630000.00	Gita Indira	2024-01-08 19:15:00	2025-07-16 21:12:32.415113
+73	1190000.00	Hadi Nugroho	2024-01-11 18:20:00	2025-07-16 21:12:32.415113
+74	1570000.00	Ika Putri	2024-01-11 18:50:00	2025-07-16 21:12:32.415113
+75	1410000.00	Ahmad Susanto	2024-01-12 19:25:00	2025-07-16 21:12:32.415113
+76	1680000.00	Budi Santoso	2024-01-12 19:55:00	2025-07-16 21:12:32.415113
+77	1280000.00	Citra Dewi	2024-01-15 18:10:00	2025-07-16 21:12:32.415113
+78	1750000.00	Denny Prasetyo	2024-01-15 18:40:00	2025-07-16 21:12:32.415113
+79	1520000.00	Eka Sari	2024-01-18 19:05:00	2025-07-16 21:12:32.415113
+80	1460000.00	Farid Rahman	2024-01-18 19:35:00	2025-07-16 21:12:32.415113
+81	1640000.00	Gita Indira	2024-01-19 18:50:00	2025-07-16 21:12:32.415113
+82	1370000.00	Hadi Nugroho	2024-01-19 19:20:00	2025-07-16 21:12:32.415113
+83	1590000.00	Ika Putri	2024-01-22 18:15:00	2025-07-16 21:12:32.415113
+84	1300000.00	Ahmad Susanto	2024-01-22 18:45:00	2025-07-16 21:12:32.415113
+85	1710000.00	Budi Santoso	2024-01-25 19:10:00	2025-07-16 21:12:32.415113
+86	1450000.00	Citra Dewi	2024-02-02 19:40:00	2025-07-16 21:12:32.415113
+87	1680000.00	Denny Prasetyo	2024-02-02 20:10:00	2025-07-16 21:12:32.415113
+88	1320000.00	Eka Sari	2024-02-05 18:25:00	2025-07-16 21:12:32.415113
+89	1580000.00	Farid Rahman	2024-02-05 18:55:00	2025-07-16 21:12:32.415113
+90	1240000.00	Gita Indira	2024-02-08 19:20:00	2025-07-16 21:12:32.415113
+91	1730000.00	Hadi Nugroho	2024-02-08 19:50:00	2025-07-16 21:12:32.415113
+92	1490000.00	Ika Putri	2024-02-09 18:35:00	2025-07-16 21:12:32.415113
+93	1620000.00	Ahmad Susanto	2024-02-09 19:05:00	2025-07-16 21:12:32.415113
+94	1380000.00	Budi Santoso	2024-02-12 18:20:00	2025-07-16 21:12:32.415113
+95	1560000.00	Citra Dewi	2024-02-12 18:50:00	2025-07-16 21:12:32.415113
+96	1410000.00	Denny Prasetyo	2024-02-15 19:15:00	2025-07-16 21:12:32.415113
+97	1690000.00	Eka Sari	2024-02-15 19:45:00	2025-07-16 21:12:32.415113
+98	1270000.00	Farid Rahman	2024-02-16 18:30:00	2025-07-16 21:12:32.415113
+99	1750000.00	Gita Indira	2024-02-16 19:00:00	2025-07-16 21:12:32.415113
+100	1520000.00	Hadi Nugroho	2024-02-19 18:45:00	2025-07-16 21:12:32.415113
+101	1440000.00	Ika Putri	2024-02-19 19:15:00	2025-07-16 21:12:32.415113
+102	1610000.00	Ahmad Susanto	2024-02-22 18:40:00	2025-07-16 21:12:32.415113
+103	1350000.00	Budi Santoso	2024-02-22 19:10:00	2025-07-16 21:12:32.415113
+104	1680000.00	Citra Dewi	2024-03-04 19:35:00	2025-07-16 21:12:32.415113
+105	1420000.00	Denny Prasetyo	2024-03-04 20:05:00	2025-07-16 21:12:32.415113
+106	1570000.00	Eka Sari	2024-03-07 18:20:00	2025-07-16 21:12:32.415113
+107	1290000.00	Farid Rahman	2024-03-07 18:50:00	2025-07-16 21:12:32.415113
+108	1740000.00	Gita Indira	2024-03-08 19:25:00	2025-07-16 21:12:32.415113
+109	1380000.00	Hadi Nugroho	2024-03-08 19:55:00	2025-07-16 21:12:32.415113
+110	1630000.00	Ika Putri	2024-03-11 18:10:00	2025-07-16 21:12:32.415113
+111	1460000.00	Ahmad Susanto	2024-03-11 18:40:00	2025-07-16 21:12:32.415113
+112	1520000.00	Budi Santoso	2024-03-14 19:05:00	2025-07-16 21:12:32.415113
+113	1680000.00	Citra Dewi	2024-03-14 19:35:00	2025-07-16 21:12:32.415113
+114	1310000.00	Denny Prasetyo	2024-03-15 18:50:00	2025-07-16 21:12:32.415113
+115	1590000.00	Eka Sari	2024-03-15 19:20:00	2025-07-16 21:12:32.415113
+116	1440000.00	Farid Rahman	2024-03-18 18:15:00	2025-07-16 21:12:32.415113
+117	1720000.00	Gita Indira	2024-03-18 18:45:00	2025-07-16 21:12:32.415113
+118	1380000.00	Hadi Nugroho	2024-03-21 19:10:00	2025-07-16 21:12:32.415113
+119	1610000.00	Ika Putri	2024-03-21 19:40:00	2025-07-16 21:12:32.415113
+120	1350000.00	Ahmad Susanto	2024-03-25 18:25:00	2025-07-16 21:12:32.415113
+121	200000.00	istiomah	2025-07-17 10:50:55.967463	2025-07-17 10:50:55.967463
+\.
+
+
+--
+-- TOC entry 3821 (class 0 OID 17289)
+-- Dependencies: 287
+-- Data for Name: toko; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.toko (id_toko, id_sales, nama_toko, kecamatan, kabupaten, link_gmaps, status_toko, dibuat_pada, diperbarui_pada, no_telepon) FROM stdin;
+1	1	Toko Berkah	Kec. Sukamaju	Kab. Sukabumi	\N	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	\N
+2	1	Warung Sari	Kec. Makmur	Kab. Sukabumi	\N	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	\N
+3	2	Toko Sejahtera	Kec. Damai	Kab. Bogor	\N	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	\N
+4	3	Minimarket Indah	Kec. Sentosa	Kab. Bogor	\N	t	2025-07-16 14:28:45.473137	2025-07-16 14:28:45.473137	\N
+5	1	Toko Berkah Jaya	Kec. Sukamaju	Kab. Sukabumi	https://goo.gl/maps/example1	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+6	1	Warung Sari Melati	Kec. Makmur	Kab. Sukabumi	https://goo.gl/maps/example2	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+7	1	Minimarket Bahagia	Kec. Sukamaju	Kab. Sukabumi	https://goo.gl/maps/example3	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+8	2	Toko Sejahtera Mandiri	Kec. Damai	Kab. Bogor	https://goo.gl/maps/example4	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+9	2	Warung Bu Imas	Kec. Ciawi	Kab. Bogor	https://goo.gl/maps/example5	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+10	3	Minimarket Indah Permai	Kec. Sentosa	Kab. Bogor	https://goo.gl/maps/example6	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+11	3	Toko Serba Ada Murah	Kec. Bogor Utara	Kab. Bogor	https://goo.gl/maps/example7	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+12	4	Warung Keluarga Bahagia	Kec. Mande	Kab. Cianjur	https://goo.gl/maps/example8	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+13	4	Toko Bangunan Jaya	Kec. Cianjur	Kab. Cianjur	https://goo.gl/maps/example9	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+14	5	Minimarket Swalayan 24	Kec. Dayeuhkolot	Kab. Bandung	https://goo.gl/maps/example10	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+15	5	Toko Kelontong Ibu Haji	Kec. Bojongsoang	Kab. Bandung	https://goo.gl/maps/example11	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+16	6	Warung Mitra Usaha	Kec. Tarogong Kidul	Kab. Garut	https://goo.gl/maps/example12	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+17	7	Toko Modern Jaya	Kec. Tawang	Kab. Tasikmalaya	https://goo.gl/maps/example13	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+18	7	Minimarket Keluarga	Kec. Sukarame	Kab. Tasikmalaya	https://goo.gl/maps/example14	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+19	8	Warung Berkah Rezeki	Kec. Kejaksan	Kota Cirebon	https://goo.gl/maps/example15	t	2025-07-16 16:07:24.519594	2025-07-16 16:07:24.519594	\N
+20	1	Toko Berkah Jaya	Kec. Sukamaju	Kab. Sukabumi	https://goo.gl/maps/example1	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+21	1	Warung Sari Melati	Kec. Makmur	Kab. Sukabumi	https://goo.gl/maps/example2	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+22	1	Minimarket Bahagia	Kec. Sukamaju	Kab. Sukabumi	https://goo.gl/maps/example3	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+23	1	Toko Serba Ada Mandiri	Kec. Cikole	Kab. Sukabumi	https://goo.gl/maps/example4	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+24	1	Warung Keluarga Sejahtera	Kec. Cisaat	Kab. Sukabumi	https://goo.gl/maps/example5	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+25	1	Toko Bangunan Berkah	Kec. Palabuhanratu	Kab. Sukabumi	https://goo.gl/maps/example6	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+26	1	Minimarket 24 Jam	Kec. Jampang Tengah	Kab. Sukabumi	https://goo.gl/maps/example7	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+27	1	Warung Bu Tini	Kec. Nagrak	Kab. Sukabumi	https://goo.gl/maps/example8	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+28	1	Toko Elektronik Jaya	Kec. Sukalarang	Kab. Sukabumi	https://goo.gl/maps/example9	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+29	1	Warung Kopi Hangat	Kec. Cibadak	Kab. Sukabumi	https://goo.gl/maps/example10	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+30	1	Toko Kelontong Ibu Haji	Kec. Cisolok	Kab. Sukabumi	https://goo.gl/maps/example11	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+31	1	Minimarket Swalayan Plus	Kec. Parungkuda	Kab. Sukabumi	https://goo.gl/maps/example12	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+32	2	Toko Sejahtera Mandiri	Kec. Damai	Kab. Bogor	https://goo.gl/maps/example13	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+33	2	Warung Bu Imas	Kec. Ciawi	Kab. Bogor	https://goo.gl/maps/example14	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+34	2	Minimarket Fresh Mart	Kec. Bogor Tengah	Kab. Bogor	https://goo.gl/maps/example15	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+35	2	Toko Beras Berkah	Kec. Babakan	Kab. Bogor	https://goo.gl/maps/example16	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+36	2	Warung Sayur Segar	Kec. Dramaga	Kab. Bogor	https://goo.gl/maps/example17	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+37	2	Toko Alat Tulis Lengkap	Kec. Empang	Kab. Bogor	https://goo.gl/maps/example18	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+38	2	Minimarket Keluarga Bahagia	Kec. Cileungsi	Kab. Bogor	https://goo.gl/maps/example19	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+39	2	Warung Nasi Gudeg	Kec. Cibinong	Kab. Bogor	https://goo.gl/maps/example20	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+40	2	Toko Obat Sehat	Kec. Parung	Kab. Bogor	https://goo.gl/maps/example21	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+41	2	Minimarket 212	Kec. Kemang	Kab. Bogor	https://goo.gl/maps/example22	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+42	2	Warung Bakso Malang	Kec. Leuwiliang	Kab. Bogor	https://goo.gl/maps/example23	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+43	3	Minimarket Indah Permai	Kec. Sentosa	Kab. Bogor	https://goo.gl/maps/example24	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+44	3	Toko Serba Ada Murah	Kec. Bogor Utara	Kab. Bogor	https://goo.gl/maps/example25	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+45	3	Warung Teh Manis	Kec. Tajur	Kab. Bogor	https://goo.gl/maps/example26	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+46	3	Toko Pakaian Trendy	Kec. Ciluar	Kab. Bogor	https://goo.gl/maps/example27	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+47	3	Minimarket Berkah Rezeki	Kec. Cijeruk	Kab. Bogor	https://goo.gl/maps/example28	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+48	3	Warung Pecel Lele	Kec. Cigombong	Kab. Bogor	https://goo.gl/maps/example29	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+49	3	Toko Sepatu Olahraga	Kec. Ciampea	Kab. Bogor	https://goo.gl/maps/example30	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+50	3	Minimarket Sumber Rejeki	Kec. Rumpin	Kab. Bogor	https://goo.gl/maps/example31	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+51	3	Warung Soto Betawi	Kec. Jasinga	Kab. Bogor	https://goo.gl/maps/example32	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+52	3	Toko Bunga Indah	Kec. Tenjo	Kab. Bogor	https://goo.gl/maps/example33	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+53	4	Warung Keluarga Bahagia	Kec. Mande	Kab. Cianjur	https://goo.gl/maps/example34	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+54	4	Toko Bangunan Jaya	Kec. Cianjur	Kab. Cianjur	https://goo.gl/maps/example35	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+55	4	Minimarket Sinar Harapan	Kec. Cipanas	Kab. Cianjur	https://goo.gl/maps/example36	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+56	4	Warung Ayam Geprek	Kec. Cibeber	Kab. Cianjur	https://goo.gl/maps/example37	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+57	4	Toko Elektronik Maju	Kec. Cugenang	Kab. Cianjur	https://goo.gl/maps/example38	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+58	4	Minimarket Cahaya Baru	Kec. Takokak	Kab. Cianjur	https://goo.gl/maps/example39	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+59	4	Warung Gado-Gado	Kec. Campaka	Kab. Cianjur	https://goo.gl/maps/example40	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+60	4	Toko Tas dan Koper	Kec. Cikalongkulon	Kab. Cianjur	https://goo.gl/maps/example41	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+61	4	Minimarket Fajar Baru	Kec. Bojongpicung	Kab. Cianjur	https://goo.gl/maps/example42	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+62	4	Warung Es Kelapa Muda	Kec. Kadupandak	Kab. Cianjur	https://goo.gl/maps/example43	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+63	5	Minimarket Swalayan 24	Kec. Dayeuhkolot	Kab. Bandung	https://goo.gl/maps/example44	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+64	5	Toko Kelontong Ibu Haji	Kec. Bojongsoang	Kab. Bandung	https://goo.gl/maps/example45	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+65	5	Warung Mie Ayam Bakso	Kec. Cicalengka	Kab. Bandung	https://goo.gl/maps/example46	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+66	5	Toko Buku dan ATK	Kec. Majalaya	Kab. Bandung	https://goo.gl/maps/example47	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+67	5	Minimarket Sumber Berkah	Kec. Rancaekek	Kab. Bandung	https://goo.gl/maps/example48	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+68	5	Warung Nasi Liwet	Kec. Cileunyi	Kab. Bandung	https://goo.gl/maps/example49	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+69	5	Toko Handphone Murah	Kec. Baleendah	Kab. Bandung	https://goo.gl/maps/example50	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+70	5	Minimarket Global	Kec. Margaasih	Kab. Bandung	https://goo.gl/maps/example51	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+71	5	Warung Bakmi Jawa	Kec. Katapang	Kab. Bandung	https://goo.gl/maps/example52	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+72	5	Toko Sepeda Motor	Kec. Soreang	Kab. Bandung	https://goo.gl/maps/example53	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+73	5	Minimarket Bintang Terang	Kec. Pangalengan	Kab. Bandung	https://goo.gl/maps/example54	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+74	6	Warung Mitra Usaha	Kec. Tarogong Kidul	Kab. Garut	https://goo.gl/maps/example55	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+75	6	Toko Pakaian Muslim	Kec. Leles	Kab. Garut	https://goo.gl/maps/example56	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+76	6	Minimarket Berkah Jaya	Kec. Banyuresmi	Kab. Garut	https://goo.gl/maps/example57	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+77	6	Warung Pecel Ayam	Kec. Cikajang	Kab. Garut	https://goo.gl/maps/example58	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+78	6	Toko Obat Herbal	Kec. Cisompet	Kab. Garut	https://goo.gl/maps/example59	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+79	6	Minimarket Sejahtera	Kec. Malangbong	Kab. Garut	https://goo.gl/maps/example60	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+80	6	Warung Sate Kambing	Kec. Singajaya	Kab. Garut	https://goo.gl/maps/example61	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+81	6	Toko Perhiasan Emas	Kec. Kadungora	Kab. Garut	https://goo.gl/maps/example62	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+82	6	Minimarket Mutiara	Kec. Cibiuk	Kab. Garut	https://goo.gl/maps/example63	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+83	7	Toko Modern Jaya	Kec. Tawang	Kab. Tasikmalaya	https://goo.gl/maps/example64	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+84	7	Minimarket Keluarga	Kec. Sukarame	Kab. Tasikmalaya	https://goo.gl/maps/example65	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+85	7	Warung Gudeg Jogja	Kec. Kawalu	Kab. Tasikmalaya	https://goo.gl/maps/example66	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+86	7	Toko Elektronik Canggih	Kec. Cipedes	Kab. Tasikmalaya	https://goo.gl/maps/example67	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+87	7	Minimarket Harapan Baru	Kec. Mangkubumi	Kab. Tasikmalaya	https://goo.gl/maps/example68	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+88	7	Warung Rawon Surabaya	Kec. Indihiang	Kab. Tasikmalaya	https://goo.gl/maps/example69	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+89	7	Toko Jam Tangan	Kec. Cibeureum	Kab. Tasikmalaya	https://goo.gl/maps/example70	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+90	7	Minimarket Sinar Mentari	Kec. Salopa	Kab. Tasikmalaya	https://goo.gl/maps/example71	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+91	7	Warung Nasi Padang	Kec. Sodonghilir	Kab. Tasikmalaya	https://goo.gl/maps/example72	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+92	7	Toko Kacamata Optik	Kec. Cigalontang	Kab. Tasikmalaya	https://goo.gl/maps/example73	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+93	8	Warung Berkah Rezeki	Kec. Kejaksan	Kota Cirebon	https://goo.gl/maps/example74	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+94	8	Toko Komputer Lengkap	Kec. Lemahwungkuk	Kota Cirebon	https://goo.gl/maps/example75	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+95	8	Minimarket Rejeki Nomplok	Kec. Pekalipan	Kota Cirebon	https://goo.gl/maps/example76	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+96	8	Warung Empal Gentong	Kec. Harjamukti	Kota Cirebon	https://goo.gl/maps/example77	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+97	8	Toko Mainan Anak	Kec. Kesambi	Kota Cirebon	https://goo.gl/maps/example78	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+98	8	Minimarket Bintang Lima	Kec. Sumber	Kab. Cirebon	https://goo.gl/maps/example79	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+99	8	Warung Tahu Gejrot	Kec. Kapetakan	Kab. Cirebon	https://goo.gl/maps/example80	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+100	8	Toko Alat Dapur	Kec. Babakan	Kab. Cirebon	https://goo.gl/maps/example81	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+101	8	Minimarket Harapan Indah	Kec. Ciledug	Kab. Cirebon	https://goo.gl/maps/example82	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+102	8	Warung Sop Buntut	Kec. Losari	Kab. Cirebon	https://goo.gl/maps/example83	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+103	8	Toko Kosmetik Cantik	Kec. Pabedilan	Kab. Cirebon	https://goo.gl/maps/example84	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+104	9	Minimarket Swalayan Murah	Kec. Kuningan	Kab. Kuningan	https://goo.gl/maps/example85	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+105	9	Warung Ayam Bakar	Kec. Cigugur	Kab. Kuningan	https://goo.gl/maps/example86	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+106	9	Toko Peralatan Rumah	Kec. Ciwaru	Kab. Kuningan	https://goo.gl/maps/example87	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+107	9	Minimarket Berkah Dagang	Kec. Cilimus	Kab. Kuningan	https://goo.gl/maps/example88	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+108	9	Warung Soto Kuning	Kec. Pancalang	Kab. Kuningan	https://goo.gl/maps/example89	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+109	9	Toko Kain dan Tekstil	Kec. Kadugede	Kab. Kuningan	https://goo.gl/maps/example90	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+110	9	Minimarket Cahaya Terang	Kec. Ciawigebang	Kab. Kuningan	https://goo.gl/maps/example91	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+111	9	Warung Gule Kambing	Kec. Subang	Kab. Subang	https://goo.gl/maps/example92	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+112	9	Toko Perhiasan Mutiara	Kec. Kalijati	Kab. Subang	https://goo.gl/maps/example93	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+113	9	Minimarket Rejeki Barokah	Kec. Sagalaherang	Kab. Subang	https://goo.gl/maps/example94	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+114	9	Warung Peuyeum Bandung	Kec. Cijambe	Kab. Subang	https://goo.gl/maps/example95	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+115	9	Toko Alat Pertanian	Kec. Cibogo	Kab. Subang	https://goo.gl/maps/example96	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+116	9	Minimarket Sumber Rejeki	Kec. Purwadadi	Kab. Subang	https://goo.gl/maps/example97	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+117	9	Warung Coto Makassar	Kec. Compreng	Kab. Subang	https://goo.gl/maps/example98	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+118	9	Toko Furniture Jati	Kec. Blanakan	Kab. Subang	https://goo.gl/maps/example99	t	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+119	10	Toko Tutup Sementara	Kec. Indramayu	Kab. Indramayu	https://goo.gl/maps/example100	f	2025-07-16 21:12:32.415113	2025-07-16 21:12:32.415113	\N
+\.
+
+
+--
+-- TOC entry 3881 (class 0 OID 0)
+-- Dependencies: 305
+-- Name: bulk_pengiriman_id_bulk_pengiriman_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.bulk_pengiriman_id_bulk_pengiriman_seq', 1, true);
+
+
+--
+-- TOC entry 3882 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.detail_penagihan_id_detail_tagih_seq', 435, true);
+
+
+--
+-- TOC entry 3883 (class 0 OID 0)
+-- Dependencies: 290
+-- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.detail_pengiriman_id_detail_kirim_seq', 526, true);
+
+
+--
+-- TOC entry 3884 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: penagihan_id_penagihan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.penagihan_id_penagihan_seq', 175, true);
+
+
+--
+-- TOC entry 3885 (class 0 OID 0)
+-- Dependencies: 288
+-- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.pengiriman_id_pengiriman_seq', 231, true);
+
+
+--
+-- TOC entry 3886 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.potongan_penagihan_id_potongan_seq', 36, true);
+
+
+--
+-- TOC entry 3887 (class 0 OID 0)
+-- Dependencies: 284
+-- Name: produk_id_produk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.produk_id_produk_seq', 45, true);
+
+
+--
+-- TOC entry 3888 (class 0 OID 0)
+-- Dependencies: 282
+-- Name: sales_id_sales_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.sales_id_sales_seq', 23, true);
+
+
+--
+-- TOC entry 3889 (class 0 OID 0)
+-- Dependencies: 298
+-- Name: setoran_id_setoran_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.setoran_id_setoran_seq', 121, true);
+
+
+--
+-- TOC entry 3890 (class 0 OID 0)
+-- Dependencies: 286
+-- Name: toko_id_toko_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.toko_id_toko_seq', 119, true);
+
+
+--
+-- TOC entry 3619 (class 2606 OID 17552)
+-- Name: bulk_pengiriman bulk_pengiriman_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bulk_pengiriman
+    ADD CONSTRAINT bulk_pengiriman_pkey PRIMARY KEY (id_bulk_pengiriman);
+
+
+--
+-- TOC entry 3609 (class 2606 OID 17366)
+-- Name: detail_penagihan detail_penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_penagihan
+    ADD CONSTRAINT detail_penagihan_pkey PRIMARY KEY (id_detail_tagih);
+
+
+--
+-- TOC entry 3601 (class 2606 OID 17328)
+-- Name: detail_pengiriman detail_pengiriman_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_pengiriman
+    ADD CONSTRAINT detail_pengiriman_pkey PRIMARY KEY (id_detail_kirim);
+
+
+--
+-- TOC entry 3607 (class 2606 OID 17350)
+-- Name: penagihan penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.penagihan
+    ADD CONSTRAINT penagihan_pkey PRIMARY KEY (id_penagihan);
+
+
+--
+-- TOC entry 3599 (class 2606 OID 17313)
+-- Name: pengiriman pengiriman_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pengiriman
+    ADD CONSTRAINT pengiriman_pkey PRIMARY KEY (id_pengiriman);
+
+
+--
+-- TOC entry 3614 (class 2606 OID 17388)
+-- Name: potongan_penagihan potongan_penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.potongan_penagihan
+    ADD CONSTRAINT potongan_penagihan_pkey PRIMARY KEY (id_potongan);
+
+
+--
+-- TOC entry 3590 (class 2606 OID 17287)
+-- Name: produk produk_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.produk
+    ADD CONSTRAINT produk_pkey PRIMARY KEY (id_produk);
+
+
+--
+-- TOC entry 3587 (class 2606 OID 17277)
+-- Name: sales sales_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sales
+    ADD CONSTRAINT sales_pkey PRIMARY KEY (id_sales);
+
+
+--
+-- TOC entry 3617 (class 2606 OID 17403)
+-- Name: setoran setoran_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.setoran
+    ADD CONSTRAINT setoran_pkey PRIMARY KEY (id_setoran);
+
+
+--
+-- TOC entry 3594 (class 2606 OID 17299)
+-- Name: toko toko_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.toko
+    ADD CONSTRAINT toko_pkey PRIMARY KEY (id_toko);
+
+
+--
+-- TOC entry 3620 (class 1259 OID 17563)
+-- Name: idx_bulk_pengiriman_sales; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bulk_pengiriman_sales ON public.bulk_pengiriman USING btree (id_sales);
+
+
+--
+-- TOC entry 3621 (class 1259 OID 17564)
+-- Name: idx_bulk_pengiriman_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bulk_pengiriman_tanggal ON public.bulk_pengiriman USING btree (tanggal_kirim);
+
+
+--
+-- TOC entry 3610 (class 1259 OID 17411)
+-- Name: idx_detail_penagihan_penagihan; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_detail_penagihan_penagihan ON public.detail_penagihan USING btree (id_penagihan);
+
+
+--
+-- TOC entry 3611 (class 1259 OID 17412)
+-- Name: idx_detail_penagihan_produk; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_detail_penagihan_produk ON public.detail_penagihan USING btree (id_produk);
+
+
+--
+-- TOC entry 3602 (class 1259 OID 17407)
+-- Name: idx_detail_pengiriman_pengiriman; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_detail_pengiriman_pengiriman ON public.detail_pengiriman USING btree (id_pengiriman);
+
+
+--
+-- TOC entry 3603 (class 1259 OID 17408)
+-- Name: idx_detail_pengiriman_produk; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_detail_pengiriman_produk ON public.detail_pengiriman USING btree (id_produk);
+
+
+--
+-- TOC entry 3604 (class 1259 OID 17410)
+-- Name: idx_penagihan_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_penagihan_tanggal ON public.penagihan USING btree (dibuat_pada);
+
+
+--
+-- TOC entry 3605 (class 1259 OID 17409)
+-- Name: idx_penagihan_toko; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_penagihan_toko ON public.penagihan USING btree (id_toko);
+
+
+--
+-- TOC entry 3595 (class 1259 OID 17565)
+-- Name: idx_pengiriman_bulk; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_pengiriman_bulk ON public.pengiriman USING btree (id_bulk_pengiriman);
+
+
+--
+-- TOC entry 3596 (class 1259 OID 17406)
+-- Name: idx_pengiriman_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_pengiriman_tanggal ON public.pengiriman USING btree (tanggal_kirim);
+
+
+--
+-- TOC entry 3597 (class 1259 OID 17405)
+-- Name: idx_pengiriman_toko; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_pengiriman_toko ON public.pengiriman USING btree (id_toko);
+
+
+--
+-- TOC entry 3612 (class 1259 OID 17413)
+-- Name: idx_potongan_penagihan; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_potongan_penagihan ON public.potongan_penagihan USING btree (id_penagihan);
+
+
+--
+-- TOC entry 3588 (class 1259 OID 17533)
+-- Name: idx_produk_priority; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_produk_priority ON public.produk USING btree (is_priority, priority_order);
+
+
+--
+-- TOC entry 3615 (class 1259 OID 17414)
+-- Name: idx_setoran_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_setoran_tanggal ON public.setoran USING btree (dibuat_pada);
+
+
+--
+-- TOC entry 3591 (class 1259 OID 18720)
+-- Name: idx_toko_no_telepon; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_toko_no_telepon ON public.toko USING btree (no_telepon);
+
+
+--
+-- TOC entry 3592 (class 1259 OID 17404)
+-- Name: idx_toko_sales; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_toko_sales ON public.toko USING btree (id_sales);
+
+
+--
+-- TOC entry 3641 (class 2620 OID 17566)
+-- Name: bulk_pengiriman update_bulk_pengiriman_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_bulk_pengiriman_diperbarui_pada BEFORE UPDATE ON public.bulk_pengiriman FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3638 (class 2620 OID 17422)
+-- Name: detail_penagihan update_detail_penagihan_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_detail_penagihan_diperbarui_pada BEFORE UPDATE ON public.detail_penagihan FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3636 (class 2620 OID 17420)
+-- Name: detail_pengiriman update_detail_pengiriman_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_detail_pengiriman_diperbarui_pada BEFORE UPDATE ON public.detail_pengiriman FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3637 (class 2620 OID 17421)
+-- Name: penagihan update_penagihan_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_penagihan_diperbarui_pada BEFORE UPDATE ON public.penagihan FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3635 (class 2620 OID 17419)
+-- Name: pengiriman update_pengiriman_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_pengiriman_diperbarui_pada BEFORE UPDATE ON public.pengiriman FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3639 (class 2620 OID 17423)
+-- Name: potongan_penagihan update_potongan_penagihan_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_potongan_penagihan_diperbarui_pada BEFORE UPDATE ON public.potongan_penagihan FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3633 (class 2620 OID 17417)
+-- Name: produk update_produk_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_produk_diperbarui_pada BEFORE UPDATE ON public.produk FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3632 (class 2620 OID 17416)
+-- Name: sales update_sales_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_sales_diperbarui_pada BEFORE UPDATE ON public.sales FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3640 (class 2620 OID 17424)
+-- Name: setoran update_setoran_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_setoran_diperbarui_pada BEFORE UPDATE ON public.setoran FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3634 (class 2620 OID 17418)
+-- Name: toko update_toko_diperbarui_pada; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_toko_diperbarui_pada BEFORE UPDATE ON public.toko FOR EACH ROW EXECUTE FUNCTION public.update_diperbarui_pada_column();
+
+
+--
+-- TOC entry 3631 (class 2606 OID 17553)
+-- Name: bulk_pengiriman bulk_pengiriman_id_sales_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bulk_pengiriman
+    ADD CONSTRAINT bulk_pengiriman_id_sales_fkey FOREIGN KEY (id_sales) REFERENCES public.sales(id_sales);
+
+
+--
+-- TOC entry 3628 (class 2606 OID 17367)
+-- Name: detail_penagihan detail_penagihan_id_penagihan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_penagihan
+    ADD CONSTRAINT detail_penagihan_id_penagihan_fkey FOREIGN KEY (id_penagihan) REFERENCES public.penagihan(id_penagihan) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3629 (class 2606 OID 17372)
+-- Name: detail_penagihan detail_penagihan_id_produk_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_penagihan
+    ADD CONSTRAINT detail_penagihan_id_produk_fkey FOREIGN KEY (id_produk) REFERENCES public.produk(id_produk) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3625 (class 2606 OID 17329)
+-- Name: detail_pengiriman detail_pengiriman_id_pengiriman_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_pengiriman
+    ADD CONSTRAINT detail_pengiriman_id_pengiriman_fkey FOREIGN KEY (id_pengiriman) REFERENCES public.pengiriman(id_pengiriman) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3626 (class 2606 OID 17334)
+-- Name: detail_pengiriman detail_pengiriman_id_produk_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.detail_pengiriman
+    ADD CONSTRAINT detail_pengiriman_id_produk_fkey FOREIGN KEY (id_produk) REFERENCES public.produk(id_produk) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3627 (class 2606 OID 17351)
+-- Name: penagihan penagihan_id_toko_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.penagihan
+    ADD CONSTRAINT penagihan_id_toko_fkey FOREIGN KEY (id_toko) REFERENCES public.toko(id_toko) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3623 (class 2606 OID 17558)
+-- Name: pengiriman pengiriman_id_bulk_pengiriman_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pengiriman
+    ADD CONSTRAINT pengiriman_id_bulk_pengiriman_fkey FOREIGN KEY (id_bulk_pengiriman) REFERENCES public.bulk_pengiriman(id_bulk_pengiriman);
+
+
+--
+-- TOC entry 3624 (class 2606 OID 17314)
+-- Name: pengiriman pengiriman_id_toko_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pengiriman
+    ADD CONSTRAINT pengiriman_id_toko_fkey FOREIGN KEY (id_toko) REFERENCES public.toko(id_toko) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3630 (class 2606 OID 17389)
+-- Name: potongan_penagihan potongan_penagihan_id_penagihan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.potongan_penagihan
+    ADD CONSTRAINT potongan_penagihan_id_penagihan_fkey FOREIGN KEY (id_penagihan) REFERENCES public.penagihan(id_penagihan) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3622 (class 2606 OID 17300)
+-- Name: toko toko_id_sales_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.toko
+    ADD CONSTRAINT toko_id_sales_fkey FOREIGN KEY (id_sales) REFERENCES public.sales(id_sales) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 3814 (class 3256 OID 17567)
+-- Name: bulk_pengiriman Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.bulk_pengiriman USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3811 (class 3256 OID 17431)
+-- Name: detail_penagihan Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.detail_penagihan USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3809 (class 3256 OID 17429)
+-- Name: detail_pengiriman Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.detail_pengiriman USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3810 (class 3256 OID 17430)
+-- Name: penagihan Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.penagihan USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3808 (class 3256 OID 17428)
+-- Name: pengiriman Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.pengiriman USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3812 (class 3256 OID 17432)
+-- Name: potongan_penagihan Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.potongan_penagihan USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3806 (class 3256 OID 17426)
+-- Name: produk Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.produk USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3805 (class 3256 OID 17425)
+-- Name: sales Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.sales USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3813 (class 3256 OID 17433)
+-- Name: setoran Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.setoran USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3807 (class 3256 OID 17427)
+-- Name: toko Enable all operations for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable all operations for authenticated users" ON public.toko USING ((auth.role() = 'authenticated'::text));
+
+
+--
+-- TOC entry 3804 (class 0 OID 17543)
+-- Dependencies: 306
+-- Name: bulk_pengiriman; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.bulk_pengiriman ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3801 (class 0 OID 17357)
+-- Dependencies: 295
+-- Name: detail_penagihan; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.detail_penagihan ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3799 (class 0 OID 17320)
+-- Dependencies: 291
+-- Name: detail_pengiriman; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.detail_pengiriman ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3800 (class 0 OID 17340)
+-- Dependencies: 293
+-- Name: penagihan; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.penagihan ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3798 (class 0 OID 17306)
+-- Dependencies: 289
+-- Name: pengiriman; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.pengiriman ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3802 (class 0 OID 17378)
+-- Dependencies: 297
+-- Name: potongan_penagihan; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.potongan_penagihan ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3796 (class 0 OID 17279)
+-- Dependencies: 285
+-- Name: produk; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.produk ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3795 (class 0 OID 17269)
+-- Dependencies: 283
+-- Name: sales; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3803 (class 0 OID 17395)
+-- Dependencies: 299
+-- Name: setoran; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.setoran ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3797 (class 0 OID 17289)
+-- Dependencies: 287
+-- Name: toko; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.toko ENABLE ROW LEVEL SECURITY;
+
+--
+-- TOC entry 3842 (class 0 OID 0)
+-- Dependencies: 13
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
+--
+
+GRANT USAGE ON SCHEMA public TO postgres;
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT USAGE ON SCHEMA public TO service_role;
+
+
+--
+-- TOC entry 3843 (class 0 OID 0)
+-- Dependencies: 413
+-- Name: FUNCTION get_toko_by_sales(sales_id integer); Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON FUNCTION public.get_toko_by_sales(sales_id integer) TO anon;
+GRANT ALL ON FUNCTION public.get_toko_by_sales(sales_id integer) TO authenticated;
+GRANT ALL ON FUNCTION public.get_toko_by_sales(sales_id integer) TO service_role;
+
+
+--
+-- TOC entry 3844 (class 0 OID 0)
+-- Dependencies: 412
+-- Name: FUNCTION update_diperbarui_pada_column(); Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON FUNCTION public.update_diperbarui_pada_column() TO anon;
+GRANT ALL ON FUNCTION public.update_diperbarui_pada_column() TO authenticated;
+GRANT ALL ON FUNCTION public.update_diperbarui_pada_column() TO service_role;
+
+
+--
+-- TOC entry 3845 (class 0 OID 0)
+-- Dependencies: 306
+-- Name: TABLE bulk_pengiriman; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.bulk_pengiriman TO anon;
+GRANT ALL ON TABLE public.bulk_pengiriman TO authenticated;
+GRANT ALL ON TABLE public.bulk_pengiriman TO service_role;
+
+
+--
+-- TOC entry 3847 (class 0 OID 0)
+-- Dependencies: 305
+-- Name: SEQUENCE bulk_pengiriman_id_bulk_pengiriman_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq TO anon;
+GRANT ALL ON SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.bulk_pengiriman_id_bulk_pengiriman_seq TO service_role;
+
+
+--
+-- TOC entry 3848 (class 0 OID 0)
+-- Dependencies: 295
+-- Name: TABLE detail_penagihan; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.detail_penagihan TO anon;
+GRANT ALL ON TABLE public.detail_penagihan TO authenticated;
+GRANT ALL ON TABLE public.detail_penagihan TO service_role;
+
+
+--
+-- TOC entry 3850 (class 0 OID 0)
+-- Dependencies: 294
+-- Name: SEQUENCE detail_penagihan_id_detail_tagih_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.detail_penagihan_id_detail_tagih_seq TO anon;
+GRANT ALL ON SEQUENCE public.detail_penagihan_id_detail_tagih_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.detail_penagihan_id_detail_tagih_seq TO service_role;
+
+
+--
+-- TOC entry 3851 (class 0 OID 0)
+-- Dependencies: 291
+-- Name: TABLE detail_pengiriman; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.detail_pengiriman TO anon;
+GRANT ALL ON TABLE public.detail_pengiriman TO authenticated;
+GRANT ALL ON TABLE public.detail_pengiriman TO service_role;
+
+
+--
+-- TOC entry 3853 (class 0 OID 0)
+-- Dependencies: 290
+-- Name: SEQUENCE detail_pengiriman_id_detail_kirim_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.detail_pengiriman_id_detail_kirim_seq TO anon;
+GRANT ALL ON SEQUENCE public.detail_pengiriman_id_detail_kirim_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.detail_pengiriman_id_detail_kirim_seq TO service_role;
+
+
+--
+-- TOC entry 3854 (class 0 OID 0)
+-- Dependencies: 293
+-- Name: TABLE penagihan; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.penagihan TO anon;
+GRANT ALL ON TABLE public.penagihan TO authenticated;
+GRANT ALL ON TABLE public.penagihan TO service_role;
+
+
+--
+-- TOC entry 3856 (class 0 OID 0)
+-- Dependencies: 292
+-- Name: SEQUENCE penagihan_id_penagihan_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.penagihan_id_penagihan_seq TO anon;
+GRANT ALL ON SEQUENCE public.penagihan_id_penagihan_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.penagihan_id_penagihan_seq TO service_role;
+
+
+--
+-- TOC entry 3857 (class 0 OID 0)
+-- Dependencies: 289
+-- Name: TABLE pengiriman; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.pengiriman TO anon;
+GRANT ALL ON TABLE public.pengiriman TO authenticated;
+GRANT ALL ON TABLE public.pengiriman TO service_role;
+
+
+--
+-- TOC entry 3859 (class 0 OID 0)
+-- Dependencies: 288
+-- Name: SEQUENCE pengiriman_id_pengiriman_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.pengiriman_id_pengiriman_seq TO anon;
+GRANT ALL ON SEQUENCE public.pengiriman_id_pengiriman_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.pengiriman_id_pengiriman_seq TO service_role;
+
+
+--
+-- TOC entry 3860 (class 0 OID 0)
+-- Dependencies: 297
+-- Name: TABLE potongan_penagihan; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.potongan_penagihan TO anon;
+GRANT ALL ON TABLE public.potongan_penagihan TO authenticated;
+GRANT ALL ON TABLE public.potongan_penagihan TO service_role;
+
+
+--
+-- TOC entry 3862 (class 0 OID 0)
+-- Dependencies: 296
+-- Name: SEQUENCE potongan_penagihan_id_potongan_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.potongan_penagihan_id_potongan_seq TO anon;
+GRANT ALL ON SEQUENCE public.potongan_penagihan_id_potongan_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.potongan_penagihan_id_potongan_seq TO service_role;
+
+
+--
+-- TOC entry 3863 (class 0 OID 0)
+-- Dependencies: 285
+-- Name: TABLE produk; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.produk TO anon;
+GRANT ALL ON TABLE public.produk TO authenticated;
+GRANT ALL ON TABLE public.produk TO service_role;
+
+
+--
+-- TOC entry 3865 (class 0 OID 0)
+-- Dependencies: 284
+-- Name: SEQUENCE produk_id_produk_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.produk_id_produk_seq TO anon;
+GRANT ALL ON SEQUENCE public.produk_id_produk_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.produk_id_produk_seq TO service_role;
+
+
+--
+-- TOC entry 3866 (class 0 OID 0)
+-- Dependencies: 283
+-- Name: TABLE sales; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.sales TO anon;
+GRANT ALL ON TABLE public.sales TO authenticated;
+GRANT ALL ON TABLE public.sales TO service_role;
+
+
+--
+-- TOC entry 3868 (class 0 OID 0)
+-- Dependencies: 282
+-- Name: SEQUENCE sales_id_sales_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.sales_id_sales_seq TO anon;
+GRANT ALL ON SEQUENCE public.sales_id_sales_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.sales_id_sales_seq TO service_role;
+
+
+--
+-- TOC entry 3869 (class 0 OID 0)
+-- Dependencies: 299
+-- Name: TABLE setoran; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.setoran TO anon;
+GRANT ALL ON TABLE public.setoran TO authenticated;
+GRANT ALL ON TABLE public.setoran TO service_role;
+
+
+--
+-- TOC entry 3871 (class 0 OID 0)
+-- Dependencies: 298
+-- Name: SEQUENCE setoran_id_setoran_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.setoran_id_setoran_seq TO anon;
+GRANT ALL ON SEQUENCE public.setoran_id_setoran_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.setoran_id_setoran_seq TO service_role;
+
+
+--
+-- TOC entry 3873 (class 0 OID 0)
+-- Dependencies: 287
+-- Name: TABLE toko; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.toko TO anon;
+GRANT ALL ON TABLE public.toko TO authenticated;
+GRANT ALL ON TABLE public.toko TO service_role;
+
+
+--
+-- TOC entry 3875 (class 0 OID 0)
+-- Dependencies: 286
+-- Name: SEQUENCE toko_id_toko_seq; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON SEQUENCE public.toko_id_toko_seq TO anon;
+GRANT ALL ON SEQUENCE public.toko_id_toko_seq TO authenticated;
+GRANT ALL ON SEQUENCE public.toko_id_toko_seq TO service_role;
+
+
+--
+-- TOC entry 3876 (class 0 OID 0)
+-- Dependencies: 301
+-- Name: TABLE v_laporan_penagihan; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.v_laporan_penagihan TO anon;
+GRANT ALL ON TABLE public.v_laporan_penagihan TO authenticated;
+GRANT ALL ON TABLE public.v_laporan_penagihan TO service_role;
+
+
+--
+-- TOC entry 3877 (class 0 OID 0)
+-- Dependencies: 300
+-- Name: TABLE v_laporan_pengiriman; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.v_laporan_pengiriman TO anon;
+GRANT ALL ON TABLE public.v_laporan_pengiriman TO authenticated;
+GRANT ALL ON TABLE public.v_laporan_pengiriman TO service_role;
+
+
+--
+-- TOC entry 3878 (class 0 OID 0)
+-- Dependencies: 304
+-- Name: TABLE v_produk_non_prioritas; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.v_produk_non_prioritas TO anon;
+GRANT ALL ON TABLE public.v_produk_non_prioritas TO authenticated;
+GRANT ALL ON TABLE public.v_produk_non_prioritas TO service_role;
+
+
+--
+-- TOC entry 3879 (class 0 OID 0)
+-- Dependencies: 303
+-- Name: TABLE v_produk_prioritas; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.v_produk_prioritas TO anon;
+GRANT ALL ON TABLE public.v_produk_prioritas TO authenticated;
+GRANT ALL ON TABLE public.v_produk_prioritas TO service_role;
+
+
+--
+-- TOC entry 3880 (class 0 OID 0)
+-- Dependencies: 302
+-- Name: TABLE v_rekonsiliasi_setoran; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO anon;
+GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO authenticated;
+GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO service_role;
+
+
+--
+-- TOC entry 2348 (class 826 OID 16488)
+-- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
+
+
+--
+-- TOC entry 2349 (class 826 OID 16489)
+-- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON SEQUENCES TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON SEQUENCES TO service_role;
+
+
+--
+-- TOC entry 2347 (class 826 OID 16487)
+-- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIONS TO service_role;
+
+
+--
+-- TOC entry 2351 (class 826 OID 16491)
+-- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON FUNCTIONS TO service_role;
+
+
+--
+-- TOC entry 2346 (class 826 OID 16486)
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+
+
+--
+-- TOC entry 2350 (class 826 OID 16490)
+-- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
+--
+
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO postgres;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+
+
+-- Completed on 2025-07-18 11:11:35
+
+--
+-- PostgreSQL database dump complete
+--
+

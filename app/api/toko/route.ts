@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { nama_toko, id_sales, alamat, desa, kecamatan, kabupaten, link_gmaps } = body
+    const { nama_toko, id_sales, kecamatan, kabupaten, link_gmaps } = body
 
     if (!nama_toko || !id_sales) {
       return createErrorResponse('Nama toko and id_sales are required')
@@ -60,8 +60,6 @@ export async function POST(request: NextRequest) {
       .insert([{
         nama_toko,
         id_sales: parseInt(id_sales),
-        alamat: alamat || null,
-        desa: desa || null,
         kecamatan: kecamatan || null,
         kabupaten: kabupaten || null,
         link_gmaps: link_gmaps || null,

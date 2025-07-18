@@ -29,8 +29,6 @@ export async function GET(request: NextRequest) {
       .select(`
         id_toko,
         nama_toko,
-        alamat,
-        desa,
         kecamatan,
         kabupaten,
         link_gmaps,

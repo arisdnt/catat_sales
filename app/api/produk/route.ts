@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { nama_produk, harga_satuan } = body
+    const { nama_produk, harga_satuan, is_priority, priority_order } = body
 
     if (!nama_produk || !harga_satuan) {
       return createErrorResponse('Nama produk and harga satuan are required')
@@ -43,7 +43,9 @@ export async function POST(request: NextRequest) {
       .insert([{
         nama_produk,
         harga_satuan: parseFloat(harga_satuan),
-        status_produk: true
+        status_produk: true,
+        is_priority: is_priority || false,
+        priority_order: priority_order || 0
       }])
       .select()
       .single()
