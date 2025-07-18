@@ -14,8 +14,8 @@ import { useTokoDetailQuery, useUpdateTokoMutation, useSalesQuery } from '@/lib/
 import { ArrowLeft, Save, Store } from 'lucide-react'
 
 const statusOptions = [
-  { value: true, label: 'Aktif' },
-  { value: false, label: 'Non-aktif' }
+  { value: 'true', label: 'Aktif' },
+  { value: 'false', label: 'Non-aktif' }
 ]
 
 export default function EditTokoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -50,8 +50,13 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
     },
     onSubmit: async ({ value }) => {
       if (tokoId) {
+        const updateData = {
+          ...value,
+          status_toko: value.status_toko === 'true' || value.status_toko === true,
+          id_sales: parseInt(value.sales_id as string)
+        }
         updateToko.mutate(
-          { id: tokoId, data: value },
+          { id: tokoId, data: updateData },
           {
             onSuccess: () => {
               router.push(`/dashboard/master-data/toko/${tokoId}`)
@@ -71,7 +76,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       form.setFieldValue('no_telepon', toko.no_telepon || '')
       form.setFieldValue('link_gmaps', toko.link_gmaps || '')
       form.setFieldValue('sales_id', toko.sales_id)
-      form.setFieldValue('status_toko', toko.status_toko)
+      form.setFieldValue('status_toko', toko.status_toko ? 'true' : 'false')
     }
   })
 

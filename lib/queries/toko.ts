@@ -24,6 +24,10 @@ export interface Toko {
   detail_barang_terkirim?: Array<{ nama_produk: string; jumlah: number }>
   detail_barang_terbayar?: Array<{ nama_produk: string; jumlah: number }>
   detail_sisa_stok?: Array<{ nama_produk: string; jumlah: number }>
+  sales?: {
+    id_sales: number
+    nama_sales: string
+  }
 }
 
 export interface CreateTokoData {
@@ -35,7 +39,13 @@ export interface CreateTokoData {
   link_gmaps?: string
 }
 
-export interface UpdateTokoData extends CreateTokoData {
+export interface UpdateTokoData {
+  nama_toko: string
+  id_sales?: number
+  kecamatan?: string
+  kabupaten?: string
+  no_telepon?: string
+  link_gmaps?: string
   status_toko?: boolean
 }
 
@@ -62,6 +72,14 @@ export function useTokoDetailQuery(id: number) {
     queryKey: tokoKeys.detail(id),
     queryFn: () => apiClient.getStoreById(id) as Promise<ApiResponse<Toko>>,
     enabled: !!id,
+  })
+}
+
+export function useSalesQuery() {
+  return useQuery({
+    queryKey: ['sales'],
+    queryFn: () => apiClient.getSales() as Promise<ApiResponse<any[]>>,
+    staleTime: 1000 * 60 * 5,
   })
 }
 

@@ -188,7 +188,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(toko.link_gmaps, '_blank')}
+                        onClick={() => window.open(toko.link_gmaps!, '_blank')}
                         className="text-blue-600 hover:text-blue-700"
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
