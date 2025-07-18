@@ -41,14 +41,7 @@ const menuItems = [
     bgColor: 'bg-purple-50',
     submenu: [
       {
-        title: 'Pengiriman',
-        href: '/dashboard/pengiriman',
-        icon: Package,
-        color: 'text-emerald-600',
-        bgColor: 'bg-emerald-50'
-      },
-      {
-        title: 'Penagihan',
+        title: 'Pembayaran',
         href: '/dashboard/penagihan',
         icon: CreditCard,
         color: 'text-orange-600',
@@ -93,22 +86,6 @@ const menuItems = [
       }
     ]
   },
-  {
-    title: 'Laporan',
-    icon: BarChart3,
-    color: 'bg-gradient-to-r from-orange-500 to-orange-600',
-    iconColor: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    submenu: [
-      {
-        title: 'Rekonsiliasi',
-        href: '/dashboard/laporan/rekonsiliasi',
-        icon: FileText,
-        color: 'text-violet-600',
-        bgColor: 'bg-violet-50'
-      }
-    ]
-  }
 ]
 
 export function ModernSidebar() {

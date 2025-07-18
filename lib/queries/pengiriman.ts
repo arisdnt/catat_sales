@@ -63,7 +63,7 @@ export interface UpdatePengirimanData {
 export const pengirimanKeys = {
   all: ['pengiriman'] as const,
   lists: () => [...pengirimanKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...pengirimanKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...pengirimanKeys.lists(), { filters }] as const,
   details: () => [...pengirimanKeys.all, 'detail'] as const,
   detail: (id: number) => [...pengirimanKeys.details(), id] as const,
 }
@@ -99,7 +99,7 @@ export function useCreatePengirimanMutation() {
         description: 'Pengiriman berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan pengiriman',
@@ -124,7 +124,7 @@ export function useUpdatePengirimanMutation() {
         description: 'Pengiriman berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui pengiriman',
@@ -147,7 +147,7 @@ export function useDeletePengirimanMutation() {
         description: 'Pengiriman berhasil dihapus',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menghapus pengiriman',

@@ -1,282 +1,576 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
-import { formatDate, formatCurrency } from '@/lib/form-utils'
+import { formatCurrency } from '@/lib/form-utils'
+import { useSalesDetailQuery, useDeleteSalesMutation, useSalesStatsQuery, type Sales, type SalesStats } from '@/lib/queries/sales'
+import { useTokoQuery } from '@/lib/queries/toko'
+import { usePengirimanQuery } from '@/lib/queries/pengiriman'
+import { usePenagihanQuery } from '@/lib/queries/penagihan'
+import { useSetoranQuery } from '@/lib/queries/setoran'
 import { 
   ArrowLeft, 
   Edit, 
   Trash2, 
   Users, 
   Phone,
-  Mail,
-  MapPin,
-  Target,
-  Star,
   Calendar,
+  Store,
+  BarChart3,
   TrendingUp,
-  DollarSign
+  Activity,
+  Hash,
+  Clock,
+  MapPin,
+  ShoppingCart,
+  Truck,
+  AlertCircle,
+  DollarSign,
+  Package,
+  Target,
+  TrendingDown
 } from 'lucide-react'
-
-interface SalesDetail {
-  id: string
-  nama_sales: string
-  nomor_telepon: string
-  email: string
-  alamat: string
-  target_penjualan: number
-  komisi_persen: number
-  status_sales: boolean
-  created_at: string
-  updated_at: string
-}
 
 export default function SalesDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { toast } = useToast()
-  const [sales, setSales] = useState<SalesDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [itemId, setItemId] = useState<string>('')
+  const [salesId, setSalesId] = useState<number | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-  useEffect(() => {
-    const initializeParams = async () => {
-      const { id } = await params
-      setItemId(id)
-      fetchSalesDetail(id)
-    }
-    initializeParams()
-  }, [])
+  // Initialize sales ID from params
+  useState(() => {
+    params.then(({ id }) => {
+      setSalesId(parseInt(id))
+    })
+  })
 
-  const fetchSalesDetail = async (id?: string) => {
-    const salesId = id || itemId
-    try {
-      // Mock data for demo - replace with actual API call
-      const mockSales: SalesDetail = {
-        id: salesId,
-        nama_sales: 'John Doe',
-        nomor_telepon: '081234567890',
-        email: 'john@example.com',
-        alamat: 'Jl. Merdeka No. 123, Jakarta',
-        target_penjualan: 50000000,
-        komisi_persen: 5,
-        status_sales: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      
-      setSales(mockSales)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data sales',
-        variant: 'destructive'
+  // Queries
+  const { data: salesResponse, isLoading, error, refetch } = useSalesDetailQuery(salesId!)
+  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useSalesStatsQuery()
+  const { data: storeResponse, isLoading: storeLoading } = useTokoQuery()
+  const { data: shipmentResponse, isLoading: shipmentLoading } = usePengirimanQuery()
+  const { data: billingResponse, isLoading: billingLoading } = usePenagihanQuery()
+  const { data: depositResponse, isLoading: depositLoading } = useSetoranQuery()
+  const deleteSales = useDeleteSalesMutation()
+
+  const sales: Sales | undefined = (salesResponse as { data: Sales })?.data
+  const salesStats: SalesStats[] = (statsResponse as { data: SalesStats[] })?.data || []
+  const currentStats = salesStats.find(s => s.id_sales === salesId)
+  
+  // Filter related data
+  const stores = ((storeResponse as { data: any[] })?.data || []).filter((store: any) => store.id_sales === salesId)
+  const shipments = ((shipmentResponse as { data: any[] })?.data || []).filter((shipment: any) => 
+    stores.some((store: any) => store.id_toko === shipment.id_toko)
+  )
+  const billings = ((billingResponse as { data: any[] })?.data || []).filter((billing: any) => 
+    stores.some((store: any) => store.id_toko === billing.id_toko)
+  )
+  const deposits = ((depositResponse as { data: any[] })?.data || []).filter((deposit: any) => 
+    deposit.id_sales === salesId
+  )
+
+  const handleDelete = () => {
+    if (salesId) {
+      deleteSales.mutate(salesId, {
+        onSuccess: () => {
+          router.push('/dashboard/master-data/sales')
+        }
       })
-    } finally {
-      setLoading(false)
     }
+    setShowDeleteDialog(false)
   }
 
-  const handleDelete = async () => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus sales ini?')) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/sales/${itemId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Gagal menghapus sales')
-      }
-
-      toast({
-        title: 'Berhasil',
-        description: 'Sales berhasil dihapus'
-      })
-
-      router.push('/dashboard/master-data/sales')
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Terjadi kesalahan',
-        variant: 'destructive'
-      })
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="h-96 bg-gray-200 rounded-lg"></div>
+        <div className="max-w-6xl mx-auto animate-pulse">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="h-10 w-10 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+              <div className="h-48 bg-gray-200 rounded-lg"></div>
+            </div>
+            <div className="space-y-6">
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-48 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (!sales) {
+  if (error || !sales) {
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-gray-500">Data sales tidak ditemukan</p>
-          <Button 
-            onClick={() => router.back()}
-            className="mt-4"
-          >
-            Kembali
-          </Button>
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="text-red-600 mb-4">
+            {error ? 'Error loading sales data' : 'Data sales tidak ditemukan'}
+          </div>
+          <div className="space-x-4">
+            <Button onClick={() => refetch()} variant="outline">
+              Coba Lagi
+            </Button>
+            <Button onClick={() => router.back()}>
+              Kembali
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Basic Information */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Informasi Pribadi
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Nama Sales</label>
-                    <p className="text-gray-900 font-medium">{sales.nama_sales}</p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Nomor Telepon</label>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{sales.nomor_telepon}</p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="w-full space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{sales.nama_sales}</h1>
+              <p className="text-sm sm:text-base text-gray-600">Detail informasi sales</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/dashboard/master-data/sales/${salesId}/edit`)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit
+            </Button>
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Hapus
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Sales</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus sales "{sales.nama_sales}"? 
+                    Tindakan ini tidak dapat dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={deleteSales.isPending}
+                  >
+                    {deleteSales.isPending ? 'Menghapus...' : 'Hapus'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Informasi Sales
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                        <Hash className="w-4 h-4" />
+                        ID Sales
+                      </label>
+                      <p className="text-gray-900 font-mono text-lg">#{sales.id_sales}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Nama Sales</label>
+                      <p className="text-gray-900 font-medium text-lg">{sales.nama_sales}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Nomor Telepon
+                      </label>
+                      <p className="text-gray-900">{sales.nomor_telepon || 'Tidak tersedia'}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Email</label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{sales.email || '-'}</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Status</label>
+                      <div className="mt-1">
+                        <Badge 
+                          className={sales.status_aktif ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                        >
+                          {sales.status_aktif ? 'Aktif' : 'Nonaktif'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Status</label>
-                    <div className="mt-1">
-                      <Badge 
-                        variant={sales.status_sales ? 'default' : 'secondary'}
-                        className={sales.status_sales ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                      >
-                        {sales.status_sales ? 'Aktif' : 'Nonaktif'}
-                      </Badge>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                        <Store className="w-4 h-4" />
+                        Total Toko
+                      </label>
+                      <p className="text-gray-900 font-bold text-2xl">{stores.length}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Terakhir Diperbarui
+                      </label>
+                      <p className="text-gray-900">
+                        {new Date(sales.diperbarui_pada).toLocaleDateString('id-ID', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">Dibuat</label>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{formatDate(sales.created_at)}</p>
+            {/* Statistics */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Statistik Penjualan
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {statsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">Memuat statistik...</span>
+                  </div>
+                ) : statsError ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                    <div className="text-red-600 font-medium">Gagal memuat statistik</div>
+                    <div className="text-sm text-gray-500 mt-1">Silakan refresh halaman</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-blue-500 rounded-lg mx-auto mb-3">
+                        <Store className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-blue-600 mb-1">
+                        {currentStats?.total_stores || 0}
+                      </div>
+                      <div className="text-sm font-medium text-blue-700">Total Toko</div>
+                    </div>
+                    
+                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-green-500 rounded-lg mx-auto mb-3">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-green-600 mb-1">
+                        {currentStats?.total_shipped_items || 0}
+                      </div>
+                      <div className="text-sm font-medium text-green-700">Total Terkirim</div>
+                      <div className="text-xs text-green-600 mt-1">Unit produk</div>
+                    </div>
+                    
+                    <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                      <div className="flex items-center justify-center w-12 h-12 bg-purple-500 rounded-lg mx-auto mb-3">
+                        <DollarSign className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="text-3xl font-bold text-purple-600 mb-1">
+                        {formatCurrency(currentStats?.total_revenue || 0)}
+                      </div>
+                      <div className="text-sm font-medium text-purple-700">Total Pendapatan</div>
                     </div>
                   </div>
-                  
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Store Information */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="w-5 h-5" />
+                  Daftar Toko ({stores.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {storeLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">Memuat toko...</span>
+                  </div>
+                ) : stores.length > 0 ? (
+                  <div className="space-y-3">
+                    {stores.slice(0, 5).map((store: any) => (
+                      <div key={store.id_toko} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <Store className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{store.nama_toko}</div>
+                          <div className="text-sm text-gray-600 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {store.kecamatan}, {store.kabupaten}
+                          </div>
+                        </div>
+                        <Badge className={store.status_toko ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                          {store.status_toko ? 'Aktif' : 'Nonaktif'}
+                        </Badge>
+                      </div>
+                    ))}
+                    {stores.length > 5 && (
+                      <div className="text-center py-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/master-data/toko?sales=${salesId}`)}
+                        >
+                          Lihat Semua ({stores.length}) Toko
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Store className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <div className="text-gray-500 font-medium">Belum ada toko</div>
+                    <div className="text-sm text-gray-400 mt-1">Toko yang dikelola sales ini akan muncul di sini</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Aktivitas Terbaru
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Recent Shipments */}
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Diperbarui</label>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{formatDate(sales.updated_at)}</p>
-                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Pengiriman Terbaru</h4>
+                    {shipmentLoading ? (
+                      <div className="text-sm text-gray-500">Memuat pengiriman...</div>
+                    ) : shipments.length > 0 ? (
+                      <div className="space-y-2">
+                        {shipments.slice(0, 3).map((shipment: any) => (
+                          <div key={shipment.id_pengiriman} className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
+                            <Truck className="w-4 h-4 text-blue-600" />
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900">
+                                Pengiriman ke {stores.find((s: any) => s.id_toko === shipment.id_toko)?.nama_toko}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                {new Date(shipment.tanggal_kirim).toLocaleDateString('id-ID')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Belum ada pengiriman</div>
+                    )}
+                  </div>
+
+                  {/* Recent Billings */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Penagihan Terbaru</h4>
+                    {billingLoading ? (
+                      <div className="text-sm text-gray-500">Memuat penagihan...</div>
+                    ) : billings.length > 0 ? (
+                      <div className="space-y-2">
+                        {billings.slice(0, 3).map((billing: any) => (
+                          <div key={billing.id_penagihan} className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
+                            <ShoppingCart className="w-4 h-4 text-green-600" />
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900">
+                                Penagihan {stores.find((s: any) => s.id_toko === billing.id_toko)?.nama_toko}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                {new Date(billing.tanggal_tagih).toLocaleDateString('id-ID')} - {formatCurrency(billing.total_uang_diterima)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Belum ada penagihan</div>
+                    )}
+                  </div>
+
+                  {/* Recent Deposits */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Setoran Terbaru</h4>
+                    {depositLoading ? (
+                      <div className="text-sm text-gray-500">Memuat setoran...</div>
+                    ) : deposits.length > 0 ? (
+                      <div className="space-y-2">
+                        {deposits.slice(0, 3).map((deposit: any) => (
+                          <div key={deposit.id_setoran} className="flex items-center gap-3 p-2 bg-purple-50 rounded-lg">
+                            <DollarSign className="w-4 h-4 text-purple-600" />
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900">
+                                Setoran {formatCurrency(deposit.total_setoran)}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                {new Date(deposit.tanggal_setoran).toLocaleDateString('id-ID')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Belum ada setoran</div>
+                    )}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Address */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Alamat
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-900">{sales.alamat}</p>
-            </CardContent>
-          </Card>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Aksi Cepat
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/dashboard/master-data/sales/${salesId}/edit`)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Sales
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/dashboard/master-data/toko?sales=${salesId}`)}
+                >
+                  <Store className="w-4 h-4 mr-2" />
+                  Lihat Toko
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/dashboard/pengiriman?sales=${salesId}`)}
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  Lihat Pengiriman
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/dashboard/penagihan?sales=${salesId}`)}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Lihat Penagihan
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push('/dashboard/master-data/sales')}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Lihat Semua Sales
+                </Button>
+              </CardContent>
+            </Card>
 
-          {/* Sales Information */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                Informasi Penjualan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Metadata */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Informasi Sistem
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Target Penjualan</label>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-gray-400" />
-                    <p className="text-gray-900 font-semibold text-lg">{formatCurrency(sales.target_penjualan)}</p>
-                  </div>
+                  <label className="text-sm font-medium text-gray-600">Dibuat Pada</label>
+                  <p className="text-gray-900 text-sm">
+                    {new Date(sales.dibuat_pada).toLocaleDateString('id-ID', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Komisi</label>
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-gray-400" />
-                    <p className="text-gray-900 font-semibold text-lg">{sales.komisi_persen}%</p>
-                  </div>
+                  <label className="text-sm font-medium text-gray-600">Terakhir Diperbarui</label>
+                  <p className="text-gray-900 text-sm">
+                    {new Date(sales.diperbarui_pada).toLocaleDateString('id-ID', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Performance Statistics */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Statistik Performa
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{formatCurrency(35000000)}</div>
-                  <div className="text-sm text-blue-600">Penjualan Bulan Ini</div>
-                  <div className="text-xs text-gray-500 mt-1">70% dari target</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">24</div>
-                  <div className="text-sm text-green-600">Toko Aktif</div>
-                  <div className="text-xs text-gray-500 mt-1">Wilayah kerja</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{formatCurrency(1750000)}</div>
-                  <div className="text-sm text-purple-600">Komisi Bulan Ini</div>
-                  <div className="text-xs text-gray-500 mt-1">5% dari penjualan</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </div>
     </div>
   )
 }

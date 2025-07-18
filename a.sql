@@ -533,102 +533,35 @@ ALTER SEQUENCE public.toko_id_toko_seq OWNED BY public.toko.id_toko;
 -- Name: v_laporan_penagihan; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.v_laporan_penagihan AS
- SELECT pn.id_penagihan,
-    (pn.dibuat_pada)::date AS tanggal_tagih,
-    t.nama_toko,
-    s.nama_sales,
-    pr.nama_produk,
-    dp.jumlah_terjual,
-    dp.jumlah_kembali,
-    ((dp.jumlah_terjual)::numeric * pr.harga_satuan) AS nilai_terjual,
-    pn.total_uang_diterima,
-    pn.metode_pembayaran,
-    pn.ada_potongan
-   FROM ((((public.penagihan pn
-     JOIN public.toko t ON ((pn.id_toko = t.id_toko)))
-     JOIN public.sales s ON ((t.id_sales = s.id_sales)))
-     JOIN public.detail_penagihan dp ON ((pn.id_penagihan = dp.id_penagihan)))
-     JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)));
-
-
-ALTER VIEW public.v_laporan_penagihan OWNER TO postgres;
+-- View v_laporan_penagihan telah dihapus
 
 --
 -- TOC entry 300 (class 1259 OID 17434)
 -- Name: v_laporan_pengiriman; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.v_laporan_pengiriman AS
- SELECT p.id_pengiriman,
-    p.tanggal_kirim,
-    t.nama_toko,
-    s.nama_sales,
-    pr.nama_produk,
-    dp.jumlah_kirim,
-    ((dp.jumlah_kirim)::numeric * pr.harga_satuan) AS nilai_kirim
-   FROM ((((public.pengiriman p
-     JOIN public.toko t ON ((p.id_toko = t.id_toko)))
-     JOIN public.sales s ON ((t.id_sales = s.id_sales)))
-     JOIN public.detail_pengiriman dp ON ((p.id_pengiriman = dp.id_pengiriman)))
-     JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)));
-
-
-ALTER VIEW public.v_laporan_pengiriman OWNER TO postgres;
+-- View v_laporan_pengiriman telah dihapus
 
 --
 -- TOC entry 304 (class 1259 OID 17538)
 -- Name: v_produk_non_prioritas; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.v_produk_non_prioritas AS
- SELECT id_produk,
-    nama_produk,
-    harga_satuan,
-    status_produk
-   FROM public.produk
-  WHERE (((is_priority = false) OR (is_priority IS NULL)) AND (status_produk = true))
-  ORDER BY nama_produk;
-
-
-ALTER VIEW public.v_produk_non_prioritas OWNER TO postgres;
+-- View v_produk_non_prioritas telah dihapus
 
 --
 -- TOC entry 303 (class 1259 OID 17534)
 -- Name: v_produk_prioritas; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.v_produk_prioritas AS
- SELECT id_produk,
-    nama_produk,
-    harga_satuan,
-    priority_order,
-    status_produk
-   FROM public.produk
-  WHERE ((is_priority = true) AND (status_produk = true))
-  ORDER BY priority_order;
-
-
-ALTER VIEW public.v_produk_prioritas OWNER TO postgres;
+-- View v_produk_prioritas telah dihapus
 
 --
 -- TOC entry 302 (class 1259 OID 17444)
 -- Name: v_rekonsiliasi_setoran; Type: VIEW; Schema: public; Owner: postgres
 --
 
-CREATE VIEW public.v_rekonsiliasi_setoran AS
- SELECT s.id_setoran,
-    (s.dibuat_pada)::date AS tanggal_setoran,
-    s.total_setoran,
-    s.penerima_setoran,
-    COALESCE(sum(pn.total_uang_diterima), (0)::numeric) AS total_penagihan_cash,
-    (s.total_setoran - COALESCE(sum(pn.total_uang_diterima), (0)::numeric)) AS selisih
-   FROM (public.setoran s
-     LEFT JOIN public.penagihan pn ON ((((pn.dibuat_pada)::date = (s.dibuat_pada)::date) AND ((pn.metode_pembayaran)::text = 'Cash'::text))))
-  GROUP BY s.id_setoran, s.dibuat_pada, s.total_setoran, s.penerima_setoran;
-
-
-ALTER VIEW public.v_rekonsiliasi_setoran OWNER TO postgres;
+-- View v_rekonsiliasi_setoran telah dihapus
 
 --
 -- TOC entry 3576 (class 2604 OID 17546)
@@ -3420,9 +3353,7 @@ GRANT ALL ON SEQUENCE public.toko_id_toko_seq TO service_role;
 -- Name: TABLE v_laporan_penagihan; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.v_laporan_penagihan TO anon;
-GRANT ALL ON TABLE public.v_laporan_penagihan TO authenticated;
-GRANT ALL ON TABLE public.v_laporan_penagihan TO service_role;
+-- ACL untuk v_laporan_penagihan telah dihapus
 
 
 --
@@ -3431,9 +3362,7 @@ GRANT ALL ON TABLE public.v_laporan_penagihan TO service_role;
 -- Name: TABLE v_laporan_pengiriman; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.v_laporan_pengiriman TO anon;
-GRANT ALL ON TABLE public.v_laporan_pengiriman TO authenticated;
-GRANT ALL ON TABLE public.v_laporan_pengiriman TO service_role;
+-- ACL untuk v_laporan_pengiriman telah dihapus
 
 
 --
@@ -3442,9 +3371,7 @@ GRANT ALL ON TABLE public.v_laporan_pengiriman TO service_role;
 -- Name: TABLE v_produk_non_prioritas; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.v_produk_non_prioritas TO anon;
-GRANT ALL ON TABLE public.v_produk_non_prioritas TO authenticated;
-GRANT ALL ON TABLE public.v_produk_non_prioritas TO service_role;
+-- ACL untuk v_produk_non_prioritas telah dihapus
 
 
 --
@@ -3453,9 +3380,7 @@ GRANT ALL ON TABLE public.v_produk_non_prioritas TO service_role;
 -- Name: TABLE v_produk_prioritas; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.v_produk_prioritas TO anon;
-GRANT ALL ON TABLE public.v_produk_prioritas TO authenticated;
-GRANT ALL ON TABLE public.v_produk_prioritas TO service_role;
+-- ACL untuk v_produk_prioritas telah dihapus
 
 
 --
@@ -3464,9 +3389,7 @@ GRANT ALL ON TABLE public.v_produk_prioritas TO service_role;
 -- Name: TABLE v_rekonsiliasi_setoran; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO anon;
-GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO authenticated;
-GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO service_role;
+-- ACL untuk v_rekonsiliasi_setoran telah dihapus
 
 
 --

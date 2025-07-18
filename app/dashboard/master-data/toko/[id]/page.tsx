@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 
 import { formatDate } from '@/lib/form-utils'
+import { useTokoDetailQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
 import { 
   ArrowLeft, 
   Edit, 
@@ -22,94 +23,38 @@ import {
   Users
 } from 'lucide-react'
 
-interface TokoDetail {
-  id: string
-  nama_toko: string
-  kecamatan: string
-  kabupaten: string
-  no_telepon: string
-  link_gmaps: string
-  sales_nama: string
-  status: 'aktif' | 'nonaktif'
-  created_at: string
-  updated_at: string
-}
-
 export default function TokoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { toast } = useToast()
-  const [toko, setToko] = useState<TokoDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [itemId, setItemId] = useState<string>('')
+  const [tokoId, setTokoId] = useState<number | null>(null)
 
-  useEffect(() => {
-    const initializeParams = async () => {
-      const { id } = await params
-      setItemId(id)
-      fetchTokoDetail(id)
-    }
-    initializeParams()
-  }, [])
+  // Initialize params
+  useState(() => {
+    params.then(({ id }) => {
+      setTokoId(parseInt(id))
+    })
+  })
 
-  const fetchTokoDetail = async (id?: string) => {
-    const tokoId = id || itemId
-    try {
-      // Mock data for demo - replace with actual API call
-      const mockToko: TokoDetail = {
-        id: tokoId,
-        nama_toko: 'Toko Berkah Jaya 1',
-        kecamatan: 'Kec. Sukamaju',
-        kabupaten: 'Kab. Sukabumi',
-        no_telepon: '081234567890',
-        link_gmaps: 'https://goo.gl/maps/example1',
-        sales_nama: 'Ahmad Susanto',
-        status: 'aktif',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      
-      setToko(mockToko)
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Gagal memuat data toko',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: tokoResponse, isLoading, error, refetch } = useTokoDetailQuery(tokoId!)
+  const deleteToko = useDeleteTokoMutation()
+
+  const toko: Toko | undefined = (tokoResponse as { data: Toko })?.data
 
   const handleDelete = async () => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus toko ini?')) {
       return
     }
 
-    try {
-      const response = await fetch(`/api/toko/${itemId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) {
-        throw new Error('Gagal menghapus toko')
-      }
-
-      toast({
-        title: 'Berhasil',
-        description: 'Toko berhasil dihapus'
-      })
-
-      router.push('/dashboard/master-data/toko')
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Terjadi kesalahan',
-        variant: 'destructive'
+    if (tokoId) {
+      deleteToko.mutate(tokoId, {
+        onSuccess: () => {
+          router.push('/dashboard/master-data/toko')
+        }
       })
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="max-w-4xl mx-auto animate-pulse">
@@ -120,17 +65,21 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
     )
   }
 
-  if (!toko) {
+  if (error || !toko) {
     return (
       <div className="p-8">
         <div className="max-w-4xl mx-auto text-center">
-          <p className="text-gray-500">Data toko tidak ditemukan</p>
-          <Button 
-            onClick={() => router.back()}
-            className="mt-4"
-          >
-            Kembali
-          </Button>
+          <div className="text-red-600 mb-4">
+            {error ? 'Error loading toko data' : 'Data toko tidak ditemukan'}
+          </div>
+          <div className="space-x-4">
+            <Button onClick={() => refetch()} variant="outline">
+              Coba Lagi
+            </Button>
+            <Button onClick={() => router.back()}>
+              Kembali
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -159,7 +108,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium text-gray-600">Sales</label>
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{toko.sales_nama}</p>
+                      <p className="text-gray-900">{toko.sales?.nama_sales || 'Tidak ada sales'}</p>
                     </div>
                   </div>
 
@@ -167,10 +116,10 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium text-gray-600">Status</label>
                     <div className="mt-1">
                       <Badge 
-                        variant={toko.status === 'aktif' ? 'default' : 'secondary'}
-                        className={toko.status === 'aktif' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                        variant={toko.status_toko ? 'default' : 'secondary'}
+                        className={toko.status_toko ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
                       >
-                        {toko.status}
+                        {toko.status_toko ? 'Aktif' : 'Non-aktif'}
                       </Badge>
                     </div>
                   </div>
@@ -181,7 +130,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium text-gray-600">Dibuat</label>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{formatDate(toko.created_at)}</p>
+                      <p className="text-gray-900">{formatDate(toko.dibuat_pada)}</p>
                     </div>
                   </div>
                   
@@ -189,7 +138,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium text-gray-600">Diperbarui</label>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{formatDate(toko.updated_at)}</p>
+                      <p className="text-gray-900">{formatDate(toko.diperbarui_pada)}</p>
                     </div>
                   </div>
                 </div>

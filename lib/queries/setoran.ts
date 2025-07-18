@@ -11,15 +11,63 @@ export interface Setoran {
 }
 
 export interface CashBalance {
-  id_setoran: number
-  tanggal_setoran: string
-  penerima_setoran: string
-  total_cash_diterima: number
-  total_transfer_diterima: number
-  total_setoran: number
+  id_penagihan: number
+  id_toko: number
+  nama_toko: string
+  kecamatan: string
+  kabupaten: string
+  nama_sales: string
+  id_sales: number
+  total_uang_diterima: number
+  metode_pembayaran: string
+  ada_potongan: boolean
+  setoran_on_date: number
+  setoran_details: SetoranInfo[]
+  previous_balance: number
+  daily_cash_total: number
+  daily_setoran_total: number
+  running_balance: number
+  selisih?: number
   dibuat_pada: string
   diperbarui_pada: string
 }
+
+export interface SetoranInfo {
+  id_setoran: number
+  total_setoran: number
+  penerima_setoran: string
+  dibuat_pada: string
+}
+
+export interface SetoranDetail extends Setoran {
+  tanggal_setoran: string
+  related_payments: PaymentDetail[]
+  cash_payments: PaymentDetail[]
+  transfer_payments: PaymentDetail[]
+  total_cash_diterima: number
+  total_transfer_diterima: number
+  total_payments: number
+  selisih: number
+}
+
+export interface PaymentDetail {
+  id_penagihan: number
+  total_uang_diterima: number
+  metode_pembayaran: string
+  ada_potongan: boolean
+  dibuat_pada: string
+  toko: {
+    id_toko: number
+    nama_toko: string
+    kecamatan: string
+    kabupaten: string
+    sales: {
+      id_sales: number
+      nama_sales: string
+    }
+  }
+}
+
 
 export interface CreateSetoranData {
   total_setoran: number
@@ -35,7 +83,7 @@ export interface UpdateSetoranData {
 export const setoranKeys = {
   all: ['setoran'] as const,
   lists: () => [...setoranKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...setoranKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...setoranKeys.lists(), { filters }] as const,
   details: () => [...setoranKeys.all, 'detail'] as const,
   detail: (id: number) => [...setoranKeys.details(), id] as const,
 }
@@ -79,7 +127,7 @@ export function useCreateSetoranMutation() {
         description: 'Setoran berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan setoran',
@@ -104,7 +152,7 @@ export function useUpdateSetoranMutation() {
         description: 'Setoran berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui setoran',
@@ -127,7 +175,7 @@ export function useDeleteSetoranMutation() {
         description: 'Setoran berhasil dihapus',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menghapus setoran',

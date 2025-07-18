@@ -18,6 +18,12 @@ export interface Toko {
   status_toko: boolean
   dibuat_pada: string
   diperbarui_pada: string
+  barang_terkirim?: number
+  barang_terbayar?: number
+  sisa_stok?: number
+  detail_barang_terkirim?: Array<{ nama_produk: string; jumlah: number }>
+  detail_barang_terbayar?: Array<{ nama_produk: string; jumlah: number }>
+  detail_sisa_stok?: Array<{ nama_produk: string; jumlah: number }>
 }
 
 export interface CreateTokoData {

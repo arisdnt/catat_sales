@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const include_details = searchParams.get('include_details')
     
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('pengiriman')
       .select(include_details === 'true' ? `
         id_pengiriman,

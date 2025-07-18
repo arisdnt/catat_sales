@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const include_details = searchParams.get('include_details')
     
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('penagihan')
       .select(include_details === 'true' ? `
         id_penagihan,
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { id_toko, total_uang_diterima, metode_pembayaran, details, potongan } = body
+    const { id_toko, total_uang_diterima, metode_pembayaran, details, potongan, auto_restock, additional_shipment } = body
 
     if (!id_toko || total_uang_diterima === undefined || !metode_pembayaran || !details || !Array.isArray(details) || details.length === 0) {
       return createErrorResponse('id_toko, total_uang_diterima, metode_pembayaran, and details are required')
@@ -181,6 +181,131 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Auto-restock functionality - create shipment if auto_restock is true
+    let shipmentData = null
+    if (auto_restock) {
+      try {
+        // Get today's date for shipment
+        const today = new Date().toISOString().split('T')[0]
+        
+        // Filter details that have jumlah_terjual > 0 for auto-restock
+        const restockDetails = details.filter(detail => detail.jumlah_terjual > 0)
+        
+        if (restockDetails.length > 0) {
+          // Create shipment for auto-restock
+          const { data: newShipmentData, error: shipmentError } = await supabaseAdmin
+            .from('pengiriman')
+            .insert([{
+              id_toko: parseInt(id_toko),
+              tanggal_kirim: today
+            }])
+            .select()
+            .single()
+
+          if (shipmentError) {
+            throw new Error(`Failed to create auto-restock shipment: ${shipmentError.message}`)
+          }
+
+          // Create shipment details for auto-restock (same quantity as sold)
+          const shipmentDetailInserts = restockDetails.map(detail => ({
+            id_pengiriman: newShipmentData.id_pengiriman,
+            id_produk: parseInt(detail.id_produk),
+            jumlah_kirim: parseInt(detail.jumlah_terjual) // Auto-restock same quantity as sold
+          }))
+
+          const { error: shipmentDetailError } = await supabaseAdmin
+            .from('detail_pengiriman')
+            .insert(shipmentDetailInserts)
+
+          if (shipmentDetailError) {
+            // Rollback shipment if detail insertion fails
+            await supabaseAdmin
+              .from('pengiriman')
+              .delete()
+              .eq('id_pengiriman', newShipmentData.id_pengiriman)
+            throw new Error(`Failed to create auto-restock shipment details: ${shipmentDetailError.message}`)
+          }
+          
+          shipmentData = newShipmentData
+        }
+      } catch (error) {
+        // If auto-restock fails, rollback the entire transaction
+        await supabaseAdmin
+          .from('penagihan')
+          .delete()
+          .eq('id_penagihan', penagihanData.id_penagihan)
+        
+        return createErrorResponse(`Auto-restock failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
+    // Additional shipment functionality (optional extra stock)
+    let additionalShipmentData = null
+    if (additional_shipment && additional_shipment.enabled && additional_shipment.details && additional_shipment.details.length > 0) {
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        
+        // Validate additional shipment details
+        for (const detail of additional_shipment.details as any[]) {
+          if (!detail.id_produk || !detail.jumlah_kirim || detail.jumlah_kirim <= 0) {
+            throw new Error('Each additional shipment detail must have valid id_produk and positive jumlah_kirim')
+          }
+        }
+
+        // Create additional shipment
+        const { data: additionalShipment, error: additionalShipmentError } = await supabaseAdmin
+          .from('pengiriman')
+          .insert([{
+            id_toko: parseInt(id_toko),
+            tanggal_kirim: today
+          }])
+          .select()
+          .single()
+
+        if (additionalShipmentError) {
+          throw new Error(`Failed to create additional shipment: ${additionalShipmentError.message}`)
+        }
+
+        // Create additional shipment details
+        const additionalDetailInserts = additional_shipment.details.map((detail: any) => ({
+          id_pengiriman: additionalShipment.id_pengiriman,
+          id_produk: parseInt(detail.id_produk),
+          jumlah_kirim: parseInt(detail.jumlah_kirim)
+        }))
+
+        const { error: additionalDetailError } = await supabaseAdmin
+          .from('detail_pengiriman')
+          .insert(additionalDetailInserts)
+
+        if (additionalDetailError) {
+          // Rollback additional shipment if detail insertion fails
+          await supabaseAdmin
+            .from('pengiriman')
+            .delete()
+            .eq('id_pengiriman', additionalShipment.id_pengiriman)
+          throw new Error(`Failed to create additional shipment details: ${additionalDetailError.message}`)
+        }
+        
+        additionalShipmentData = additionalShipment
+      } catch (error) {
+        // If additional shipment fails, rollback the entire transaction
+        await supabaseAdmin
+          .from('penagihan')
+          .delete()
+          .eq('id_penagihan', penagihanData.id_penagihan)
+        
+        // Also rollback auto-restock shipment if it was created
+        if (shipmentData) {
+          await supabaseAdmin
+            .from('pengiriman')
+            .delete()
+            .eq('id_pengiriman', shipmentData.id_pengiriman)
+        }
+        
+        return createErrorResponse(`Additional shipment failed: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
     // Fetch complete data
     const { data: completeData, error: fetchError } = await supabaseAdmin
       .from('penagihan')
@@ -216,6 +341,14 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(fetchError.message)
     }
 
-    return createSuccessResponse(completeData, 201)
+    // Include shipment data in response if auto-restock was performed
+    const response = {
+      billing: completeData,
+      auto_restock_shipment: shipmentData,
+      additional_shipment: additionalShipmentData,
+      message: `Penagihan berhasil dibuat${shipmentData ? ' dengan auto-restock' : ''}${additionalShipmentData ? ' dan pengiriman tambahan' : ''}`
+    }
+
+    return createSuccessResponse(response, 201)
   })
 }

@@ -9,7 +9,11 @@ export async function GET(request: NextRequest) {
         .from('detail_pengiriman')
         .select(`
           id_produk,
-          jumlah_kirim
+          jumlah_kirim,
+          pengiriman!inner(
+            id_pengiriman,
+            tanggal_kirim
+          )
         `)
 
       if (shippedError) {
@@ -21,27 +25,48 @@ export async function GET(request: NextRequest) {
         .from('detail_penagihan')
         .select(`
           id_produk,
-          jumlah_terjual
+          jumlah_terjual,
+          penagihan!inner(
+            id_penagihan,
+            total_uang_diterima
+          )
         `)
 
       if (paidError) {
         return createErrorResponse('Failed to fetch paid products data: ' + paidError.message)
       }
 
+
       // Agregasi data terkirim
-      const shippedStats = shippedData.reduce((acc: Record<number, number>, item) => {
-        acc[item.id_produk] = (acc[item.id_produk] || 0) + item.jumlah_kirim
+      const shippedStats = (shippedData || []).reduce((acc: Record<number, number>, item: any) => {
+        if (item.id_produk && item.jumlah_kirim) {
+          acc[item.id_produk] = (acc[item.id_produk] || 0) + item.jumlah_kirim
+        }
         return acc
       }, {})
 
       // Agregasi data terbayar
-      const paidStats = paidData.reduce((acc: Record<number, number>, item) => {
-        acc[item.id_produk] = (acc[item.id_produk] || 0) + item.jumlah_terjual
+      const paidStats = (paidData || []).reduce((acc: Record<number, number>, item: any) => {
+        if (item.id_produk && item.jumlah_terjual) {
+          acc[item.id_produk] = (acc[item.id_produk] || 0) + item.jumlah_terjual
+        }
         return acc
       }, {})
 
-      // Gabungkan semua ID produk
+
+      // Dapatkan semua produk dari database untuk memastikan semua produk ditampilkan
+      const { data: allProducts, error: productsError } = await supabaseAdmin
+        .from('produk')
+        .select('id_produk')
+        .eq('status_produk', true)
+
+      if (productsError) {
+        return createErrorResponse('Failed to fetch products: ' + productsError.message)
+      }
+
+      // Gabungkan semua ID produk (termasuk yang tidak memiliki statistik)
       const allProductIds = new Set([
+        ...(allProducts || []).map((p: any) => p.id_produk),
         ...Object.keys(shippedStats).map(Number),
         ...Object.keys(paidStats).map(Number)
       ])
@@ -54,8 +79,8 @@ export async function GET(request: NextRequest) {
       }))
 
       return createSuccessResponse(result)
-    } catch (error) {
-      return createErrorResponse('Failed to fetch product statistics')
+    } catch (error: any) {
+      return createErrorResponse('Failed to fetch product statistics: ' + error.message)
     }
   })
 }

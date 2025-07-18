@@ -1,78 +1,94 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { NextRequest } from 'next/server'
+import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
 export async function GET(request: NextRequest) {
-  try {
-    // Get sales statistics with store count, total shipped items, and total revenue
-    const { data: salesStats, error } = await supabase
-      .from('sales')
-      .select(`
-        id_sales,
-        nama_sales,
-        toko!inner(id_toko, pengiriman(id_pengiriman, detail_pengiriman(jumlah_kirim)), penagihan(total_uang_diterima))
-      `)
-    
-    if (error) {
-      console.error('Error fetching sales statistics:', error)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch sales statistics' },
-        { status: 500 }
-      )
-    }
+  return handleApiRequest(request, async () => {
+    try {
+      // Get store count for each sales
+      const { data: storeStats, error: storeError } = await supabaseAdmin
+        .from('toko')
+        .select('id_sales')
+        .eq('status_toko', true)
 
-    // Process the data to calculate statistics
-    const processedStats = salesStats?.map(sales => {
-      const stores = sales.toko || []
-      const totalStores = stores.length
-      
-      let totalShippedItems = 0
-      let totalRevenue = 0
-      
-      stores.forEach(store => {
-        // Calculate total shipped items
-        store.pengiriman?.forEach(pengiriman => {
-          pengiriman.detail_pengiriman?.forEach(detail => {
-            totalShippedItems += detail.jumlah_kirim || 0
-          })
-        })
-        
-        // Calculate total revenue
-        store.penagihan?.forEach(penagihan => {
-          totalRevenue += penagihan.total_uang_diterima || 0
-        })
+      if (storeError) {
+        return createErrorResponse('Failed to fetch store statistics: ' + storeError.message)
+      }
+
+      // Get shipment stats for each sales
+      const { data: shipmentStats, error: shipmentError } = await supabaseAdmin
+        .from('detail_pengiriman')
+        .select(`
+          jumlah_kirim,
+          pengiriman!inner(
+            toko!inner(id_sales)
+          )
+        `)
+
+      if (shipmentError) {
+        return createErrorResponse('Failed to fetch shipment statistics: ' + shipmentError.message)
+      }
+
+      // Get revenue stats for each sales
+      const { data: revenueStats, error: revenueError } = await supabaseAdmin
+        .from('penagihan')
+        .select(`
+          total_uang_diterima,
+          toko!inner(id_sales)
+        `)
+
+      if (revenueError) {
+        return createErrorResponse('Failed to fetch revenue statistics: ' + revenueError.message)
+      }
+
+      // Get all sales
+      const { data: allSales, error: salesError } = await supabaseAdmin
+        .from('sales')
+        .select('id_sales, nama_sales')
+        .eq('status_aktif', true)
+
+      if (salesError) {
+        return createErrorResponse('Failed to fetch sales: ' + salesError.message)
+      }
+
+      // Process statistics
+      const storeCountMap = new Map<number, number>()
+      const shipmentCountMap = new Map<number, number>()
+      const revenueCountMap = new Map<number, number>()
+
+      // Count stores per sales
+      storeStats?.forEach((store: any) => {
+        const salesId = store.id_sales
+        storeCountMap.set(salesId, (storeCountMap.get(salesId) || 0) + 1)
       })
-      
-      return {
+
+      // Count shipments per sales
+      shipmentStats?.forEach((item: any) => {
+        const salesId = item.pengiriman?.toko?.id_sales
+        if (salesId) {
+          shipmentCountMap.set(salesId, (shipmentCountMap.get(salesId) || 0) + (item.jumlah_kirim || 0))
+        }
+      })
+
+      // Count revenue per sales
+      revenueStats?.forEach((item: any) => {
+        const salesId = item.toko?.id_sales
+        if (salesId) {
+          revenueCountMap.set(salesId, (revenueCountMap.get(salesId) || 0) + (item.total_uang_diterima || 0))
+        }
+      })
+
+      // Build final result
+      const result = (allSales || []).map((sales: any) => ({
         id_sales: sales.id_sales,
         nama_sales: sales.nama_sales,
-        total_stores: totalStores,
-        total_shipped_items: totalShippedItems,
-        total_revenue: totalRevenue
-      }
-    }) || []
+        total_stores: storeCountMap.get(sales.id_sales) || 0,
+        total_shipped_items: shipmentCountMap.get(sales.id_sales) || 0,
+        total_revenue: revenueCountMap.get(sales.id_sales) || 0
+      }))
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        data: processedStats 
-      },
-      { 
-        status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
-        }
-      }
-    )
-  } catch (error) {
-    console.error('Sales statistics API error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+      return createSuccessResponse(result)
+    } catch (error: any) {
+      return createErrorResponse('Failed to fetch sales statistics: ' + error.message)
+    }
+  })
 }

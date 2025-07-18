@@ -267,6 +267,14 @@ class ApiClient {
       jumlah_potongan: number
       alasan?: string
     }
+    auto_restock?: boolean
+    additional_shipment?: {
+      enabled: boolean
+      details: Array<{
+        id_produk: number
+        jumlah_kirim: number
+      }>
+    }
   }) {
     return this.request('/penagihan', {
       method: 'POST',
@@ -339,10 +347,11 @@ class ApiClient {
   }
 
   // Reports API
-  async getReport(type: 'pengiriman' | 'penagihan' | 'rekonsiliasi' | 'dashboard-stats', startDate?: string, endDate?: string) {
+  async getReport(type: 'pengiriman' | 'penagihan' | 'rekonsiliasi' | 'dashboard-stats' | 'product-movement', startDate?: string, endDate?: string, productId?: string) {
     const params = new URLSearchParams({ type })
     if (startDate) params.append('start_date', startDate)
     if (endDate) params.append('end_date', endDate)
+    if (productId) params.append('product_id', productId)
     return this.request(`/laporan?${params.toString()}`)
   }
 

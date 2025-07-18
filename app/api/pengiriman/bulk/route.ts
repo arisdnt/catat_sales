@@ -184,7 +184,6 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (fetchError) {
-        console.error('Failed to fetch complete data:', fetchError)
         // Don't fail the operation, just return basic data
         return createSuccessResponse({
           id_bulk_pengiriman: bulkData.id_bulk_pengiriman,

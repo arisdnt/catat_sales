@@ -23,7 +23,9 @@
       "Bash(mkdir:*)",
       "Bash(move page.tsx listpage.tsx)",
       "Bash(mv:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

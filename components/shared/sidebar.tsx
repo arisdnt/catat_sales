@@ -24,12 +24,7 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: 'Pengiriman',
-    href: '/dashboard/pengiriman',
-    icon: Package,
-  },
-  {
-    title: 'Penagihan',
+    title: 'Pembayaran',
     href: '/dashboard/penagihan',
     icon: CreditCard,
   },
@@ -37,17 +32,6 @@ const menuItems = [
     title: 'Setoran',
     href: '/dashboard/setoran',
     icon: Banknote,
-  },
-  {
-    title: 'Laporan',
-    href: '/dashboard/laporan',
-    icon: FileText,
-    submenu: [
-      {
-        title: 'Rekonsiliasi',
-        href: '/dashboard/laporan/rekonsiliasi',
-      }
-    ]
   },
   {
     title: 'Master Data',

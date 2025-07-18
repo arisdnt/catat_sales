@@ -72,7 +72,7 @@ export interface UpdatePenagihanData {
 export const penagihanKeys = {
   all: ['penagihan'] as const,
   lists: () => [...penagihanKeys.all, 'list'] as const,
-  list: (filters: Record<string, any>) => [...penagihanKeys.lists(), { filters }] as const,
+  list: (filters: Record<string, unknown>) => [...penagihanKeys.lists(), { filters }] as const,
   details: () => [...penagihanKeys.all, 'detail'] as const,
   detail: (id: number) => [...penagihanKeys.details(), id] as const,
 }
@@ -108,7 +108,7 @@ export function useCreatePenagihanMutation() {
         description: 'Penagihan berhasil ditambahkan',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menambahkan penagihan',
@@ -133,7 +133,7 @@ export function useUpdatePenagihanMutation() {
         description: 'Penagihan berhasil diperbarui',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal memperbarui penagihan',
@@ -156,7 +156,7 @@ export function useDeletePenagihanMutation() {
         description: 'Penagihan berhasil dihapus',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menghapus penagihan',

@@ -117,7 +117,7 @@ export default function SalesPage() {
         </div>
       )
     },
-  ], [])
+  ], [salesStats])
 
   const stats = {
     totalSales: salesData.length,

@@ -39,18 +39,21 @@ This is a Next.js 15 sales management system ("Sistem Penjualan Titip Bayar") bu
 ### Database Schema
 The system tracks consignment sales with these main entities:
 - `sales` - Sales representatives
-- `produk` - Products with pricing  
+- `produk` - Products with pricing and priority ordering
 - `toko` - Stores assigned to sales reps
 - `pengiriman` + `detail_pengiriman` - Product shipments to stores
+- `bulk_pengiriman` - Bulk shipment operations for multiple stores
 - `penagihan` + `detail_penagihan` - Billing with sold/returned items
+- `potongan_penagihan` - Discount/deduction records
 - `setoran` - Cash deposits from sales reps
-- Views: `v_laporan_pengiriman`, `v_laporan_penagihan`, `v_rekonsiliasi_setoran`
+- Views: `v_laporan_pengiriman`, `v_laporan_penagihan`, `v_rekonsiliasi_setoran`, `v_produk_prioritas`, `v_produk_non_prioritas`
 
 ### Authentication Flow
 - All routes under `/dashboard` require authentication via `AuthGuard`
 - API routes validate JWT tokens from Supabase session
 - Row Level Security (RLS) enabled on all tables
-- Middleware at `middleware.ts:4` handles route protection
+- Middleware at `middleware.ts:4` currently allows client-side auth handling
+- Authentication validation primarily handled by API routes and AuthGuard component
 
 ### API Architecture
 - RESTful API routes in `/app/api/`
@@ -85,7 +88,11 @@ The system tracks consignment sales with these main entities:
 ### Business Flow
 1. Setup master data (sales, products, stores)
 2. Record shipments (`pengiriman`) - sales deliver products to stores
-3. Process billing (`penagihan`) - record sales, returns, discounts  
+   - Individual shipments for specific stores
+   - Bulk shipments for multiple stores at once
+3. Process billing (`penagihan`) - record sales, returns, discounts
+   - Auto-restock feature for returned items
+   - Additional shipment processing during billing
 4. Record deposits (`setoran`) - sales deposit cash to office
 5. Generate reconciliation reports via `/api/laporan`
 
@@ -208,3 +215,15 @@ const handleExport = () => {
 - `@/components/*` - Components directory  
 - `@/lib/*` - Library utilities
 - `@/types/*` - TypeScript types
+- `@/app/*` - Next.js app directory
+
+## Important File Locations
+- `middleware.ts` - Route protection middleware
+- `app/layout.tsx` - Root layout with providers
+- `app/dashboard/layout.tsx` - Dashboard layout with sidebar
+- `components/layout/auth-guard.tsx` - Authentication wrapper
+- `components/providers/` - Context providers (auth, query, sidebar)
+- `lib/supabase.ts` - Supabase client configuration
+- `lib/api-client.ts` - Centralized API client
+- `lib/react-query.ts` - TanStack Query configuration
+- `types/database.ts` - TypeScript types for database schema

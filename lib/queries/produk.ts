@@ -13,6 +13,7 @@ export interface Produk {
   harga_satuan: number
   status_produk: boolean
   is_priority: boolean | null
+  priority_order: number | null
   dibuat_pada: string
   diperbarui_pada: string
 }
@@ -130,12 +131,53 @@ export function useDeleteProdukMutation() {
         description: 'Produk berhasil dihapus',
       })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Gagal menghapus produk',
         variant: 'destructive',
       })
     },
+  })
+}
+
+// Product Movement Tracking
+export interface ProductMovement {
+  type: 'shipment' | 'billing'
+  date: string
+  store: string
+  sales: string
+  product: string
+  quantity?: number
+  quantity_sold?: number
+  quantity_returned?: number
+  value: number
+  payment_method?: string
+  has_discount?: boolean
+  description: string
+}
+
+export interface ProductMovementSummary {
+  total_shipped: number
+  total_sold: number
+  total_returned: number
+  total_value: number
+  conversion_rate: number
+  return_rate: number
+}
+
+export interface ProductMovementData {
+  movements: ProductMovement[]
+  summary: ProductMovementSummary
+  shipments: any[]
+  billings: any[]
+}
+
+export function useProductMovementQuery(productId: number, startDate?: string, endDate?: string) {
+  return useQuery({
+    queryKey: ['product-movement', productId, startDate, endDate],
+    queryFn: () => apiClient.getReport('product-movement', startDate, endDate, productId?.toString()) as Promise<ApiResponse<ProductMovementData>>,
+    enabled: !!productId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   })
 }

@@ -18,8 +18,11 @@ export async function GET(request: NextRequest) {
         return await getLaporanRekonsiliasi(start_date, end_date)
       case 'dashboard-stats':
         return await getDashboardStats(time_filter)
+      case 'product-movement':
+        const product_id = searchParams.get('product_id')
+        return await getProductMovement(product_id, start_date, end_date)
       default:
-        return createErrorResponse('Invalid report type. Use: pengiriman, penagihan, rekonsiliasi, or dashboard-stats')
+        return createErrorResponse('Invalid report type. Use: pengiriman, penagihan, rekonsiliasi, dashboard-stats, or product-movement')
     }
   })
 }
@@ -133,7 +136,6 @@ async function getDashboardStats(timeFilter?: string | null) {
       }
     }
     
-    console.log('Fetching dashboard stats with filters:', { currentMonth, threeMonthsAgo, today })
     
     // Basic counts
     const [
@@ -173,16 +175,11 @@ async function getDashboardStats(timeFilter?: string | null) {
         .lt('tanggal_tagih', `${getNextMonth(currentMonth)}-01`)
     }
     
-    console.log('Sales query filter:', {
-      currentMonth,
-      startDate: `${currentMonth}-01`,
-      endDate: `${getNextMonth(currentMonth)}-01`
-    })
     
     const { data: salesData, error: salesError } = await salesQuery
     
     if (salesError) {
-      console.error('Sales query error:', salesError)
+      // Sales query error - continue with empty data
     }
     
     const [
@@ -241,15 +238,9 @@ async function getDashboardStats(timeFilter?: string | null) {
         .gte('dibuat_pada', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     ])
 
-    // Debug logging
-    console.log('Raw sales data from v_laporan_penagihan:', salesData?.slice(0, 3))
-    console.log('Sales data count:', salesData?.length)
-    console.log('Sales data sample structure:', salesData?.[0])
     
     // Process the data
     const processedSalesPerformance = processSalesPerformance(salesData || [])
-    console.log('Processed sales performance:', processedSalesPerformance)
-    console.log('Processed sales performance count:', processedSalesPerformance?.length)
     
     const processedTopProducts = processTopProducts(topProductsData || [])
     const processedTopStores = processTopStores(topStoresData || [])
@@ -278,7 +269,6 @@ async function getDashboardStats(timeFilter?: string | null) {
 
     return createSuccessResponse(stats)
   } catch (error: any) {
-    console.error('Dashboard stats error:', error)
     return createErrorResponse(`Failed to fetch dashboard stats: ${error?.message || 'Unknown error'}`)
   }
 }
@@ -454,4 +444,140 @@ function generateReceivablesAging(pendapatanHarian: number): any[] {
     { aging_category: '61-90 hari', total_amount: pendapatanHarian * 0.1, count_items: 3 },
     { aging_category: '90+ hari', total_amount: pendapatanHarian * 0.05, count_items: 1 }
   ]
+}
+
+async function getProductMovement(product_id?: string | null, start_date?: string | null, end_date?: string | null) {
+  try {
+    if (!product_id) {
+      return createErrorResponse('Product ID is required')
+    }
+
+    // Get shipment data for the product using custom join
+    let shipmentQuery = supabaseAdmin
+      .from('detail_pengiriman')
+      .select(`
+        *,
+        pengiriman!inner(
+          id_pengiriman,
+          tanggal_kirim,
+          toko!inner(
+            nama_toko,
+            sales!inner(nama_sales)
+          )
+        ),
+        produk!inner(nama_produk, harga_satuan)
+      `)
+      .eq('id_produk', product_id)
+
+    if (start_date) {
+      shipmentQuery = shipmentQuery.gte('pengiriman.tanggal_kirim', start_date)
+    }
+    if (end_date) {
+      shipmentQuery = shipmentQuery.lte('pengiriman.tanggal_kirim', end_date)
+    }
+
+    // Get billing data for the product using custom join
+    let billingQuery = supabaseAdmin
+      .from('detail_penagihan')
+      .select(`
+        *,
+        penagihan!inner(
+          id_penagihan,
+          total_uang_diterima,
+          metode_pembayaran,
+          ada_potongan,
+          dibuat_pada,
+          toko!inner(
+            nama_toko,
+            sales!inner(nama_sales)
+          )
+        ),
+        produk!inner(nama_produk, harga_satuan)
+      `)
+      .eq('id_produk', product_id)
+
+    if (start_date) {
+      billingQuery = billingQuery.gte('penagihan.dibuat_pada', start_date)
+    }
+    if (end_date) {
+      billingQuery = billingQuery.lte('penagihan.dibuat_pada', end_date)
+    }
+
+    // Execute both queries
+    const [shipmentResult, billingResult] = await Promise.all([
+      shipmentQuery,
+      billingQuery
+    ])
+
+    if (shipmentResult.error) {
+      return createErrorResponse(shipmentResult.error.message)
+    }
+
+    if (billingResult.error) {
+      return createErrorResponse(billingResult.error.message)
+    }
+
+    // Combine and sort all movements by date
+    const movements: any[] = []
+
+    // Add shipment movements
+    shipmentResult.data?.forEach((item: any) => {
+      movements.push({
+        type: 'shipment',
+        id: item.pengiriman.id_pengiriman,
+        date: item.pengiriman.tanggal_kirim,
+        store: item.pengiriman.toko.nama_toko,
+        sales: item.pengiriman.toko.sales.nama_sales,
+        product: item.produk.nama_produk,
+        quantity: item.jumlah_kirim,
+        value: item.jumlah_kirim * item.produk.harga_satuan,
+        description: `Pengiriman ${item.jumlah_kirim} unit ke ${item.pengiriman.toko.nama_toko}`
+      })
+    })
+
+    // Add billing movements
+    billingResult.data?.forEach((item: any) => {
+      movements.push({
+        type: 'billing',
+        id: item.penagihan.id_penagihan,
+        date: item.penagihan.dibuat_pada,
+        store: item.penagihan.toko.nama_toko,
+        sales: item.penagihan.toko.sales.nama_sales,
+        product: item.produk.nama_produk,
+        quantity_sold: item.jumlah_terjual,
+        quantity_returned: item.jumlah_kembali,
+        value: item.jumlah_terjual * item.produk.harga_satuan,
+        payment_method: item.penagihan.metode_pembayaran,
+        has_discount: item.penagihan.ada_potongan,
+        description: `Penagihan: ${item.jumlah_terjual} terjual, ${item.jumlah_kembali} kembali`
+      })
+    })
+
+    // Sort by date descending
+    movements.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    // Calculate summary statistics
+    const totalShipped = shipmentResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_kirim, 0) || 0
+    const totalSold = billingResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_terjual, 0) || 0
+    const totalReturned = billingResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_kembali, 0) || 0
+    const totalValue = billingResult.data?.reduce((sum: number, item: any) => sum + (item.jumlah_terjual * item.produk.harga_satuan), 0) || 0
+
+    const summary = {
+      total_shipped: totalShipped,
+      total_sold: totalSold,
+      total_returned: totalReturned,
+      total_value: totalValue,
+      conversion_rate: totalShipped > 0 ? (totalSold / totalShipped) * 100 : 0,
+      return_rate: totalSold > 0 ? (totalReturned / totalSold) * 100 : 0
+    }
+
+    return createSuccessResponse({
+      movements,
+      summary,
+      shipments: shipmentResult.data || [],
+      billings: billingResult.data || []
+    })
+  } catch (error) {
+    return createErrorResponse('Failed to fetch product movement data')
+  }
 }

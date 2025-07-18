@@ -91,13 +91,6 @@ export default function DashboardPage() {
     receivables: (stats as any).data.receivables || []
   } : defaultStats
 
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Dashboard stats:', { stats, isLoading, error })
-    console.log('Time filter:', timeFilter)
-    console.log('Sales Performance Data:', dashboardStats.salesPerformance)
-    console.log('Has sales performance data:', dashboardStats.salesPerformance?.length > 0)
-  }
   
   // Update real-time refresh when time filter changes
   const handleTimeFilterChange = (newFilter: string) => {

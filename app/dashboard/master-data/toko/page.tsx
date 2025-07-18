@@ -2,27 +2,26 @@
 
 import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Eye,
   Edit,
   Trash2,
   MapPin,
-  Plus,
-  Download,
   RefreshCw,
   Store,
   Users,
-  Phone,
-  ExternalLink
+  ExternalLink,
+  Package,
+  CreditCard,
+  Archive
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useTokoQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
 import { useSalesQuery } from '@/lib/queries/sales'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { DataTable, createSortableHeader, createStatusBadge, formatCurrency } from '@/components/shared/data-table'
+import { DataTable, createSortableHeader, createStatusBadge } from '@/components/shared/data-table'
 import { exportStoreData } from '@/lib/excel-export'
 
 const statusConfig = {
@@ -32,9 +31,9 @@ const statusConfig = {
 
 export default function TokoTablePage() {
   const { data: response, isLoading, error, refetch } = useTokoQuery('active', true)
-  const stores: any[] = (response as any)?.data || []
+  const stores = useMemo(() => (response as { data: Toko[] })?.data || [], [response])
   const { data: salesResponse } = useSalesQuery()
-  const salesData: any[] = (salesResponse as any)?.data || []
+  const salesData = useMemo(() => (salesResponse as { data: { id_sales: number; nama_sales: string }[] })?.data || [], [salesResponse])
   const deleteStore = useDeleteTokoMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -157,7 +156,100 @@ export default function TokoTablePage() {
         return value === 'all' || row.getValue(id) === (value === 'true')
       }
     },
-  ], [])
+    {
+      accessorKey: 'barang_terkirim',
+      header: 'Barang Terkirim',
+      cell: ({ row }) => {
+        const barangTerkirim = row.original.barang_terkirim || 0
+        const detailBarang = row.original.detail_barang_terkirim || []
+        
+        return (
+          <div className="group relative flex items-center gap-2">
+            <div className="p-2 bg-green-50 rounded-lg">
+              <Package className="w-4 h-4 text-green-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{barangTerkirim}</div>
+              <div className="text-sm text-gray-500">Items</div>
+            </div>
+            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div className="font-semibold mb-1">Detail Barang Terkirim:</div>
+              {detailBarang.length > 0 ? (
+                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
+                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
+                ))
+              ) : (
+                <div>• Belum ada data detail</div>
+              )}
+              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'barang_terbayar',
+      header: 'Barang Terbayar',
+      cell: ({ row }) => {
+        const barangTerbayar = row.original.barang_terbayar || 0
+        const detailBarang = row.original.detail_barang_terbayar || []
+        
+        return (
+          <div className="group relative flex items-center gap-2">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <CreditCard className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{barangTerbayar}</div>
+              <div className="text-sm text-gray-500">Items</div>
+            </div>
+            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div className="font-semibold mb-1">Detail Barang Terbayar:</div>
+              {detailBarang.length > 0 ? (
+                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
+                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
+                ))
+              ) : (
+                <div>• Belum ada data detail</div>
+              )}
+              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'sisa_stok',
+      header: 'Sisa Stok',
+      cell: ({ row }) => {
+        const sisaStok = row.original.sisa_stok || 0
+        const detailBarang = row.original.detail_sisa_stok || []
+        
+        return (
+          <div className="group relative flex items-center gap-2">
+            <div className="p-2 bg-orange-50 rounded-lg">
+              <Archive className="w-4 h-4 text-orange-600" />
+            </div>
+            <div>
+              <div className="font-medium text-gray-900">{sisaStok}</div>
+              <div className="text-sm text-gray-500">Items</div>
+            </div>
+            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div className="font-semibold mb-1">Detail Sisa Stok:</div>
+              {detailBarang.length > 0 ? (
+                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
+                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
+                ))
+              ) : (
+                <div>• Belum ada data detail</div>
+              )}
+              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            </div>
+          </div>
+        )
+      },
+    },
+  ], [salesData])
 
   const stats = {
     totalStores: stores.length,

@@ -46,12 +46,14 @@ const priorityConfig = {
 
 export default function ProductsPage() {
   const { data: response, isLoading, error, refetch } = useProdukQuery()
-  const products: any[] = (response as any)?.data || []
-  const { data: statsResponse } = useProdukStatsQuery()
-  const productStats: ProdukStats[] = (statsResponse as any)?.data || []
+  const products: Produk[] = (response as { success: boolean; data: Produk[] })?.data || []
+  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useProdukStatsQuery()
+  const productStats: ProdukStats[] = (statsResponse as { success: boolean; data: ProdukStats[] })?.data || []
   const deleteProduct = useDeleteProdukMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
+
+  // If stats error, continue rendering
 
   const handleDelete = (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
@@ -84,12 +86,35 @@ export default function ProductsPage() {
             <div>
               <div className="font-medium text-gray-900">{row.getValue('nama_produk')}</div>
               <div className="flex items-center gap-3 text-sm">
-                <span className="text-red-600 font-medium">
-                  Terkirim: {stats?.total_terkirim || 0}
-                </span>
-                <span className="text-green-600 font-medium">
-                  Terbayar: {stats?.total_terbayar || 0}
-                </span>
+                {statsLoading ? (
+                  <span className="text-gray-400 text-xs">Loading stats...</span>
+                ) : statsError ? (
+                  <span className="text-red-400 text-xs">Stats unavailable</span>
+                ) : stats ? (
+                  <>
+                    <span className="text-red-600 font-medium">
+                      Terkirim: {stats.total_terkirim || 0}
+                    </span>
+                    <span className="text-green-600 font-medium">
+                      Terbayar: {stats.total_terbayar || 0}
+                    </span>
+                    <span className="text-orange-600 font-medium">
+                      Selisih: {(stats.total_terkirim || 0) - (stats.total_terbayar || 0)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-gray-500 text-xs">
+                      Terkirim: 0
+                    </span>
+                    <span className="text-gray-500 text-xs">
+                      Terbayar: 0
+                    </span>
+                    <span className="text-gray-500 text-xs">
+                      Selisih: 0
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -123,14 +148,14 @@ export default function ProductsPage() {
         
         return (
           <div className="flex flex-col gap-1">
-            <Badge className={config.color}>
+            <Badge variant="secondary" className={config.color}>
               {config.label}
             </Badge>
-            {isPriority && priorityOrder > 0 && (
+            {isPriority && priorityOrder && priorityOrder > 0 ? (
               <span className="text-xs text-gray-500">
                 Order: {priorityOrder}
               </span>
-            )}
+            ) : null}
           </div>
         )
       },
@@ -147,7 +172,7 @@ export default function ProductsPage() {
         </div>
       )
     },
-  ], [])
+  ], [productStats, statsLoading, statsError])
 
   const stats = {
     totalProducts: products.length,
@@ -175,7 +200,7 @@ export default function ProductsPage() {
     return (
       <div className="p-8">
         <div className="text-center">
-          <div className="text-red-600 mb-4">Error loading products data</div>
+          <div className="text-red-600 mb-4">Error loading products data: {error.message}</div>
           <Button onClick={() => refetch()}>Retry</Button>
         </div>
       </div>

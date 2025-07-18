@@ -103,7 +103,7 @@ export function useLaporanQuery(
 ) {
   return useQuery({
     queryKey: laporanKeys.report(type, startDate, endDate),
-    queryFn: () => apiClient.getReport(type, startDate, endDate) as Promise<ApiResponse<any>>,
+    queryFn: () => apiClient.getReport(type, startDate, endDate) as Promise<ApiResponse<unknown>>,
     staleTime: 1000 * 60 * 2, // 2 minutes - reports need fresher data
     enabled: !!type,
   })

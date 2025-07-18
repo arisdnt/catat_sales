@@ -213,25 +213,6 @@ export function exportDepositData(data: any[]) {
   })
 }
 
-/**
- * Export reconciliation data to Excel
- */
-export function exportReconciliationData(data: any[]) {
-  const columns: ExcelColumn[] = [
-    { key: 'id_setoran', header: 'ID Setoran', width: 15 },
-    { key: 'tanggal_setoran', header: 'Tanggal Setoran', width: 15, formatter: (value) => format(new Date(value), 'dd/MM/yyyy') },
-    { key: 'total_setoran', header: 'Total Setoran', width: 20, formatter: (value) => formatCurrency(value) },
-    { key: 'penerima_setoran', header: 'Penerima Setoran', width: 25 },
-    { key: 'total_penagihan_cash', header: 'Total Penagihan Cash', width: 20, formatter: (value) => formatCurrency(value) },
-    { key: 'selisih', header: 'Selisih', width: 15, formatter: (value) => formatCurrency(value) },
-    { key: 'status', header: 'Status', width: 10, formatter: (value) => value === 0 ? 'Sesuai' : 'Selisih' }
-  ]
-
-  return exportToExcel(data, columns, {
-    filename: 'laporan_rekonsiliasi',
-    sheetName: 'Rekonsiliasi'
-  })
-}
 
 /**
  * Export dashboard statistics to Excel
@@ -269,7 +250,6 @@ export function exportMultiSheetReport(data: {
   shipments?: any[]
   billings?: any[]
   deposits?: any[]
-  reconciliation?: any[]
   dashboard?: any
 }) {
   try {
@@ -307,10 +287,6 @@ export function exportMultiSheetReport(data: {
       XLSX.utils.book_append_sheet(wb, depositsWs, 'Setoran')
     }
 
-    if (data.reconciliation && data.reconciliation.length > 0) {
-      const reconciliationWs = createReconciliationSheet(data.reconciliation)
-      XLSX.utils.book_append_sheet(wb, reconciliationWs, 'Rekonsiliasi')
-    }
 
     if (data.dashboard) {
       const dashboardWs = createDashboardSheet(data.dashboard)
@@ -409,19 +385,6 @@ function createDepositsSheet(data: any[]) {
   return XLSX.utils.json_to_sheet(formatted)
 }
 
-function createReconciliationSheet(data: any[]) {
-  const formatted = data.map(item => ({
-    'ID Setoran': item.id_setoran,
-    'Tanggal Setoran': format(new Date(item.tanggal_setoran), 'dd/MM/yyyy'),
-    'Total Setoran': formatCurrency(item.total_setoran),
-    'Penerima Setoran': item.penerima_setoran,
-    'Total Penagihan Cash': formatCurrency(item.total_penagihan_cash),
-    'Selisih': formatCurrency(item.selisih),
-    'Status': item.selisih === 0 ? 'Sesuai' : 'Selisih'
-  }))
-  
-  return XLSX.utils.json_to_sheet(formatted)
-}
 
 function createDashboardSheet(data: any) {
   const formatted = [
