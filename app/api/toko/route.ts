@@ -44,6 +44,24 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const include_sales = searchParams.get('include_sales')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = (page - 1) * limit
+    
+    // Get total count first
+    let countQuery = supabaseAdmin
+      .from('toko')
+      .select('*', { count: 'exact', head: true })
+    
+    if (status === 'active') {
+      countQuery = countQuery.eq('status_toko', true)
+    }
+    
+    const { count: totalCount, error: countError } = await countQuery
+    
+    if (countError) {
+      return createErrorResponse(countError.message)
+    }
     
     let query = supabaseAdmin
       .from('toko')
@@ -66,6 +84,7 @@ export async function GET(request: NextRequest) {
         )
       ` : '*')
       .order('nama_toko')
+      .range(offset, offset + limit - 1)
 
     if (status === 'active') {
       query = query.eq('status_toko', true)
@@ -176,7 +195,21 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    return createSuccessResponse(enrichedData)
+    const totalPages = Math.ceil((totalCount || 0) / limit)
+    const hasNextPage = page < totalPages
+    const hasPrevPage = page > 1
+
+    return createSuccessResponse({
+      data: enrichedData,
+      pagination: {
+        page,
+        limit,
+        total: totalCount || 0,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    })
   })
 }
 

@@ -101,10 +101,12 @@ class ApiClient {
   }
 
   // Stores API
-  async getStores(status?: 'active', includeSales?: boolean) {
+  async getStores(status?: 'active', includeSales?: boolean, page?: number, limit?: number) {
     const params = new URLSearchParams()
     if (status) params.append('status', status)
     if (includeSales) params.append('include_sales', 'true')
+    if (page) params.append('page', page.toString())
+    if (limit) params.append('limit', limit.toString())
     const queryString = params.toString()
     return this.request(`/toko${queryString ? `?${queryString}` : ''}`)
   }

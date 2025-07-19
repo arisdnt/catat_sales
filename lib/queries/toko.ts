@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
 import { Sales } from '@/lib/queries/sales'
@@ -6,6 +6,21 @@ import { Sales } from '@/lib/queries/sales'
 export interface ApiResponse<T> {
   success: boolean
   data: T
+}
+
+export interface PaginatedApiResponse<T> {
+  success: boolean
+  data: {
+    data: T[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNextPage: boolean
+      hasPrevPage: boolean
+    }
+  }
 }
 
 export interface Toko {
@@ -65,6 +80,25 @@ export function useTokoQuery(status?: 'active', includeSales?: boolean) {
     queryKey: tokoKeys.list({ status, includeSales }),
     queryFn: () => apiClient.getStores(status, includeSales) as Promise<ApiResponse<Toko[]>>,
     staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+// Infinite Query for pagination
+export function useTokoInfiniteQuery(status?: 'active', includeSales?: boolean, limit: number = 50) {
+  return useInfiniteQuery({
+    queryKey: [...tokoKeys.list({ status, includeSales }), 'infinite'],
+    queryFn: ({ pageParam = 1 }) => 
+      apiClient.getStores(status, includeSales, pageParam, limit) as Promise<PaginatedApiResponse<Toko>>,
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.data.pagination
+      return pagination.hasNextPage ? pagination.page + 1 : undefined
+    },
+    getPreviousPageParam: (firstPage) => {
+      const pagination = firstPage.data.pagination
+      return pagination.hasPrevPage ? pagination.page - 1 : undefined
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    initialPageParam: 1,
   })
 }
 

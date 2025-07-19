@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,14 +18,13 @@ import {
   Upload
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { useTokoQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
+import { useTokoInfiniteQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
 import { useSalesQuery } from '@/lib/queries/sales'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge } from '@/components/shared/data-table'
 import { exportStoreData } from '@/lib/excel-export'
 import ExcelImport from '@/components/shared/excel-import'
-import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 const statusConfig = {
@@ -34,14 +33,57 @@ const statusConfig = {
 }
 
 export default function TokoTablePage() {
-  const { data: response, isLoading, error, refetch } = useTokoQuery('active', true)
-  const stores = useMemo(() => (response as { data: Toko[] })?.data || [], [response])
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useTokoInfiniteQuery('active', true, 50)
+  
+  const stores = useMemo(() => {
+    if (!data?.pages) return []
+    return data.pages.flatMap(page => page.data.data)
+  }, [data])
+  
   const { data: salesResponse } = useSalesQuery()
   const salesData = useMemo(() => (salesResponse as { data: { id_sales: number; nama_sales: string }[] })?.data || [], [salesResponse])
   const deleteStore = useDeleteTokoMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
   const [showImportDialog, setShowImportDialog] = useState(false)
+  
+  // Auto-load next page when user scrolls near bottom
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    
+    const sentinel = document.getElementById('load-more-sentinel')
+    if (sentinel) {
+      observer.observe(sentinel)
+    }
+    
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel)
+      }
+    }
+  }, [loadMore])
 
   const handleDelete = (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus toko ini?')) {
@@ -417,6 +459,9 @@ export default function TokoTablePage() {
           }
         ]}
       />
+      
+      {/* Sentinel element for infinite scroll */}
+      <div id="load-more-sentinel" className="h-4" />
     </div>
   )
 }
