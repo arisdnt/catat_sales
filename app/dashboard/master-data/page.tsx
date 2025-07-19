@@ -4,14 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Users, Package, Store, Plus, Eye, BarChart3 } from 'lucide-react'
 import { useNavigation } from '@/lib/hooks/use-navigation'
-import { useSalesQuery } from '@/lib/queries/sales'
-import { useProdukQuery } from '@/lib/queries/produk'
-import { useTokoQuery } from '@/lib/queries/toko'
+import { useSalesQuery, Sales } from '@/lib/queries/sales'
+import { useProdukQuery, Produk } from '@/lib/queries/produk'
+import { useTokoQuery, Toko } from '@/lib/queries/toko'
+import { LucideIcon } from 'lucide-react'
 
 interface MasterDataModule {
   title: string
   description: string
-  icon: any
+  icon: LucideIcon
   href: string
   addHref: string
   stats?: {
@@ -28,9 +29,9 @@ export default function MasterDataPage() {
   const { data: produkResponse } = useProdukQuery()
   const { data: tokoResponse } = useTokoQuery('active', true)
   
-  const salesData: any[] = (salesResponse as any)?.data || []
-  const produkData: any[] = (produkResponse as any)?.data || []
-  const tokoData: any[] = (tokoResponse as any)?.data || []
+  const salesData: Sales[] = salesResponse?.data || []
+  const produkData: Produk[] = produkResponse?.data || []
+  const tokoData: Toko[] = tokoResponse?.data || []
 
   const modules: MasterDataModule[] = [
     {

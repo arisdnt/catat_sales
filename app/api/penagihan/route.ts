@@ -1,6 +1,16 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
+// Type definitions
+interface ShipmentDetail {
+  id_produk: string
+  jumlah_kirim: number
+}
+
+interface AdditionalShipment {
+  details: ShipmentDetail[]
+}
+
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
@@ -246,7 +256,7 @@ export async function POST(request: NextRequest) {
         const today = new Date().toISOString().split('T')[0]
         
         // Validate additional shipment details
-        for (const detail of additional_shipment.details as any[]) {
+        for (const detail of (additional_shipment as AdditionalShipment).details) {
           if (!detail.id_produk || !detail.jumlah_kirim || detail.jumlah_kirim <= 0) {
             throw new Error('Each additional shipment detail must have valid id_produk and positive jumlah_kirim')
           }
@@ -267,7 +277,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create additional shipment details
-        const additionalDetailInserts = additional_shipment.details.map((detail: any) => ({
+        const additionalDetailInserts = (additional_shipment as AdditionalShipment).details.map((detail: ShipmentDetail) => ({
           id_pengiriman: additionalShipment.id_pengiriman,
           id_produk: parseInt(detail.id_produk),
           jumlah_kirim: parseInt(detail.jumlah_kirim)

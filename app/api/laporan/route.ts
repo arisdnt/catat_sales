@@ -1,6 +1,142 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
+// Type definitions
+interface SalesData {
+  nama_sales: string
+  total_uang_diterima: number
+  metode_pembayaran: string
+}
+
+interface SalesPerformance {
+  nama_sales: string
+  total_setoran: number
+  total_penjualan: number
+  efektivitas_persen: number
+}
+
+interface ProductData {
+  nama_produk: string
+  jumlah_terjual: number
+  nilai_terjual: number
+}
+
+interface TopProduct {
+  nama_produk: string
+  total_terjual: number
+  total_nilai: number
+}
+
+interface StoreData {
+  nama_toko: string
+  nama_sales: string
+  total_uang_diterima: number
+}
+
+interface TopStore {
+  nama_toko: string
+  nama_sales: string
+  total_pembelian: number
+  total_transaksi: number
+}
+
+interface MonthlyData {
+  dibuat_pada: string
+  total_uang_diterima?: number
+  total_setoran?: number
+}
+
+interface MonthlyTrend {
+  month: string
+  total_penjualan: number
+  total_setoran: number
+}
+
+interface MonthlyTrendsData {
+  penagihan?: MonthlyData[]
+  setoran?: MonthlyData[]
+}
+
+interface CashInHandData {
+  total_uang_diterima: number
+  toko?: {
+    sales?: {
+      nama_sales: string
+    }
+  }
+}
+
+interface CashInHand {
+  nama_sales: string
+  kas_di_tangan: number
+}
+
+interface AssetDistribution {
+  category: string
+  amount: number
+}
+
+interface ReceivablesAging {
+  aging_category: string
+  total_amount: number
+  count_items: number
+}
+
+interface ProductMovementItem {
+  type: 'shipment' | 'billing'
+  id: number
+  date: string
+  store: string
+  sales: string
+  product: string
+  quantity?: number
+  quantity_sold?: number
+  quantity_returned?: number
+  value: number
+  payment_method?: string
+  has_discount?: boolean
+  description: string
+}
+
+interface ShipmentMovementData {
+  jumlah_kirim: number
+  produk: {
+    nama_produk: string
+    harga_satuan: number
+  }
+  pengiriman: {
+    id_pengiriman: number
+    tanggal_kirim: string
+    toko: {
+      nama_toko: string
+      sales: {
+        nama_sales: string
+      }
+    }
+  }
+}
+
+interface BillingMovementData {
+  jumlah_terjual: number
+  jumlah_kembali: number
+  produk: {
+    nama_produk: string
+    harga_satuan: number
+  }
+  penagihan: {
+    id_penagihan: number
+    dibuat_pada: string
+    metode_pembayaran: string
+    ada_potongan: boolean
+    toko: {
+      nama_toko: string
+      sales: {
+        nama_sales: string
+      }
+    }
+  }
+}
+
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
@@ -48,7 +184,7 @@ async function getLaporanPengiriman(start_date?: string | null, end_date?: strin
     }
 
     return createSuccessResponse(data)
-  } catch (error) {
+  } catch (_error) {
     return createErrorResponse('Failed to fetch shipment report')
   }
 }
@@ -74,7 +210,7 @@ async function getLaporanPenagihan(start_date?: string | null, end_date?: string
     }
 
     return createSuccessResponse(data)
-  } catch (error) {
+  } catch (_error) {
     return createErrorResponse('Failed to fetch billing report')
   }
 }
@@ -100,7 +236,7 @@ async function getLaporanRekonsiliasi(start_date?: string | null, end_date?: str
     }
 
     return createSuccessResponse(data)
-  } catch (error) {
+  } catch (_error) {
     return createErrorResponse('Failed to fetch reconciliation report')
   }
 }
@@ -268,8 +404,9 @@ async function getDashboardStats(timeFilter?: string | null) {
     }
 
     return createSuccessResponse(stats)
-  } catch (error: any) {
-    return createErrorResponse(`Failed to fetch dashboard stats: ${error?.message || 'Unknown error'}`)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return createErrorResponse(`Failed to fetch dashboard stats: ${errorMessage}`)
   }
 }
 
@@ -280,10 +417,10 @@ function getNextMonth(currentMonth: string): string {
   return date.toISOString().substring(0, 7)
 }
 
-function processSalesPerformance(salesData: any[]): any[] {
+function processSalesPerformance(salesData: SalesData[]): SalesPerformance[] {
   if (!salesData) return []
   
-  const salesMap = new Map()
+  const salesMap = new Map<string, SalesPerformance>()
   
   salesData.forEach(item => {
     const salesName = item.nama_sales
@@ -313,10 +450,10 @@ function processSalesPerformance(salesData: any[]): any[] {
   return result
 }
 
-function processTopProducts(topProductsData: any[]): any[] {
+function processTopProducts(topProductsData: ProductData[]): TopProduct[] {
   if (!topProductsData) return []
   
-  const productMap = new Map()
+  const productMap = new Map<string, TopProduct>()
   
   topProductsData.forEach(item => {
     if (productMap.has(item.nama_produk)) {
@@ -337,10 +474,10 @@ function processTopProducts(topProductsData: any[]): any[] {
     .slice(0, 10)
 }
 
-function processTopStores(topStoresData: any[]): any[] {
+function processTopStores(topStoresData: StoreData[]): TopStore[] {
   if (!topStoresData) return []
   
-  const storeMap = new Map()
+  const storeMap = new Map<string, TopStore>()
   
   topStoresData.forEach(item => {
     const key = item.nama_toko
@@ -363,14 +500,14 @@ function processTopStores(topStoresData: any[]): any[] {
     .slice(0, 10)
 }
 
-function processMonthlyTrends(monthlyTrendsData: any): any[] {
+function processMonthlyTrends(monthlyTrendsData: MonthlyTrendsData): MonthlyTrend[] {
   if (!monthlyTrendsData || (!monthlyTrendsData.penagihan && !monthlyTrendsData.setoran)) return []
   
-  const monthMap = new Map()
+  const monthMap = new Map<string, MonthlyTrend>()
   
   // Process penagihan data
   if (monthlyTrendsData.penagihan) {
-    monthlyTrendsData.penagihan.forEach((item: any) => {
+    monthlyTrendsData.penagihan.forEach((item: MonthlyData) => {
       const month = item.dibuat_pada.substring(0, 7)
       if (monthMap.has(month)) {
         const existing = monthMap.get(month)
@@ -387,7 +524,7 @@ function processMonthlyTrends(monthlyTrendsData: any): any[] {
   
   // Process setoran data
   if (monthlyTrendsData.setoran) {
-    monthlyTrendsData.setoran.forEach((item: any) => {
+    monthlyTrendsData.setoran.forEach((item: MonthlyData) => {
       const month = item.dibuat_pada.substring(0, 7)
       if (monthMap.has(month)) {
         const existing = monthMap.get(month)
@@ -405,10 +542,10 @@ function processMonthlyTrends(monthlyTrendsData: any): any[] {
   return Array.from(monthMap.values()).sort((a, b) => a.month.localeCompare(b.month))
 }
 
-function processCashInHand(cashInHandData: any[]): any[] {
+function processCashInHand(cashInHandData: CashInHandData[]): CashInHand[] {
   if (!cashInHandData) return []
   
-  const salesMap = new Map()
+  const salesMap = new Map<string, CashInHand>()
   
   cashInHandData.forEach(item => {
     if (item.toko && item.toko.sales) {
@@ -428,7 +565,7 @@ function processCashInHand(cashInHandData: any[]): any[] {
   return Array.from(salesMap.values()).sort((a, b) => b.kas_di_tangan - a.kas_di_tangan)
 }
 
-function generateAssetDistribution(pendapatanHarian: number, pengirimanCount: number, produkCount: number): any[] {
+function generateAssetDistribution(pendapatanHarian: number, pengirimanCount: number, produkCount: number): AssetDistribution[] {
   return [
     { category: 'Stok Gudang', amount: produkCount * 15000 },
     { category: 'Barang di Jalan', amount: pengirimanCount * 12000 },
@@ -437,7 +574,7 @@ function generateAssetDistribution(pendapatanHarian: number, pengirimanCount: nu
   ]
 }
 
-function generateReceivablesAging(pendapatanHarian: number): any[] {
+function generateReceivablesAging(pendapatanHarian: number): ReceivablesAging[] {
   return [
     { aging_category: '0-30 hari', total_amount: pendapatanHarian * 0.6, count_items: 15 },
     { aging_category: '31-60 hari', total_amount: pendapatanHarian * 0.25, count_items: 8 },
@@ -518,10 +655,10 @@ async function getProductMovement(product_id?: string | null, start_date?: strin
     }
 
     // Combine and sort all movements by date
-    const movements: any[] = []
+    const movements: ProductMovementItem[] = []
 
     // Add shipment movements
-    shipmentResult.data?.forEach((item: any) => {
+    shipmentResult.data?.forEach((item: ShipmentMovementData) => {
       movements.push({
         type: 'shipment',
         id: item.pengiriman.id_pengiriman,
@@ -536,7 +673,7 @@ async function getProductMovement(product_id?: string | null, start_date?: strin
     })
 
     // Add billing movements
-    billingResult.data?.forEach((item: any) => {
+    billingResult.data?.forEach((item: BillingMovementData) => {
       movements.push({
         type: 'billing',
         id: item.penagihan.id_penagihan,
@@ -554,13 +691,13 @@ async function getProductMovement(product_id?: string | null, start_date?: strin
     })
 
     // Sort by date descending
-    movements.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    movements.sort((a: ProductMovementItem, b: ProductMovementItem) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     // Calculate summary statistics
-    const totalShipped = shipmentResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_kirim, 0) || 0
-    const totalSold = billingResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_terjual, 0) || 0
-    const totalReturned = billingResult.data?.reduce((sum: number, item: any) => sum + item.jumlah_kembali, 0) || 0
-    const totalValue = billingResult.data?.reduce((sum: number, item: any) => sum + (item.jumlah_terjual * item.produk.harga_satuan), 0) || 0
+    const totalShipped = shipmentResult.data?.reduce((sum: number, item: ShipmentMovementData) => sum + item.jumlah_kirim, 0) || 0
+    const totalSold = billingResult.data?.reduce((sum: number, item: BillingMovementData) => sum + item.jumlah_terjual, 0) || 0
+    const totalReturned = billingResult.data?.reduce((sum: number, item: BillingMovementData) => sum + item.jumlah_kembali, 0) || 0
+    const totalValue = billingResult.data?.reduce((sum: number, item: BillingMovementData) => sum + (item.jumlah_terjual * item.produk.harga_satuan), 0) || 0
 
     const summary = {
       total_shipped: totalShipped,
@@ -577,7 +714,7 @@ async function getProductMovement(product_id?: string | null, start_date?: strin
       shipments: shipmentResult.data || [],
       billings: billingResult.data || []
     })
-  } catch (error) {
+  } catch (_error) {
     return createErrorResponse('Failed to fetch product movement data')
   }
 }

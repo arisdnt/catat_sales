@@ -169,8 +169,27 @@ export interface ProductMovementSummary {
 export interface ProductMovementData {
   movements: ProductMovement[]
   summary: ProductMovementSummary
-  shipments: any[]
-  billings: any[]
+  shipments: ProductShipment[]
+  billings: ProductBilling[]
+}
+
+export interface ProductShipment {
+  id_pengiriman: number
+  tanggal_kirim: string
+  jumlah_kirim: number
+  toko: {
+    nama_toko: string
+  }
+}
+
+export interface ProductBilling {
+  id_penagihan: number
+  dibuat_pada: string
+  jumlah_terjual: number
+  total_uang_diterima: number
+  toko: {
+    nama_toko: string
+  }
 }
 
 export function useProductMovementQuery(productId: number, startDate?: string, endDate?: string) {

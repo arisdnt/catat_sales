@@ -1,6 +1,44 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
+interface ProductDetail {
+  nama_produk: string
+  jumlah: number
+}
+
+interface PengirimanDetail {
+  jumlah_kirim: number
+  produk: {
+    nama_produk: string
+  }
+}
+
+interface PenagihanDetail {
+  jumlah_terjual: number
+  produk: {
+    nama_produk: string
+  }
+}
+
+interface PengirimanData {
+  detail_pengiriman: PengirimanDetail[]
+}
+
+interface PenagihanData {
+  detail_penagihan: PenagihanDetail[]
+}
+
+interface TokoData {
+  id_toko: number
+  nama_toko: string
+  status_toko: boolean
+}
+
+interface InitialStock {
+  id_produk: number
+  jumlah: number
+}
+
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
@@ -32,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     // Enrich data with barang statistics
     const enrichedData = await Promise.all(
-      tokoData.map(async (toko: any) => {
+      tokoData.map(async (toko: TokoData) => {
         // Get barang terkirim (total dari pengiriman)
         const { data: pengirimanData } = await supabaseAdmin
           .from('pengiriman')
@@ -58,15 +96,15 @@ export async function GET(request: NextRequest) {
         // Calculate aggregated data
         let barangTerkirim = 0
         let barangTerbayar = 0
-        const detailBarangTerkirim: any[] = []
-        const detailBarangTerbayar: any[] = []
-        const detailSisaStok: any[] = []
+        const detailBarangTerkirim: ProductDetail[] = []
+        const detailBarangTerbayar: ProductDetail[] = []
+        const detailSisaStok: ProductDetail[] = []
 
         // Process pengiriman data
         if (pengirimanData) {
           const produkTerkirim: { [key: string]: number } = {}
-          pengirimanData.forEach((pengiriman: any) => {
-            pengiriman.detail_pengiriman?.forEach((detail: any) => {
+          pengirimanData.forEach((pengiriman: PengirimanData) => {
+            pengiriman.detail_pengiriman?.forEach((detail: PengirimanDetail) => {
               const namaProduk = detail.produk?.nama_produk || 'Unknown'
               barangTerkirim += detail.jumlah_kirim
               produkTerkirim[namaProduk] = (produkTerkirim[namaProduk] || 0) + detail.jumlah_kirim
@@ -81,8 +119,8 @@ export async function GET(request: NextRequest) {
         // Process penagihan data
         if (penagihanData) {
           const produkTerbayar: { [key: string]: number } = {}
-          penagihanData.forEach((penagihan: any) => {
-            penagihan.detail_penagihan?.forEach((detail: any) => {
+          penagihanData.forEach((penagihan: PenagihanData) => {
+            penagihan.detail_penagihan?.forEach((detail: PenagihanDetail) => {
               const namaProduk = detail.produk?.nama_produk || 'Unknown'
               barangTerbayar += detail.jumlah_terjual
               produkTerbayar[namaProduk] = (produkTerbayar[namaProduk] || 0) + detail.jumlah_terjual
@@ -192,7 +230,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create detail_pengiriman records for each product
-        const detailPengirimanData = initialStock.map((stock: any) => ({
+        const detailPengirimanData = initialStock.map((stock: InitialStock) => ({
           id_pengiriman: pengirimanData.id_pengiriman,
           id_produk: stock.id_produk,
           jumlah_kirim: stock.jumlah

@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
+// Type definitions
+interface ProductUpdateData {
+  is_priority: boolean
+  priority_order?: number
+}
+
 // Get priority products
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -58,7 +64,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update priority status
-    const updateData: any = {
+    const updateData: ProductUpdateData = {
       is_priority: is_priority || false
     }
 

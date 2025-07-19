@@ -52,7 +52,7 @@ export default function LoginPage() {
           window.location.href = '/dashboard'
         }, 500)
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Terjadi kesalahan yang tidak terduga',

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
+import { Sales } from '@/lib/queries/sales'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -78,7 +79,7 @@ export function useTokoDetailQuery(id: number) {
 export function useSalesQuery() {
   return useQuery({
     queryKey: ['sales'],
-    queryFn: () => apiClient.getSales() as Promise<ApiResponse<any[]>>,
+    queryFn: () => apiClient.getSales() as Promise<ApiResponse<Sales[]>>,
     staleTime: 1000 * 60 * 5,
   })
 }
