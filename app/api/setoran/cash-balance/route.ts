@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       let runningBalance = 0
       const dateBalances = new Map()
       
-      sortedDates.forEach((date, index) => {
+      sortedDates.forEach((date) => {
         const dayData = dailyData.get(date)
         const previousBalance = runningBalance // Store previous day's balance
         

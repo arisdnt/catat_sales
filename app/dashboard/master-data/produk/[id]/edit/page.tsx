@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -21,9 +20,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 
-import { formatCurrency } from '@/lib/form-utils'
-import { useProdukDetailQuery, useUpdateProdukMutation, type UpdateProdukData } from '@/lib/queries/produk'
-import { ArrowLeft, Save, Package, DollarSign, Star, Activity } from 'lucide-react'
+import { useProdukDetailQuery, useUpdateProdukMutation } from '@/lib/queries/produk'
+import { ArrowLeft, Save, Package } from 'lucide-react'
 
 const formSchema = z.object({
   nama_produk: z.string().min(1, 'Nama produk harus diisi').max(255, 'Nama produk maksimal 255 karakter'),
@@ -51,7 +49,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
   const { data: productResponse, isLoading, error } = useProdukDetailQuery(productId!)
   const updateProduct = useUpdateProdukMutation()
 
-  const product = (productResponse as { data: any })?.data
+  const product = (productResponse as { data: unknown })?.data
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

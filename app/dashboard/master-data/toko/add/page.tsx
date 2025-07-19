@@ -15,6 +15,7 @@ import { useSalesQuery } from '@/lib/queries/sales'
 import { usePriorityProdukQuery, type Produk } from '@/lib/queries/produk'
 import { Switch } from '@/components/ui/switch'
 import { Package2 } from 'lucide-react'
+import { apiClient } from '@/lib/api-client'
 
 // Types
 interface InitialStock {
@@ -183,28 +184,15 @@ export default function AddTokoPage() {
       const results = []
       
       for (const row of tokoRows) {
-        // Create toko first
-        const tokoResponse = await fetch('/api/toko', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama_toko: row.nama_toko,
-            kecamatan: row.kecamatan,
-            kabupaten: row.kabupaten,
-            no_telepon: row.no_telepon,
-            link_gmaps: row.link_gmaps,
-            sales_id: row.sales_id,
-            status: row.status,
-            hasInitialStock: row.hasInitialStock,
-            initialStock: row.hasInitialStock ? row.initialStock.filter(stock => stock.jumlah > 0) : []
-          })
+        // Create toko first using ApiClient
+        const tokoResult = await apiClient.createStore({
+          nama_toko: row.nama_toko,
+          id_sales: parseInt(row.sales_id),
+          kecamatan: row.kecamatan,
+          kabupaten: row.kabupaten,
+          link_gmaps: row.link_gmaps
         })
         
-        if (!tokoResponse.ok) {
-          throw new Error(`Gagal menyimpan toko ${row.nama_toko}`)
-        }
-        
-        const tokoResult = await tokoResponse.json()
         results.push(tokoResult)
       }
 

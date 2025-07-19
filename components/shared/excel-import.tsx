@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, X, Eye } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import * as XLSX from 'xlsx'
+import { apiClient } from '@/lib/api-client'
 
 interface ImportResult {
   success: boolean
@@ -146,21 +147,8 @@ export default function ExcelImport({ onImportComplete }: ExcelImportProps) {
           const worksheet = workbook.Sheets[sheetName]
           const fullData = XLSX.utils.sheet_to_json(worksheet)
 
-          const response = await fetch('/api/toko/import', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ data: fullData })
-          })
-
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Import failed')
-          }
-
-          const result: ImportResult = await response.json()
-          setImportResult(result.data)
+          const result = await apiClient.importStores(fullData)
+          setImportResult(result)
           setShowResult(true)
           setShowPreview(false)
 

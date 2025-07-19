@@ -150,6 +150,13 @@ class ApiClient {
     })
   }
 
+  async importStores(data: any[]) {
+    return this.request('/toko/import', {
+      method: 'POST',
+      body: JSON.stringify({ data })
+    })
+  }
+
   // Shipment API
   async getShipments(includeDetails?: boolean) {
     const params = includeDetails ? '?include_details=true' : ''

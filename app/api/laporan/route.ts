@@ -184,7 +184,7 @@ async function getLaporanPengiriman(start_date?: string | null, end_date?: strin
     }
 
     return createSuccessResponse(data)
-  } catch (_error) {
+  } catch {
     return createErrorResponse('Failed to fetch shipment report')
   }
 }
@@ -210,7 +210,7 @@ async function getLaporanPenagihan(start_date?: string | null, end_date?: string
     }
 
     return createSuccessResponse(data)
-  } catch (_error) {
+  } catch {
     return createErrorResponse('Failed to fetch billing report')
   }
 }
@@ -236,7 +236,7 @@ async function getLaporanRekonsiliasi(start_date?: string | null, end_date?: str
     }
 
     return createSuccessResponse(data)
-  } catch (_error) {
+  } catch {
     return createErrorResponse('Failed to fetch reconciliation report')
   }
 }
@@ -714,7 +714,7 @@ async function getProductMovement(product_id?: string | null, start_date?: strin
       shipments: shipmentResult.data || [],
       billings: billingResult.data || []
     })
-  } catch (_error) {
+  } catch {
     return createErrorResponse('Failed to fetch product movement data')
   }
 }

@@ -13,6 +13,7 @@ import { penagihanSchema, type PenagihanFormData } from '@/lib/form-utils'
 import { useTokoQuery } from '@/lib/queries/toko'
 import { useProdukQuery } from '@/lib/queries/produk'
 import { ArrowLeft, Save, Receipt } from 'lucide-react'
+import { apiClient } from '@/lib/api-client'
 
 const metodePembayaranOptions = [
   { value: 'Cash', label: 'Cash' },
@@ -63,15 +64,20 @@ export default function AddPenagihanPage() {
     onSubmit: async ({ value }) => {
       setIsSubmitting(true)
       try {
-        const response = await fetch('/api/penagihan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(value)
+        await apiClient.createBilling({
+          id_toko: parseInt(value.toko_id),
+          total_uang_diterima: value.total_uang_diterima,
+          metode_pembayaran: value.metode_pembayaran as 'Cash' | 'Transfer',
+          details: value.detail_penagihan.map(detail => ({
+            id_produk: parseInt(detail.produk_id),
+            jumlah_terjual: detail.jumlah_terjual,
+            jumlah_kembali: detail.jumlah_kembali
+          })),
+          potongan: value.potongan?.jumlah_potongan ? {
+            jumlah_potongan: value.potongan.jumlah_potongan,
+            alasan: value.potongan.alasan
+          } : undefined
         })
-
-        if (!response.ok) {
-          throw new Error('Gagal menyimpan data penagihan')
-        }
 
         toast({
           title: 'Berhasil',

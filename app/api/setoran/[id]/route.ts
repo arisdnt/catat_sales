@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       // Calculate cumulative selisih using the same logic as cash-balance API
       // Get all cash payments up to this setoran date
-      const { data: allCashPayments, error: allCashError } = await supabaseAdmin
+      const { data: allCashPayments } = await supabaseAdmin
         .from('penagihan')
         .select('total_uang_diterima, dibuat_pada')
         .eq('metode_pembayaran', 'Cash')
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         .order('dibuat_pada', { ascending: true })
 
       // Get all setoran up to this date
-      const { data: allSetoran, error: allSetoranError } = await supabaseAdmin
+      const { data: allSetoran } = await supabaseAdmin
         .from('setoran')
         .select('total_setoran, dibuat_pada')
         .lte('dibuat_pada', setoran.dibuat_pada)

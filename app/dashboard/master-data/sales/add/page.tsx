@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/use-toast'
 import { ArrowLeft, Save, Users, Plus, X, AlertCircle, Building2 } from 'lucide-react'
+import { apiClient } from '@/lib/api-client'
 
 // Interface untuk row sales individual (sesuai database schema)
 interface SalesRow {
@@ -120,26 +121,17 @@ export default function AddSalesPage() {
     setIsSubmitting(true)
     
     try {
-      // Submit semua sales sesuai database schema
+      // Submit semua sales sesuai database schema menggunakan ApiClient
       const promises = validRows.map(row => 
-        fetch('/api/sales', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama_sales: row.nama_sales,
-            nomor_telepon: row.nomor_telepon || null,
-            status_aktif: row.status_aktif
-          })
+        apiClient.createSales({
+          nama_sales: row.nama_sales,
+          nomor_telepon: row.nomor_telepon || undefined
         })
       )
       
       const results = await Promise.all(promises)
       
-      // Check if all requests were successful
-      const failedRequests = results.filter(response => !response.ok)
-      if (failedRequests.length > 0) {
-        throw new Error(`Gagal menyimpan ${failedRequests.length} dari ${results.length} data sales`)
-      }
+      // All promises resolved successfully if we reach here
       
       toast({
         title: 'Berhasil',

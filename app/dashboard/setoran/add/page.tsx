@@ -14,6 +14,7 @@ import { useTokoQuery } from '@/lib/queries/toko'
 import { useSalesQuery } from '@/lib/queries/sales'
 import { ArrowLeft, Save, Banknote } from 'lucide-react'
 import { z } from 'zod'
+import { apiClient } from '@/lib/api-client'
 
 const metodePembayaranOptions = [
   { value: 'Cash', label: 'Cash' },
@@ -70,15 +71,10 @@ export default function AddSetoranPage() {
     onSubmit: async ({ value }) => {
       setIsSubmitting(true)
       try {
-        const response = await fetch('/api/setoran', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(value)
+        await apiClient.createDeposit({
+          total_setoran: value.total_setoran,
+          penerima_setoran: value.penerima_setoran
         })
-
-        if (!response.ok) {
-          throw new Error('Gagal menyimpan data setoran')
-        }
 
         toast({
           title: 'Berhasil',

@@ -29,7 +29,6 @@ import {
   Calendar,
   Star,
   BarChart3,
-  TrendingUp,
   Activity,
   Hash,
   Clock,
@@ -54,14 +53,13 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ id: str
 
   // Queries
   const { data: productResponse, isLoading, error, refetch } = useProdukDetailQuery(productId!)
-  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useProdukStatsQuery()
+  const { data: statsResponse } = useProdukStatsQuery()
   const { data: movementResponse, isLoading: movementLoading, error: movementError } = useProductMovementQuery(productId!)
   const deleteProduct = useDeleteProdukMutation()
 
   const product: Produk | undefined = (productResponse as { data: Produk })?.data
   const productStats: ProdukStats[] = (statsResponse as { data: ProdukStats[] })?.data || []
-  const currentStats = productStats.find(s => s.id_produk === productId)
-  const movementData = (movementResponse as { data: any })?.data
+  const movementData = (movementResponse as { data: unknown })?.data
 
   const handleDelete = () => {
     if (productId) {
@@ -157,7 +155,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ id: str
                 <AlertDialogHeader>
                   <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus produk "{product.nama_produk}"? 
+                    Apakah Anda yakin ingin menghapus produk &quot;{product.nama_produk}&quot;? 
                     Tindakan ini tidak dapat dibatalkan.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -325,7 +323,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-900">Timeline Pergerakan</h4>
                       <div className="max-h-80 overflow-y-auto space-y-3">
-                        {movementData.movements.map((movement: any, index: number) => (
+                        {movementData.movements.map((movement: unknown, index: number) => (
                           <div 
                             key={index} 
                             className="group flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border hover:border-gray-300"

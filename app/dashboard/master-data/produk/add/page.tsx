@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/use-toast'
 import { ArrowLeft, Save, Package, Plus, X, AlertCircle, ShoppingCart } from 'lucide-react'
+import { apiClient } from '@/lib/api-client'
 
 // Interface untuk row produk individual (sesuai database schema)
 interface ProdukRow {
@@ -26,6 +27,7 @@ interface ProdukRow {
 // Interface untuk form data
 interface FormData {
   // Tidak ada field khusus untuk produk bulk input
+  [key: string]: unknown;
 }
 
 const initialProdukData: Omit<ProdukRow, 'id' | 'isValid' | 'errors'> = {
@@ -43,7 +45,6 @@ export default function AddProdukPage() {
   const [error, setError] = useState<string | null>(null)
   
   // State untuk bulk input
-  const [formData, setFormData] = useState<FormData>({})
   const [produkRows, setProdukRows] = useState<ProdukRow[]>([])
 
   // Fungsi untuk menambah row produk baru
@@ -63,7 +64,7 @@ export default function AddProdukPage() {
   }
 
   // Fungsi untuk update row produk
-  const updateProdukRow = (id: string, field: keyof Omit<ProdukRow, 'id' | 'isValid' | 'errors'>, value: any) => {
+  const updateProdukRow = (id: string, field: keyof Omit<ProdukRow, 'id' | 'isValid' | 'errors'>, value: unknown) => {
     setProdukRows(prev => prev.map(row => {
       if (row.id === id) {
         const updatedRow = { ...row, [field]: value }
@@ -82,7 +83,7 @@ export default function AddProdukPage() {
           }
           updatedRow.isValid = true
           updatedRow.errors = {}
-        } catch (error: any) {
+        } catch (error: Error) {
           updatedRow.isValid = false
           // Handle simple error message
           if (error.message.includes('Nama produk')) {
@@ -100,10 +101,7 @@ export default function AddProdukPage() {
     }))
   }
 
-  // Fungsi untuk update form data
-  const updateFormData = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  // Removed updateFormData function as it's not used
 
   // Fungsi submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,28 +123,19 @@ export default function AddProdukPage() {
     setIsSubmitting(true)
     
     try {
-      // Submit semua produk sesuai database schema
+      // Submit semua produk sesuai database schema menggunakan ApiClient
       const promises = validRows.map(row => 
-        fetch('/api/produk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            nama_produk: row.nama_produk,
-            harga_satuan: row.harga_satuan,
-            status_produk: row.status_produk,
-            is_priority: row.is_priority,
-            priority_order: row.priority_order
-          })
+        apiClient.createProduct({
+          nama_produk: row.nama_produk,
+          harga_satuan: row.harga_satuan,
+          is_priority: row.is_priority,
+          priority_order: row.priority_order
         })
       )
       
       const results = await Promise.all(promises)
       
-      // Check if all requests were successful
-      const failedRequests = results.filter(response => !response.ok)
-      if (failedRequests.length > 0) {
-        throw new Error(`Gagal menyimpan ${failedRequests.length} dari ${results.length} data produk`)
-      }
+      // All promises resolved successfully if we reach here
       
       toast({
         title: 'Berhasil',
@@ -229,7 +218,7 @@ export default function AddProdukPage() {
                 <div className="text-center py-8 text-gray-500">
                   <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium mb-2">Belum ada data produk</p>
-                  <p className="text-sm">Klik tombol "Tambah Produk" untuk menambah data produk baru</p>
+                  <p className="text-sm">Klik tombol &quot;Tambah Produk&quot; untuk menambah data produk baru</p>
                 </div>
               ) : (
                 <div className="space-y-4">
