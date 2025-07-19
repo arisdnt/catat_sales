@@ -20,19 +20,7 @@ interface PenagihanDetail {
   }
 }
 
-interface PengirimanData {
-  detail_pengiriman: PengirimanDetail[]
-}
 
-interface PenagihanData {
-  detail_penagihan: PenagihanDetail[]
-}
-
-interface TokoData {
-  id_toko: number
-  nama_toko: string
-  status_toko: boolean
-}
 
 interface InitialStock {
   id_produk: number
@@ -43,7 +31,13 @@ export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
+    const status_toko = searchParams.get('status_toko')
     const include_sales = searchParams.get('include_sales')
+    const search = searchParams.get('search')
+    const sales_id = searchParams.get('sales_id')
+    const id_sales = searchParams.get('id_sales')
+    const kabupaten = searchParams.get('kabupaten')
+    const kecamatan = searchParams.get('kecamatan')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = (page - 1) * limit
@@ -53,8 +47,27 @@ export async function GET(request: NextRequest) {
       .from('toko')
       .select('*', { count: 'exact', head: true })
     
+    // Apply filters to count query
     if (status === 'active') {
       countQuery = countQuery.eq('status_toko', true)
+    }
+    if (status_toko) {
+      countQuery = countQuery.eq('status_toko', status_toko === 'true')
+    }
+    if (search) {
+      countQuery = countQuery.or(`nama_toko.ilike.%${search}%,kecamatan.ilike.%${search}%,kabupaten.ilike.%${search}%`)
+    }
+    if (sales_id) {
+      countQuery = countQuery.eq('id_sales', sales_id)
+    }
+    if (id_sales) {
+      countQuery = countQuery.eq('id_sales', id_sales)
+    }
+    if (kabupaten) {
+      countQuery = countQuery.eq('kabupaten', kabupaten)
+    }
+    if (kecamatan) {
+      countQuery = countQuery.eq('kecamatan', kecamatan)
     }
     
     const { count: totalCount, error: countError } = await countQuery
@@ -86,8 +99,27 @@ export async function GET(request: NextRequest) {
       .order('nama_toko')
       .range(offset, offset + limit - 1)
 
+    // Apply filters to main query
     if (status === 'active') {
       query = query.eq('status_toko', true)
+    }
+    if (status_toko) {
+      query = query.eq('status_toko', status_toko === 'true')
+    }
+    if (search) {
+      query = query.or(`nama_toko.ilike.%${search}%,kecamatan.ilike.%${search}%,kabupaten.ilike.%${search}%`)
+    }
+    if (sales_id) {
+      query = query.eq('id_sales', sales_id)
+    }
+    if (id_sales) {
+      query = query.eq('id_sales', id_sales)
+    }
+    if (kabupaten) {
+      query = query.eq('kabupaten', kabupaten)
+    }
+    if (kecamatan) {
+      query = query.eq('kecamatan', kecamatan)
     }
 
     const { data: tokoData, error } = await query
@@ -100,30 +132,55 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('Invalid data received from database')
     }
 
-    // Enrich data with barang statistics
-    const enrichedData = await Promise.all(
-      tokoData.map(async (toko: any) => {
-        // Get barang terkirim (total dari pengiriman)
-        const { data: pengirimanData } = await supabaseAdmin
-          .from('pengiriman')
-          .select(`
-            detail_pengiriman(
-              jumlah_kirim,
-              produk(nama_produk)
-            )
-          `)
-          .eq('id_toko', toko.id_toko)
+    // Batch queries to avoid N+1 problem
+    const tokoIds = tokoData.map((toko: any) => toko.id_toko)
+    
+    // Get all pengiriman data for these tokos in one query
+    const { data: allPengirimanData } = await supabaseAdmin
+      .from('pengiriman')
+      .select(`
+        id_toko,
+        detail_pengiriman(
+          jumlah_kirim,
+          produk(nama_produk)
+        )
+      `)
+      .in('id_toko', tokoIds)
 
-        // Get barang terbayar (total dari penagihan)
-        const { data: penagihanData } = await supabaseAdmin
-          .from('penagihan')
-          .select(`
-            detail_penagihan(
-              jumlah_terjual,
-              produk(nama_produk)
-            )
-          `)
-          .eq('id_toko', toko.id_toko)
+    // Get all penagihan data for these tokos in one query
+    const { data: allPenagihanData } = await supabaseAdmin
+      .from('penagihan')
+      .select(`
+        id_toko,
+        detail_penagihan(
+          jumlah_terjual,
+          produk(nama_produk)
+        )
+      `)
+      .in('id_toko', tokoIds)
+
+    // Group data by toko_id for efficient lookup
+    const pengirimanByToko = new Map()
+    const penagihanByToko = new Map()
+    
+    allPengirimanData?.forEach((pengiriman: any) => {
+      if (!pengirimanByToko.has(pengiriman.id_toko)) {
+        pengirimanByToko.set(pengiriman.id_toko, [])
+      }
+      pengirimanByToko.get(pengiriman.id_toko).push(pengiriman)
+    })
+    
+    allPenagihanData?.forEach((penagihan: any) => {
+      if (!penagihanByToko.has(penagihan.id_toko)) {
+        penagihanByToko.set(penagihan.id_toko, [])
+      }
+      penagihanByToko.get(penagihan.id_toko).push(penagihan)
+    })
+
+    // Enrich data with barang statistics
+    const enrichedData = tokoData.map((toko: any) => {
+        const pengirimanData = pengirimanByToko.get(toko.id_toko) || []
+        const penagihanData = penagihanByToko.get(toko.id_toko) || []
 
         // Calculate aggregated data
         let barangTerkirim = 0
@@ -193,7 +250,6 @@ export async function GET(request: NextRequest) {
           detail_sisa_stok: detailSisaStok
         }
       })
-    )
 
     const totalPages = Math.ceil((totalCount || 0) / limit)
     const hasNextPage = page < totalPages
@@ -212,6 +268,7 @@ export async function GET(request: NextRequest) {
     })
   })
 }
+
 
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {

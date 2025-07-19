@@ -50,6 +50,17 @@ interface FilterConfig {
   placeholder?: string
 }
 
+interface PaginationConfig {
+  currentPage: number
+  totalPages: number
+  total: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+  onPageChange: (page: number) => void
+  onNextPage: () => void
+  onPrevPage: () => void
+}
+
 interface ActionButton {
   label: string
   icon: React.ComponentType<{ className?: string }>
@@ -77,6 +88,11 @@ interface DataTableProps<T> {
   pageSize?: number
   customActions?: React.ReactNode[]
   showAddButton?: boolean
+  pagination?: PaginationConfig
+  searchValue?: string
+  onSearchChange?: (value: string) => void
+  onFilterChange?: (key: string, value: string) => void
+  filterValues?: Record<string, string>
 }
 
 const actionVariants = {
@@ -98,7 +114,7 @@ const actionVariants = {
   }
 }
 
-export function DataTable<T>({
+function DataTableComponent<T>({
   data,
   columns,
   title,
@@ -115,15 +131,24 @@ export function DataTable<T>({
   emptyStateIcon: EmptyIcon = Search,
   pageSize = 10,
   customActions = [],
-  showAddButton = true
+  showAddButton = true,
+  pagination,
+  searchValue,
+  onSearchChange,
+  onFilterChange,
+  filterValues = {}
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = useState<PaginationState>({
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   })
-  const [globalFilter, setGlobalFilter] = useState('')
+  const [internalGlobalFilter, setInternalGlobalFilter] = useState('')
+  
+  // Use external search value if provided, otherwise use internal
+  const globalFilter = searchValue !== undefined ? searchValue : internalGlobalFilter
+  const setGlobalFilter = onSearchChange || setInternalGlobalFilter
 
   // Add actions column if actions are provided
   const enhancedColumns = useMemo(() => {
@@ -166,31 +191,46 @@ export function DataTable<T>({
     data,
     columns: enhancedColumns,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: pagination ? undefined : getFilteredRowModel(), // Disable if external pagination
+    getPaginationRowModel: pagination ? undefined : getPaginationRowModel(), // Disable if external pagination
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
-    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: onFilterChange ? undefined : setColumnFilters,
+    onPaginationChange: pagination ? undefined : setInternalPagination,
+    onGlobalFilterChange: onSearchChange ? undefined : setGlobalFilter,
     globalFilterFn: 'includesString',
+    manualPagination: !!pagination, // Enable manual pagination if external pagination provided
+    manualFiltering: !!onFilterChange, // Enable manual filtering if external filter handler provided
+    pageCount: pagination ? pagination.totalPages : undefined,
     state: {
       sorting,
-      columnFilters,
-      pagination,
+      columnFilters: onFilterChange ? [] : columnFilters, // Use empty array for external filtering
+      pagination: pagination ? { pageIndex: pagination.currentPage - 1, pageSize: 20 } : internalPagination,
       globalFilter,
     },
   })
 
   const getFilterValue = (filterKey: string) => {
-    const filter = table.getColumn(filterKey)?.getFilterValue()
-    return filter || 'all'
+    if (onFilterChange && filterValues) {
+      // Use external filter values
+      return filterValues[filterKey] || 'all'
+    } else {
+      // Use internal filter values
+      const filter = table.getColumn(filterKey)?.getFilterValue()
+      return filter || 'all'
+    }
   }
 
   const setFilterValue = (filterKey: string, value: string) => {
-    const column = table.getColumn(filterKey)
-    if (column) {
-      column.setFilterValue(value === 'all' ? undefined : value)
+    if (onFilterChange) {
+      // Use external filter handler - pass key and value directly
+      onFilterChange(filterKey, value)
+    } else {
+      // Use internal filter
+      const column = table.getColumn(filterKey)
+      if (column) {
+        column.setFilterValue(value === 'all' ? undefined : value)
+      }
     }
   }
 
@@ -397,19 +437,21 @@ export function DataTable<T>({
         {/* Pagination */}
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="text-sm text-gray-500">
-            Menampilkan {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} hingga{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            dari {table.getFilteredRowModel().rows.length} hasil
+            {pagination ? (
+              `Menampilkan ${(pagination.currentPage - 1) * 20 + 1} hingga ${Math.min(pagination.currentPage * 20, pagination.total)} dari ${pagination.total} hasil`
+            ) : (
+              `Menampilkan ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} hingga ${Math.min(
+                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                table.getFilteredRowModel().rows.length
+              )} dari ${table.getFilteredRowModel().rows.length} hasil`
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => pagination ? pagination.onPageChange(1) : table.setPageIndex(0)}
+              disabled={pagination ? !pagination.hasPrevPage : !table.getCanPreviousPage()}
               className="border-gray-200 hover:border-gray-300"
             >
               <ChevronsLeft className="h-4 w-4" />
@@ -417,8 +459,8 @@ export function DataTable<T>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => pagination ? pagination.onPrevPage() : table.previousPage()}
+              disabled={pagination ? !pagination.hasPrevPage : !table.getCanPreviousPage()}
               className="border-gray-200 hover:border-gray-300"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -426,8 +468,8 @@ export function DataTable<T>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => pagination ? pagination.onNextPage() : table.nextPage()}
+              disabled={pagination ? !pagination.hasNextPage : !table.getCanNextPage()}
               className="border-gray-200 hover:border-gray-300"
             >
               <ChevronRight className="h-4 w-4" />
@@ -435,8 +477,8 @@ export function DataTable<T>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
+              onClick={() => pagination ? pagination.onPageChange(pagination.totalPages) : table.setPageIndex(table.getPageCount() - 1)}
+              disabled={pagination ? !pagination.hasNextPage : !table.getCanNextPage()}
               className="border-gray-200 hover:border-gray-300"
             >
               <ChevronsRight className="h-4 w-4" />
@@ -448,9 +490,13 @@ export function DataTable<T>({
   )
 }
 
+DataTableComponent.displayName = 'DataTable'
+
+export const DataTable = DataTableComponent
+
 // Helper function to create sortable header
 export function createSortableHeader(title: string) {
-  return ({ column }: { column: any }) => (
+  const SortableHeader = ({ column }: { column: any }) => (
     <Button
       variant="ghost"
       onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
@@ -466,6 +512,10 @@ export function createSortableHeader(title: string) {
       )}
     </Button>
   )
+  
+  SortableHeader.displayName = `SortableHeader_${title}`
+  
+  return SortableHeader
 }
 
 // Helper function to create status badge

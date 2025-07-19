@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useMemo, useState, useEffect, useCallback } from 'react'
+import React, { useMemo, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Button } from '@/components/ui/button'
 import {
   Eye,
   Edit,
@@ -14,236 +14,238 @@ import {
   Package,
   CreditCard,
   Archive,
-  FileSpreadsheet,
-  Upload
+  Phone,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
+
 import { useToast } from '@/components/ui/use-toast'
-import { useTokoInfiniteQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
-import { useSalesQuery } from '@/lib/queries/sales'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { DataTable, createSortableHeader, createStatusBadge } from '@/components/shared/data-table'
+import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
+import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import {
+  useOptimizedTokoState,
+  useInvalidateOptimizedToko,
+  type TokoWithStats
+} from '@/lib/queries/toko-optimized'
+import { useDeleteTokoMutation } from '@/lib/queries/toko'
 import { exportStoreData } from '@/lib/excel-export'
-import ExcelImport from '@/components/shared/excel-import'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
-const statusConfig = {
-  true: { label: 'Aktif', color: 'bg-green-100 text-green-800 border-green-200' },
-  false: { label: 'Non-aktif', color: 'bg-red-100 text-red-800 border-red-200' }
-}
-
-export default function TokoTablePage() {
-  const {
-    data,
-    isLoading,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch
-  } = useTokoInfiniteQuery('active', true, 50)
-  
-  const stores = useMemo(() => {
-    if (!data?.pages) return []
-    return data.pages.flatMap(page => page.data.data)
-  }, [data])
-  
-  const { data: salesResponse } = useSalesQuery()
-  const salesData = useMemo(() => (salesResponse as { data: { id_sales: number; nama_sales: string }[] })?.data || [], [salesResponse])
-  const deleteStore = useDeleteTokoMutation()
-  const { navigate } = useNavigation()
-  const { toast } = useToast()
-  const [showImportDialog, setShowImportDialog] = useState(false)
-  
-  // Auto-load next page when user scrolls near bottom
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
-  
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore()
-        }
-      },
-      { threshold: 0.1 }
-    )
-    
-    const sentinel = document.getElementById('load-more-sentinel')
-    if (sentinel) {
-      observer.observe(sentinel)
-    }
-    
-    return () => {
-      if (sentinel) {
-        observer.unobserve(sentinel)
-      }
-    }
-  }, [loadMore])
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus toko ini?')) {
-      deleteStore.mutate(id)
+// Page animations
+const pageVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      staggerChildren: 0.1
     }
   }
+}
 
-  // Generate unique options for filters
-  const salesOptions = useMemo(() => {
-    const uniqueSales = salesData.map(sales => ({
-      label: sales.nama_sales,
-      value: sales.id_sales.toString()
-    }))
-    return uniqueSales
-  }, [salesData])
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.4 }
+  },
+  hover: {
+    scale: 1.02,
+    transition: { duration: 0.2 }
+  }
+}
 
-  const kabupatenOptions = useMemo(() => {
-    const uniqueKabupaten = [...new Set(stores.map(store => store.kabupaten).filter(Boolean))] as string[]
-    return uniqueKabupaten.map(kabupaten => ({
-      label: kabupaten,
-      value: kabupaten
-    }))
-  }, [stores])
+// Status configuration
+const statusConfig = {
+  true: { 
+    label: 'Aktif', 
+    color: 'bg-green-100 text-green-800 border-green-200',
+    icon: CheckCircle
+  },
+  false: { 
+    label: 'Non-aktif', 
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: XCircle
+  }
+}
 
-  const kecamatanOptions = useMemo(() => {
-    const uniqueKecamatan = [...new Set(stores.map(store => store.kecamatan).filter(Boolean))] as string[]
-    return uniqueKecamatan.map(kecamatan => ({
-      label: kecamatan,
-      value: kecamatan
-    }))
-  }, [stores])
+// Helper function to create status badge
+function createStatusBadge(status: boolean) {
+  const config = statusConfig[status.toString() as keyof typeof statusConfig]
+  const Icon = config.icon
+  
+  return (
+    <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
+      <Icon className="w-3 h-3" />
+      {config.label}
+    </Badge>
+  )
+}
 
-  const columns = useMemo<ColumnDef<Toko>[]>(() => [
+// Helper function to format numbers
+function formatNumber(num: number): string {
+  return new Intl.NumberFormat('id-ID').format(num)
+}
+
+// Data table component
+function TokoDataTable({ 
+  data, 
+  isLoading, 
+  error, 
+  refetch, 
+  params, 
+  updateParams, 
+  onDelete, 
+  onView, 
+  onEdit 
+}: {
+  data: any
+  isLoading: boolean
+  error: any
+  refetch: () => void
+  params: any
+  updateParams: (params: any) => void
+  onDelete: (toko: TokoWithStats) => void
+  onView: (toko: TokoWithStats) => void
+  onEdit: (toko: TokoWithStats) => void
+}) {
+  // Define table columns
+  const columns = useMemo<ColumnDef<TokoWithStats>[]>(() => [
     {
       accessorKey: 'nama_toko',
-      header: createSortableHeader('Nama Toko'),
+      header: 'Nama Toko',
       cell: ({ row }) => {
-        const linkGmaps = row.original.link_gmaps
+        const toko = row.original
         return (
-          <div className="flex items-center gap-3">
+          <motion.div 
+            className="flex items-center gap-3"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
             <div className="p-2 bg-indigo-50 rounded-lg">
               <Store className="w-4 h-4 text-indigo-600" />
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{row.getValue('nama_toko')}</div>
-              {linkGmaps ? (
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-gray-900 truncate">{toko.nama_toko}</div>
+              {toko.link_gmaps ? (
                 <a 
-                  href={linkGmaps} 
+                  href={toko.link_gmaps} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 w-fit"
                 >
                   <ExternalLink className="w-3 h-3" />
                   Google Maps
                 </a>
               ) : (
-                <div className="text-sm text-red-600">
-                  Link Google Maps Tidak tersedia
+                <div className="text-sm text-gray-500">
+                  Tanpa lokasi
                 </div>
               )}
+            </div>
+          </motion.div>
+        )
+      },
+    },
+    {
+      accessorKey: 'lokasi',
+      header: 'Lokasi',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-gray-900">
+                {toko.kecamatan || '-'}
+              </div>
+              <div className="text-xs text-gray-500">
+                {toko.kabupaten || '-'}
+              </div>
             </div>
           </div>
         )
       },
     },
     {
-      accessorKey: 'kecamatan',
-      header: 'Lokasi',
-      cell: ({ row }) => (
-        <div className="flex items-start gap-2">
-          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-          <div>
+      accessorKey: 'kontak',
+      header: 'Kontak',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <div className="text-sm text-gray-900">
-              {[row.original.kecamatan, row.original.kabupaten]
-                .filter(Boolean)
-                .join(', ') || '-'}
+              {toko.no_telepon || '-'}
             </div>
           </div>
-        </div>
-      ),
-      filterFn: (row, id, value) => {
-        return value === 'all' || (row.getValue(id) as string) === value
-      }
+        )
+      },
     },
     {
-      accessorKey: 'no_telepon',
-      header: 'Nomor Telepon',
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-900">
-          {row.original.no_telepon || '-'}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'kabupaten',
-      header: 'Kabupaten',
-      cell: ({ row }) => (
-        <div className="text-sm text-gray-900">
-          {row.original.kabupaten || '-'}
-        </div>
-      ),
-      filterFn: (row, id, value) => {
-         return value === 'all' || (row.getValue(id) as string) === value
-       }
-    },
-    {
-      accessorKey: 'id_sales',
+      accessorKey: 'sales',
       header: 'Sales',
       cell: ({ row }) => {
-        const sales = salesData.find(s => s.id_sales === row.original.id_sales)
+        const toko = row.original
+        
         return (
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-50 rounded-lg">
               <Users className="w-4 h-4 text-blue-600" />
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{sales?.nama_sales || 'Sales Tidak Ditemukan'}</div>
-              <div className="text-sm text-gray-500">ID: {row.original.id_sales}</div>
+            <div className="min-w-0">
+              <div className="font-medium text-gray-900 truncate">
+                {(toko as any).nama_sales || 'Sales Tidak Ditemukan'}
+              </div>
+              <div className="text-xs text-gray-500">ID: {toko.id_sales}</div>
             </div>
           </div>
         )
       },
-      filterFn: (row, id, value) => {
-        return value === 'all' || (row.getValue(id) as number).toString() === value
-      }
     },
     {
       accessorKey: 'status_toko',
       header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.getValue('status_toko'), statusConfig),
-      filterFn: (row, id, value) => {
-        return value === 'all' || row.getValue(id) === (value === 'true')
-      }
+      cell: ({ row }) => createStatusBadge(row.original.status_toko),
     },
     {
       accessorKey: 'barang_terkirim',
-      header: 'Barang Terkirim',
+      header: 'Terkirim',
       cell: ({ row }) => {
-        const barangTerkirim = row.original.barang_terkirim || 0
-        const detailBarang = row.original.detail_barang_terkirim || []
-        
+        const toko = row.original
         return (
-          <div className="group relative flex items-center gap-2">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <Package className="w-4 h-4 text-green-600" />
+          <div 
+            className="group relative cursor-pointer"
+            title="Hover untuk detail produk"
+          >
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-blue-500" />
+              <span className="font-medium text-blue-600">{formatNumber(toko.barang_terkirim)}</span>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{barangTerkirim}</div>
-              <div className="text-sm text-gray-500">Items</div>
-            </div>
-            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="font-semibold mb-1">Detail Barang Terkirim:</div>
-              {detailBarang.length > 0 ? (
-                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
-                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
-                ))
-              ) : (
-                <div>• Belum ada data detail</div>
-              )}
-              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            
+            {/* Tooltip dengan detail produk */}
+            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
+              <div className="text-sm font-medium text-gray-900 mb-2">Detail Barang Terkirim</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Produk:</span>
+                  <span className="font-medium">{toko.detail_terkirim?.total_produk || 0} jenis</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Quantity:</span>
+                  <span className="font-medium">{formatNumber(toko.barang_terkirim)} pcs</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Rata-rata per Produk:</span>
+                  <span className="font-medium">{toko.detail_terkirim?.total_produk ? Math.round(toko.barang_terkirim / toko.detail_terkirim.total_produk) : 0} pcs</span>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -251,30 +253,36 @@ export default function TokoTablePage() {
     },
     {
       accessorKey: 'barang_terbayar',
-      header: 'Barang Terbayar',
+      header: 'Terbayar',
       cell: ({ row }) => {
-        const barangTerbayar = row.original.barang_terbayar || 0
-        const detailBarang = row.original.detail_barang_terbayar || []
-        
+        const toko = row.original
         return (
-          <div className="group relative flex items-center gap-2">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <CreditCard className="w-4 h-4 text-blue-600" />
+          <div 
+            className="group relative cursor-pointer"
+            title="Hover untuk detail produk"
+          >
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-green-500" />
+              <span className="font-medium text-green-600">{formatNumber(toko.barang_terbayar)}</span>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{barangTerbayar}</div>
-              <div className="text-sm text-gray-500">Items</div>
-            </div>
-            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="font-semibold mb-1">Detail Barang Terbayar:</div>
-              {detailBarang.length > 0 ? (
-                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
-                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
-                ))
-              ) : (
-                <div>• Belum ada data detail</div>
-              )}
-              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            
+            {/* Tooltip dengan detail produk */}
+            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
+              <div className="text-sm font-medium text-gray-900 mb-2">Detail Barang Terbayar</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Produk:</span>
+                  <span className="font-medium">{toko.detail_terbayar?.total_produk || 0} jenis</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Quantity:</span>
+                  <span className="font-medium">{formatNumber(toko.barang_terbayar)} pcs</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Rata-rata per Produk:</span>
+                  <span className="font-medium">{toko.detail_terbayar?.total_produk ? Math.round(toko.barang_terbayar / toko.detail_terbayar.total_produk) : 0} pcs</span>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -284,184 +292,308 @@ export default function TokoTablePage() {
       accessorKey: 'sisa_stok',
       header: 'Sisa Stok',
       cell: ({ row }) => {
-        const sisaStok = row.original.sisa_stok || 0
-        const detailBarang = row.original.detail_sisa_stok || []
-        
+        const toko = row.original
         return (
-          <div className="group relative flex items-center gap-2">
-            <div className="p-2 bg-orange-50 rounded-lg">
-              <Archive className="w-4 h-4 text-orange-600" />
+          <div 
+            className="group relative cursor-pointer"
+            title="Hover untuk detail produk"
+          >
+            <div className="flex items-center gap-2">
+              <Archive className="w-4 h-4 text-orange-500" />
+              <span className="font-medium text-orange-600">{formatNumber(toko.sisa_stok)}</span>
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{sisaStok}</div>
-              <div className="text-sm text-gray-500">Items</div>
-            </div>
-            <div className="absolute z-50 p-3 bg-black text-white text-sm rounded-lg shadow-lg -top-16 left-0 min-w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="font-semibold mb-1">Detail Sisa Stok:</div>
-              {detailBarang.length > 0 ? (
-                detailBarang.map((item: { nama_produk: string; jumlah: number }, index: number) => (
-                  <div key={index}>• {item.nama_produk}: {item.jumlah} pcs</div>
-                ))
-              ) : (
-                <div>• Belum ada data detail</div>
-              )}
-              <div className="absolute bottom-[-6px] left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-black"></div>
+            
+            {/* Tooltip dengan detail produk */}
+            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
+              <div className="text-sm font-medium text-gray-900 mb-2">Detail Sisa Stok</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Produk:</span>
+                  <span className="font-medium">{toko.detail_sisa?.total_produk || 0} jenis</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Quantity:</span>
+                  <span className="font-medium">{formatNumber(toko.sisa_stok)} pcs</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Rata-rata per Produk:</span>
+                  <span className="font-medium">{toko.detail_sisa?.total_produk ? Math.round(toko.sisa_stok / toko.detail_sisa.total_produk) : 0} pcs</span>
+                </div>
+              </div>
             </div>
           </div>
         )
       },
     },
-  ], [salesData])
+  ], [])
 
-  const stats = {
-    totalStores: stores.length,
-    activeStores: stores.filter(s => s.status_toko).length,
-    inactiveStores: stores.filter(s => !s.status_toko).length,
-  }
+  // Handle pagination
+  const handleNextPage = useCallback(() => {
+    if (data?.pagination?.hasNextPage) {
+      updateParams({ page: (params.page || 1) + 1 })
+    }
+  }, [data?.pagination?.hasNextPage, params.page, updateParams])
 
-  if (isLoading) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded-lg"></div>
-        </div>
-      </div>
-    )
-  }
+  const handlePrevPage = useCallback(() => {
+    if (data?.pagination?.hasPrevPage) {
+      updateParams({ page: (params.page || 1) - 1 })
+    }
+  }, [data?.pagination?.hasPrevPage, params.page, updateParams])
 
-  if (error) {
-    return (
-      <div className="p-8">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">Error loading stores data</div>
-          <Button onClick={() => refetch()}>Retry</Button>
-        </div>
-      </div>
-    )
-  }
+  const handlePageChange = useCallback((page: number) => {
+    updateParams({ page })
+  }, [updateParams])
+
+  // Table actions
+  const tableActions = useMemo(() => [
+    {
+      label: 'Lihat Detail',
+      icon: Eye,
+      onClick: onView,
+      variant: 'view' as const,
+    },
+    {
+      label: 'Edit',
+      icon: Edit,
+      onClick: onEdit,
+      variant: 'edit' as const,
+    },
+    {
+      label: 'Hapus',
+      icon: Trash2,
+      onClick: onDelete,
+      variant: 'delete' as const,
+    },
+  ], [onView, onEdit, onDelete])
 
   return (
-    <div className="p-8 space-y-8">
-      <DataTable
-        data={stores}
-        columns={columns}
-        title="Daftar Toko"
-        description={`Terdapat total ${stats.totalStores} toko, ${stats.activeStores} aktif, ${stats.inactiveStores} nonaktif`}
-        searchPlaceholder="Cari toko..."
-        onAdd={() => navigate('/dashboard/master-data/toko/add')}
-        onExport={() => {
-          const result = exportStoreData(stores)
-          if (result.success) {
-            toast({
-              title: "Export Data",
-              description: `Data toko berhasil diexport ke ${result.filename}`,
-            })
-          } else {
-            toast({
-              title: "Export Error",
-              description: result.error || "Terjadi kesalahan saat export",
-              variant: "destructive",
-            })
-          }
-        }}
-        onRefresh={() => refetch()}
-        addButtonLabel="Tambah Toko"
-        loading={isLoading}
-        emptyStateMessage="Belum ada data toko"
-        emptyStateIcon={Store}
-        customActions={[
-          <Dialog key="import" open={showImportDialog} onOpenChange={setShowImportDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <Upload className="w-4 h-4" />
-                Import Excel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5" />
-                  Import Data Toko dari Excel
-                </DialogTitle>
-              </DialogHeader>
-              <ExcelImport 
-                onImportComplete={() => {
-                  setShowImportDialog(false)
-                  refetch()
-                }} 
-              />
-            </DialogContent>
-          </Dialog>
-        ]}
-        filters={[
-          {
-            key: 'status_toko',
-            label: 'Status',
-            type: 'select',
-            options: [
-              { label: 'Semua Status', value: 'all' },
-              { label: 'Aktif', value: 'true' },
-              { label: 'Non-aktif', value: 'false' }
-            ]
-          },
-          {
-            key: 'id_sales',
-            label: 'Sales',
-            type: 'select',
-            options: [
-              { label: 'Semua Sales', value: 'all' },
-              ...salesOptions
-            ]
-          },
-          {
-            key: 'kabupaten',
-            label: 'Kabupaten',
-            type: 'select',
-            options: [
-              { label: 'Semua Kabupaten', value: 'all' },
-              ...kabupatenOptions
-            ]
-          },
-          {
-            key: 'kecamatan',
-            label: 'Kecamatan',
-            type: 'select',
-            options: [
-              { label: 'Semua Kecamatan', value: 'all' },
-              ...kecamatanOptions
-            ]
-          }
-        ]}
-        actions={[
-          {
-            label: 'Lihat Detail',
-            icon: Eye,
-            onClick: (row: Toko) => navigate(`/dashboard/master-data/toko/${row.id_toko}`),
-            variant: 'view'
-          },
-          {
-            label: 'Edit',
-            icon: Edit,
-            onClick: (row: Toko) => navigate(`/dashboard/master-data/toko/${row.id_toko}/edit`),
-            variant: 'edit'
-          },
-          {
-            label: 'Hapus',
-            icon: Trash2,
-            onClick: (row: Toko) => handleDelete(row.id_toko),
-            variant: 'delete'
-          }
-        ]}
-      />
-      
-      {/* Sentinel element for infinite scroll */}
-      <div id="load-more-sentinel" className="h-4" />
-    </div>
+    <DataTableToko
+      data={data?.data || []}
+      columns={columns}
+      loading={isLoading}
+      error={error?.message}
+      onRefresh={refetch}
+      actions={tableActions}
+      pagination={data?.pagination ? {
+        currentPage: data.pagination.page,
+        totalPages: data.pagination.totalPages,
+        total: data.pagination.total,
+        hasNextPage: data.pagination.hasNextPage,
+        hasPrevPage: data.pagination.hasPrevPage,
+        onPageChange: handlePageChange,
+        onNextPage: handleNextPage,
+        onPrevPage: handlePrevPage,
+        pageSize: data.pagination.limit,
+      } : undefined}
+      enableVirtualization={false}
+      enableRowSelection={false}
+      enableColumnVisibility={false}
+      enableSorting={true}
+      maxHeight="none"
+      emptyStateMessage="Tidak ada data toko ditemukan"
+      title={undefined}
+      description={undefined}
+      searchComponent={undefined}
+      className="border-none shadow-none"
+    />
+  )
+}
+
+export default function TokoPage() {
+  const { navigate } = useNavigation()
+  const { toast } = useToast()
+  const deleteTokoMutation = useDeleteTokoMutation()
+  const invalidate = useInvalidateOptimizedToko()
+
+  // Initialize state management
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    suggestions,
+    suggestionsLoading,
+    filterOptions,
+    params,
+    updateParams
+  } = useOptimizedTokoState({
+    page: 1,
+    limit: 20,
+    search: '',
+    sortBy: 'nama_toko',
+    sortOrder: 'asc'
+  })
+
+  // Handle search
+  const handleSearchChange = useCallback((value: string) => {
+    updateParams({ search: value, page: 1 })
+  }, [updateParams])
+
+  // Handle search suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion: any) => {
+    if (suggestion.type === 'toko') {
+      updateParams({ search: suggestion.value, page: 1 })
+    } else if (suggestion.type === 'kabupaten') {
+      updateParams({ kabupaten: suggestion.value, search: '', page: 1 })
+    } else if (suggestion.type === 'kecamatan') {
+      updateParams({ kecamatan: suggestion.value, search: '', page: 1 })
+    } else if (suggestion.type === 'sales') {
+      updateParams({ 
+        id_sales: suggestion.metadata?.id_sales?.toString(), 
+        search: '', 
+        page: 1 
+      })
+    }
+  }, [updateParams])
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((filters: Record<string, string>) => {
+    if (Object.keys(filters).length === 0) {
+      updateParams({
+        status: '',
+        id_sales: '',
+        kabupaten: '',
+        kecamatan: '',
+        search: '',
+        page: 1
+      })
+    } else {
+      updateParams({ ...filters, page: 1 })
+    }
+  }, [updateParams])
+
+  // Handle delete
+  const handleDelete = useCallback((toko: TokoWithStats) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus toko "${toko.nama_toko}"?`)) {
+      deleteTokoMutation.mutate(toko.id_toko, {
+        onSuccess: () => {
+          toast({
+            title: "Berhasil",
+            description: `Toko "${toko.nama_toko}" berhasil dihapus`,
+          })
+          invalidate.invalidateLists()
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Gagal menghapus toko",
+            variant: "destructive",
+          })
+        }
+      })
+    }
+  }, [deleteTokoMutation, toast, invalidate])
+
+  // Handle view
+  const handleView = useCallback((toko: TokoWithStats) => {
+    navigate(`/dashboard/master-data/toko/${toko.id_toko}`)
+  }, [navigate])
+
+  // Handle edit
+  const handleEdit = useCallback((toko: TokoWithStats) => {
+    navigate(`/dashboard/master-data/toko/${toko.id_toko}/edit`)
+  }, [navigate])
+
+  // Handle export
+  const handleExport = useCallback(() => {
+    if (!data?.data) return
+    
+    const result = exportStoreData(data.data)
+    if (result.success) {
+      toast({
+        title: "Export Berhasil",
+        description: `Data berhasil diexport ke ${result.filename}`,
+      })
+    } else {
+      toast({
+        title: "Export Gagal",
+        description: result.error || "Terjadi kesalahan saat export",
+        variant: "destructive",
+      })
+    }
+  }, [data?.data, toast])
+
+  // Handle add new
+  const handleAdd = useCallback(() => {
+    navigate('/dashboard/master-data/toko/add')
+  }, [navigate])
+
+  // Current filters for display
+  const currentFilters = useMemo(() => {
+    const filters: Record<string, string> = {}
+    if (params.status) filters.status_toko = params.status
+    if (params.id_sales) filters.id_sales = params.id_sales
+    if (params.kabupaten) filters.kabupaten = params.kabupaten
+    if (params.kecamatan) filters.kecamatan = params.kecamatan
+    return filters
+  }, [params])
+
+  // Summary statistics with safe defaults
+  const summary = data?.summary
+
+  return (
+    <motion.div 
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible" 
+      className="p-6 space-y-6"
+    >
+      {/* Page Header */}
+      <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-gray-900">Daftar Toko</h1>
+          <p className="text-gray-600 mt-2">
+            {summary ? 
+              `${formatNumber(summary.total_stores)} toko tersebar di ${formatNumber(summary.unique_kabupaten)} kabupaten dan ${formatNumber(summary.unique_kecamatan)} kecamatan` :
+              "Memuat data toko..."
+            }
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleExport} variant="outline" size="lg">
+            Export Excel
+          </Button>
+          <Button onClick={handleAdd} size="lg">
+            Tambah Toko
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Integrated Data Table Card */}
+      <motion.div 
+        variants={cardVariants} 
+        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+      >
+        {/* Search and Filter Section */}
+        <div className="p-6 border-b bg-gray-50">
+          <SearchFilterToko
+            value={params.search || ''}
+            onChange={handleSearchChange}
+            onFilterChange={handleFilterChange}
+            suggestions={suggestions}
+            suggestionsLoading={suggestionsLoading}
+            filterOptions={filterOptions}
+            activeFilters={currentFilters}
+            placeholder="Cari toko, lokasi, sales, nomor telepon..."
+            onSuggestionSelect={handleSuggestionSelect}
+          />
+        </div>
+
+        {/* Data Table Section */}
+        <div className="flex flex-col">
+          <TokoDataTable
+            data={data}
+            isLoading={isLoading}
+            error={error}
+            refetch={refetch}
+            params={params}
+            updateParams={updateParams}
+            onDelete={handleDelete}
+            onView={handleView}
+            onEdit={handleEdit}
+          />
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }

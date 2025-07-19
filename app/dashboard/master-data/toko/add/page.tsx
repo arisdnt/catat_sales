@@ -294,7 +294,7 @@ export default function AddTokoPage() {
                     value={formData.selectedSales?.toString() || ''} 
                     onValueChange={(value) => updateFormData({ selectedSales: parseInt(value) })}
                   >
-                    <SelectTrigger className="mt-1 bg-white">
+                    <SelectTrigger className="mt-1 bg-white h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
                       <SelectValue placeholder="-- Pilih Sales --" />
                     </SelectTrigger>
                     <SelectContent>
@@ -354,7 +354,7 @@ export default function AddTokoPage() {
                               value={row.nama_toko}
                               onChange={(e) => updateTokoRow(row.id, 'nama_toko', e.target.value)}
                               placeholder="Masukkan nama toko"
-                              className="mt-1"
+                              className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                               required
                             />
                           </div>
@@ -364,7 +364,7 @@ export default function AddTokoPage() {
                               value={row.status}
                               onValueChange={(value) => updateTokoRow(row.id, 'status', value)}
                             >
-                              <SelectTrigger className="mt-1">
+                              <SelectTrigger className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200">
                                 <SelectValue placeholder="Pilih status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -388,7 +388,7 @@ export default function AddTokoPage() {
                               value={row.kecamatan}
                               onChange={(e) => updateTokoRow(row.id, 'kecamatan', e.target.value)}
                               placeholder="Masukkan nama kecamatan"
-                              className="mt-1"
+                              className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                               required
                             />
                           </div>
@@ -400,7 +400,7 @@ export default function AddTokoPage() {
                               value={row.kabupaten}
                               onChange={(e) => updateTokoRow(row.id, 'kabupaten', e.target.value)}
                               placeholder="Masukkan nama kabupaten"
-                              className="mt-1"
+                              className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                               required
                             />
                           </div>
@@ -416,7 +416,7 @@ export default function AddTokoPage() {
                               value={row.no_telepon}
                               onChange={(e) => updateTokoRow(row.id, 'no_telepon', e.target.value)}
                               placeholder="Contoh: 081234567890"
-                              className="mt-1"
+                              className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                             />
                           </div>
                           <div>
@@ -427,7 +427,7 @@ export default function AddTokoPage() {
                               value={row.link_gmaps}
                               onChange={(e) => updateTokoRow(row.id, 'link_gmaps', e.target.value)}
                               placeholder="https://maps.google.com/"
-                              className="mt-1"
+                              className="mt-1 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                             />
                           </div>
                         </div>
@@ -464,7 +464,7 @@ export default function AddTokoPage() {
                                 <div className="text-center py-4 text-red-500">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2" />
                                   <p className="text-sm">Gagal memuat produk prioritas</p>
-                                  <p className="text-xs mt-1">{String(priorityError)}</p>
+                                  <p className="text-xs mt-1">{(priorityError as any)?.message}</p>
                                 </div>
                               ) : priorityProducts.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -478,7 +478,7 @@ export default function AddTokoPage() {
                                         min="0"
                                         value={stock.jumlah}
                                         onChange={(e) => updateInitialStockQuantity(row.id, stock.id_produk, parseInt(e.target.value) || 0)}
-                                        className="w-20 text-center"
+                                        className="w-20 text-center h-9 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all duration-200"
                                         placeholder="0"
                                       />
                                     </div>

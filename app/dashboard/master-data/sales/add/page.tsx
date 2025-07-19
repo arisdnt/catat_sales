@@ -22,6 +22,11 @@ interface SalesRow {
   errors: Record<string, string>
 }
 
+// Interface para form data
+interface FormData {
+  [key: string]: unknown
+}
+
 const initialSalesData: Omit<SalesRow, 'id' | 'isValid' | 'errors'> = {
   nama_sales: '',
   nomor_telepon: '',
@@ -119,7 +124,7 @@ export default function AddSalesPage() {
         })
       )
       
-      await Promise.all(promises)
+      const results = await Promise.all(promises)
       
       // All promises resolved successfully if we reach here
       

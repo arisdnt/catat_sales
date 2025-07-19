@@ -81,7 +81,7 @@ export function FormField({
             disabled={disabled}
             rows={rows}
             className={cn(
-              'resize-none',
+              'resize-none rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200',
               hasError && 'border-red-500 focus-visible:ring-red-500'
             )}
           />
@@ -97,6 +97,7 @@ export function FormField({
             <SelectTrigger 
               id={fieldId}
               className={cn(
+                'h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200',
                 hasError && 'border-red-500 focus:ring-red-500'
               )}
             >
@@ -146,7 +147,7 @@ export function FormField({
               max={max}
               step={step}
               className={cn(
-                'pl-10',
+                'pl-10 h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200',
                 hasError && 'border-red-500 focus-visible:ring-red-500'
               )}
             />
@@ -168,6 +169,7 @@ export function FormField({
             max={max}
             step={step}
             className={cn(
+              'h-11 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200',
               hasError && 'border-red-500 focus-visible:ring-red-500'
             )}
           />

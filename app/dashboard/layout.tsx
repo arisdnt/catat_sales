@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthProvider } from '@/components/providers/auth-provider'
+import { QueryProvider } from '@/components/providers/query-provider'
 import { SidebarProvider, useSidebar } from '@/components/providers/sidebar-provider'
 import { ModernSidebar } from '@/components/shared/modern-sidebar'
 import { AuthGuard } from '@/components/layout/auth-guard'
@@ -31,13 +32,15 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <AuthProvider>
-      <AuthGuard>
-        <SidebarProvider>
-          <DashboardContent>{children}</DashboardContent>
-          <Toaster />
-        </SidebarProvider>
-      </AuthGuard>
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <AuthGuard>
+          <SidebarProvider>
+            <DashboardContent>{children}</DashboardContent>
+            <Toaster />
+          </SidebarProvider>
+        </AuthGuard>
+      </AuthProvider>
+    </QueryProvider>
   )
 }

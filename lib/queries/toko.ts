@@ -69,7 +69,7 @@ export interface UpdateTokoData {
 export const tokoKeys = {
   all: ['toko'] as const,
   lists: () => [...tokoKeys.all, 'list'] as const,
-  list: (filters: Record<string, unknown>) => [...tokoKeys.lists(), { filters }] as const,
+  list: (params: Record<string, unknown>) => [...tokoKeys.lists(), params] as const,
   details: () => [...tokoKeys.all, 'detail'] as const,
   detail: (id: number) => [...tokoKeys.details(), id] as const,
 }
@@ -77,18 +77,77 @@ export const tokoKeys = {
 // Queries
 export function useTokoQuery(status?: 'active', includeSales?: boolean) {
   return useQuery({
-    queryKey: tokoKeys.list({ status, includeSales }),
+    queryKey: [...tokoKeys.list({ status, includeSales }), 'simple'],
     queryFn: () => apiClient.getStores(status, includeSales) as Promise<ApiResponse<Toko[]>>,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
-// Infinite Query for pagination
-export function useTokoInfiniteQuery(status?: 'active', includeSales?: boolean, limit: number = 50) {
+// Paged Query for manual pagination with 20 data per page
+export function useTokoPagedQuery(
+  page: number = 1,
+  status?: boolean,
+  includeSales?: boolean,
+  search?: string,
+  filters?: Record<string, string>
+) {
+  return useQuery({
+    queryKey: [...tokoKeys.list({ status, includeSales, search, filters, page }), 'paged'],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('limit', '20')
+      
+      if (status !== undefined) {
+        params.append('status', status.toString())
+      }
+      if (includeSales) {
+        params.append('include_sales', 'true')
+      }
+      if (search) {
+        params.append('search', search)
+      }
+      
+      // Add filters to params
+        if (filters) {
+          Object.entries(filters).forEach(([key, value]) => {
+            if (value && value !== 'all') {
+              params.append(key, value)
+            }
+          })
+        }
+         
+         return apiClient.get(`/toko?${params}`) as Promise<PaginatedApiResponse<Toko>>
+    },
+    staleTime: 0, // No background fetching, always fresh data
+    gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false, // Disable background refetch
+    refetchOnMount: true, // Only fetch when component mounts
+  })
+}
+
+// Keep infinite query for backward compatibility if needed
+export function useTokoInfiniteQuery(
+  status?: 'active', 
+  includeSales?: boolean, 
+  limit: number = 50,
+  search?: string,
+  filters?: Record<string, string>
+) {
   return useInfiniteQuery({
-    queryKey: [...tokoKeys.list({ status, includeSales }), 'infinite'],
-    queryFn: ({ pageParam = 1 }) => 
-      apiClient.getStores(status, includeSales, pageParam, limit) as Promise<PaginatedApiResponse<Toko>>,
+    queryKey: [...tokoKeys.list({ status, includeSales, search, filters }), 'infinite'],
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams({
+        page: pageParam.toString(),
+        limit: limit.toString(),
+        ...(status && { status }),
+        ...(includeSales && { include_sales: 'true' }),
+        ...(search && { search }),
+        ...filters
+      })
+      
+      return apiClient.get(`/toko?${params}`) as Promise<PaginatedApiResponse<Toko>>
+    },
     getNextPageParam: (lastPage) => {
       const pagination = lastPage.data.pagination
       return pagination.hasNextPage ? pagination.page + 1 : undefined
@@ -97,8 +156,19 @@ export function useTokoInfiniteQuery(status?: 'active', includeSales?: boolean, 
       const pagination = firstPage.data.pagination
       return pagination.hasPrevPage ? pagination.page - 1 : undefined
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 2, // Reduce to 2 minutes for fresher search results
     initialPageParam: 1,
+  })
+}
+
+// Query for filter options
+export function useTokoFilterOptionsQuery(type: 'kabupaten' | 'kecamatan' | 'sales') {
+  return useQuery({
+    queryKey: ['toko', 'filter-options', type],
+    queryFn: () => {
+      return apiClient.get(`/toko/filter-options?type=${type}`) as Promise<ApiResponse<string[] | Sales[]>>
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes - filter options don't change often
   })
 }
 

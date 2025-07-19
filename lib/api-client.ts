@@ -101,14 +101,32 @@ class ApiClient {
   }
 
   // Stores API
-  async getStores(status?: 'active', includeSales?: boolean, page?: number, limit?: number) {
+  async getStores(
+    status?: 'active', 
+    includeSales?: boolean, 
+    page?: number, 
+    limit?: number,
+    search?: string,
+    filters?: Record<string, string>
+  ) {
     const params = new URLSearchParams()
     if (status) params.append('status', status)
     if (includeSales) params.append('include_sales', 'true')
     if (page) params.append('page', page.toString())
     if (limit) params.append('limit', limit.toString())
+    if (search) params.append('search', search)
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value)
+      })
+    }
     const queryString = params.toString()
     return this.request(`/toko${queryString ? `?${queryString}` : ''}`)
+  }
+
+  // Generic get method for direct API calls
+  async get(url: string, options?: RequestInit) {
+    return this.request(url, options)
   }
 
   async getStoreById(id: number) {

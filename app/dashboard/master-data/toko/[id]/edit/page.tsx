@@ -139,7 +139,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
+                      error={field.state.meta.errors?.[0] as any}
                       type="select"
                       options={salesOptions}
                       placeholder="Pilih sales"
@@ -163,7 +163,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
+                      error={field.state.meta.errors?.[0] as any}
                       placeholder="Masukkan nama kecamatan"
                       required
                     />
@@ -183,7 +183,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
+                      error={field.state.meta.errors?.[0] as any}
                       placeholder="Masukkan nama kabupaten"
                       required
                     />
@@ -202,6 +202,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
+                      error={field.state.meta.errors?.[0] as any}
                       placeholder="Contoh: 081234567890"
                       type="tel"
                     />
