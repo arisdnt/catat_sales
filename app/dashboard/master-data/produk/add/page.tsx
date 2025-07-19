@@ -24,11 +24,7 @@ interface ProdukRow {
   errors: Record<string, string>
 }
 
-// Interface untuk form data
-interface FormData {
-  // Tidak ada field khusus untuk produk bulk input
-  [key: string]: unknown;
-}
+
 
 const initialProdukData: Omit<ProdukRow, 'id' | 'isValid' | 'errors'> = {
   nama_produk: '',
@@ -83,7 +79,7 @@ export default function AddProdukPage() {
           }
           updatedRow.isValid = true
           updatedRow.errors = {}
-        } catch (error: Error) {
+        } catch (error: any) {
           updatedRow.isValid = false
           // Handle simple error message
           if (error.message.includes('Nama produk')) {
@@ -133,7 +129,7 @@ export default function AddProdukPage() {
         })
       )
       
-      const results = await Promise.all(promises)
+      await Promise.all(promises)
       
       // All promises resolved successfully if we reach here
       

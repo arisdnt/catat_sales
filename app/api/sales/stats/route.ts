@@ -8,18 +8,18 @@ interface StoreData {
 
 interface ShipmentData {
   jumlah_kirim: number
-  pengiriman?: {
-    toko?: {
+  pengiriman: {
+    toko: {
       id_sales: number
-    }
-  }
+    }[]
+  }[]
 }
 
 interface RevenueData {
   total_uang_diterima: number
-  toko?: {
+  toko: {
     id_sales: number
-  }
+  }[]
 }
 
 interface SalesData {
@@ -89,17 +89,21 @@ export async function GET(request: NextRequest) {
 
       // Count shipments per sales
       shipmentStats?.forEach((item: ShipmentData) => {
-        const salesId = item.pengiriman?.toko?.id_sales
-        if (salesId) {
-          shipmentCountMap.set(salesId, (shipmentCountMap.get(salesId) || 0) + (item.jumlah_kirim || 0))
+        if (item.pengiriman && item.pengiriman.length > 0 && item.pengiriman[0].toko && item.pengiriman[0].toko.length > 0) {
+          const salesId = item.pengiriman[0].toko[0].id_sales
+          if (salesId) {
+            shipmentCountMap.set(salesId, (shipmentCountMap.get(salesId) || 0) + (item.jumlah_kirim || 0))
+          }
         }
       })
 
       // Count revenue per sales
       revenueStats?.forEach((item: RevenueData) => {
-        const salesId = item.toko?.id_sales
-        if (salesId) {
-          revenueCountMap.set(salesId, (revenueCountMap.get(salesId) || 0) + (item.total_uang_diterima || 0))
+        if (item.toko && item.toko.length > 0) {
+          const salesId = item.toko[0].id_sales
+          if (salesId) {
+            revenueCountMap.set(salesId, (revenueCountMap.get(salesId) || 0) + (item.total_uang_diterima || 0))
+          }
         }
       })
 

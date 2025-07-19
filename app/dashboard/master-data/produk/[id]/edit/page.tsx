@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/components/ui/use-toast'
+
 import {
   Form,
   FormControl,
@@ -34,7 +34,6 @@ type FormData = z.infer<typeof formSchema>
 
 export default function EditProdukPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { toast } = useToast()
   const [productId, setProductId] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -49,7 +48,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
   const { data: productResponse, isLoading, error } = useProdukDetailQuery(productId!)
   const updateProduct = useUpdateProdukMutation()
 
-  const product = (productResponse as { data: unknown })?.data
+  const product = (productResponse as { data: any })?.data
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

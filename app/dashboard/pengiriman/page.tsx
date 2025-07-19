@@ -33,21 +33,21 @@ export default function ShippingPage() {
   const salesOptions = useMemo(() => {
     const uniqueSales = Array.from(new Set(
       shipments.map((s: Pengiriman) => s.toko?.sales?.nama_sales).filter(Boolean)
-    ))
+    )) as string[]
     return uniqueSales.map(sales => ({ value: sales, label: sales }))
   }, [shipments])
 
   const kabupatenOptions = useMemo(() => {
     const uniqueKabupaten = Array.from(new Set(
       shipments.map((s: Pengiriman) => s.toko?.kabupaten).filter(Boolean)
-    ))
+    )) as string[]
     return uniqueKabupaten.map(kabupaten => ({ value: kabupaten, label: kabupaten }))
   }, [shipments])
 
   const kecamatanOptions = useMemo(() => {
     const uniqueKecamatan = Array.from(new Set(
       shipments.map((s: Pengiriman) => s.toko?.kecamatan).filter(Boolean)
-    ))
+    )) as string[]
     return uniqueKecamatan.map(kecamatan => ({ value: kecamatan, label: kecamatan }))
   }, [shipments])
 

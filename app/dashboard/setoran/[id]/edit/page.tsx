@@ -25,7 +25,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
     total_setoran: 0,
     penerima_setoran: ''
   })
-  const [errors, setErrors] = useState<Partial<UpdateSetoranData>>({})
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Initialize setoran ID from params
@@ -51,7 +51,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
   })
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<UpdateSetoranData> = {}
+    const newErrors: Record<string, string> = {}
 
     // Validate total_setoran
     if (!formData.total_setoran || formData.total_setoran <= 0) {
@@ -59,7 +59,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
     }
 
     // Validate penerima_setoran
-    if (!formData.penerima_setoran.trim()) {
+    if (!formData.penerima_setoran?.trim()) {
       newErrors.penerima_setoran = 'Penerima setoran harus diisi'
     } else if (formData.penerima_setoran.trim().length < 2) {
       newErrors.penerima_setoran = 'Penerima setoran minimal 2 karakter'
@@ -79,7 +79,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
     if (errors[field]) {
       setErrors(prev => ({
         ...prev,
-        [field]: undefined
+        [field]: ''
       }))
     }
   }

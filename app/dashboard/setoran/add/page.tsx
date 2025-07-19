@@ -72,8 +72,8 @@ export default function AddSetoranPage() {
       setIsSubmitting(true)
       try {
         await apiClient.createDeposit({
-          total_setoran: value.total_setoran,
-          penerima_setoran: value.penerima_setoran
+          total_setoran: value.jumlah_setoran,
+          penerima_setoran: value.keterangan
         })
 
         toast({

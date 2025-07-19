@@ -61,8 +61,8 @@ export default function EditPenagihanPage() {
   const { data: productsResponse } = useProdukQuery()
   const updatePenagihan = useUpdatePenagihanMutation()
   
-  const penagihan = response?.data
-  const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data])
+  const penagihan = (response as { data: any })?.data
+  const products = useMemo(() => (productsResponse as { data: any[] })?.data || [], [productsResponse])
 
   const [formData, setFormData] = useState<FormData>({
     total_uang_diterima: 0,
@@ -78,7 +78,7 @@ export default function EditPenagihanPage() {
       setFormData({
         total_uang_diterima: penagihan.total_uang_diterima,
         metode_pembayaran: penagihan.metode_pembayaran,
-        details: penagihan.detail_penagihan.map(detail => ({
+        details: penagihan.detail_penagihan.map((detail: any) => ({
           id_detail_tagih: detail.id_detail_tagih,
           id_produk: detail.produk.id_produk,
           jumlah_terjual: detail.jumlah_terjual,

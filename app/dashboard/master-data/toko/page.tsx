@@ -8,7 +8,6 @@ import {
   Edit,
   Trash2,
   MapPin,
-  RefreshCw,
   Store,
   Users,
   ExternalLink,
@@ -60,7 +59,7 @@ export default function TokoTablePage() {
   }, [salesData])
 
   const kabupatenOptions = useMemo(() => {
-    const uniqueKabupaten = [...new Set(stores.map(store => store.kabupaten).filter(Boolean))]
+    const uniqueKabupaten = [...new Set(stores.map(store => store.kabupaten).filter(Boolean))] as string[]
     return uniqueKabupaten.map(kabupaten => ({
       label: kabupaten,
       value: kabupaten
@@ -68,7 +67,7 @@ export default function TokoTablePage() {
   }, [stores])
 
   const kecamatanOptions = useMemo(() => {
-    const uniqueKecamatan = [...new Set(stores.map(store => store.kecamatan).filter(Boolean))]
+    const uniqueKecamatan = [...new Set(stores.map(store => store.kecamatan).filter(Boolean))] as string[]
     return uniqueKecamatan.map(kecamatan => ({
       label: kecamatan,
       value: kecamatan

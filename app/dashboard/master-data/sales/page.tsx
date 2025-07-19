@@ -2,20 +2,14 @@
 
 import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { 
-  Plus, 
   Edit, 
   Trash2, 
   Users, 
   Phone,
-  MapPin,
   Eye,
-  Target,
-  Star,
-  Download,
-  RefreshCw
+  Target
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useSalesQuery, useDeleteSalesMutation, useSalesStatsQuery, type SalesStats } from '@/lib/queries/sales'
@@ -38,11 +32,23 @@ const statusConfig = {
   false: { label: 'Non-aktif', color: 'bg-red-100 text-red-800 border-red-200' }
 }
 
+interface SalesData {
+  id_sales: number
+  nama_sales: string
+  nomor_telepon: string
+  status_aktif: boolean
+  dibuat_pada: string
+  diperbarui_pada: string
+}
+
 export default function SalesPage() {
   const { data: response, isLoading, error, refetch } = useSalesQuery()
-  const salesData: any[] = (response as any)?.data || []
+  const salesData: SalesData[] = (response as { data: SalesData[] })?.data || []
   const { data: statsResponse } = useSalesStatsQuery()
-  const salesStats: SalesStats[] = (statsResponse as any)?.data || []
+  
+  const salesStats = useMemo(() => {
+    return (statsResponse as { data: SalesStats[] })?.data || []
+  }, [statsResponse])
   const deleteSales = useDeleteSalesMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
@@ -53,7 +59,7 @@ export default function SalesPage() {
     }
   }
 
-  const columns = useMemo<ColumnDef<Sales>[]>(() => [
+  const columns = useMemo<ColumnDef<SalesData>[]>(() => [
     {
       accessorKey: 'nama_sales',
       header: createSortableHeader('Nama Sales'),

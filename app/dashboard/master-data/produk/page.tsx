@@ -8,9 +8,7 @@ import {
   Trash2, 
   Package, 
   Barcode,
-  Eye,
-  AlertCircle,
-  Download
+  Eye
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useProdukQuery, useDeleteProdukMutation, useProdukStatsQuery, type Produk, type ProdukStats } from '@/lib/queries/produk'
@@ -47,10 +45,13 @@ export default function ProductsPage() {
   const { data: response, isLoading, error, refetch } = useProdukQuery()
   const products: Produk[] = (response as { success: boolean; data: Produk[] })?.data || []
   const { data: statsResponse, isLoading: statsLoading, error: statsError } = useProdukStatsQuery()
-  const productStats: ProdukStats[] = (statsResponse as { success: boolean; data: ProdukStats[] })?.data || []
   const deleteProduct = useDeleteProdukMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
+
+  const productStats = useMemo(() => {
+    return (statsResponse as { success: boolean; data: ProdukStats[] })?.data || []
+  }, [statsResponse])
 
   // If stats error, continue rendering
 

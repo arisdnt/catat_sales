@@ -148,20 +148,20 @@ export default function ExcelImport({ onImportComplete }: ExcelImportProps) {
           const fullData = XLSX.utils.sheet_to_json(worksheet)
 
           const result = await apiClient.importStores(fullData)
-          setImportResult(result)
+          setImportResult(result as ImportResult)
           setShowResult(true)
           setShowPreview(false)
 
-          if (result.data.success) {
+          if ((result as any).data.success) {
             toast({
               title: 'Import Berhasil',
-              description: `${result.data.summary.tokosCreated} toko berhasil diimport`
+              description: `${(result as any).data.summary.tokosCreated} toko berhasil diimport`
             })
             onImportComplete?.()
           } else {
             toast({
               title: 'Import Selesai dengan Error',
-              description: `${result.data.errors.length} error ditemukan`,
+              description: `${(result as any).data.errors.length} error ditemukan`,
               variant: 'destructive'
             })
           }

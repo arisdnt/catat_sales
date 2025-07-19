@@ -67,10 +67,10 @@ export default function AddTokoPage() {
   const [tokoRows, setTokoRows] = useState<TokoRow[]>([])
   
   const { data: salesResponse, isLoading: salesLoading, error: salesError } = useSalesQuery()
-  const salesData: any[] = (salesResponse as any)?.data || []
+  const salesData: { id_sales: number; nama_sales: string }[] = (salesResponse as { data: { id_sales: number; nama_sales: string }[] })?.data || []
   
   const { data: priorityProductsResponse, isLoading: priorityLoading, error: priorityError } = usePriorityProdukQuery()
-  const priorityProducts: Produk[] = (priorityProductsResponse as any)?.data || []
+  const priorityProducts: Produk[] = (priorityProductsResponse as { data: Produk[] })?.data || []
   
   // Add new toko row
   const addTokoRow = () => {
@@ -147,7 +147,7 @@ export default function AddTokoPage() {
     if (formData.selectedSales && tokoRows.length === 0) {
       addTokoRow()
     }
-  }, [formData.selectedSales])
+  }, [formData.selectedSales, tokoRows.length, addTokoRow])
   
   // Validate form
   const validateForm = (): string | null => {
@@ -464,7 +464,7 @@ export default function AddTokoPage() {
                                 <div className="text-center py-4 text-red-500">
                                   <AlertCircle className="w-8 h-8 mx-auto mb-2" />
                                   <p className="text-sm">Gagal memuat produk prioritas</p>
-                                  <p className="text-xs mt-1">{priorityError.message}</p>
+                                  <p className="text-xs mt-1">{String(priorityError)}</p>
                                 </div>
                               ) : priorityProducts.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

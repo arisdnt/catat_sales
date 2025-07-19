@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,11 +22,6 @@ interface SalesRow {
   errors: Record<string, string>
 }
 
-// Interface untuk form data
-interface FormData {
-  // Tidak ada field khusus untuk sales bulk input
-}
-
 const initialSalesData: Omit<SalesRow, 'id' | 'isValid' | 'errors'> = {
   nama_sales: '',
   nomor_telepon: '',
@@ -39,8 +34,7 @@ export default function AddSalesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // State untuk bulk input
-  const [formData, setFormData] = useState<FormData>({})
+  // State para bulk input
   const [salesRows, setSalesRows] = useState<SalesRow[]>([])
 
   // Fungsi untuk menambah row sales baru
@@ -59,8 +53,8 @@ export default function AddSalesPage() {
     setSalesRows(prev => prev.filter(row => row.id !== id))
   }
 
-  // Fungsi untuk update row sales
-  const updateSalesRow = (id: string, field: keyof Omit<SalesRow, 'id' | 'isValid' | 'errors'>, value: any) => {
+  // Fungsi para update row sales
+  const updateSalesRow = (id: string, field: keyof Omit<SalesRow, 'id' | 'isValid' | 'errors'>, value: string | boolean) => {
     setSalesRows(prev => prev.map(row => {
       if (row.id === id) {
         const updatedRow = { ...row, [field]: value }
@@ -76,15 +70,16 @@ export default function AddSalesPage() {
           }
            updatedRow.isValid = true
             updatedRow.errors = {}
-          } catch (error: any) {
+          } catch (error: unknown) {
             updatedRow.isValid = false
             // Handle simple error message
-            if (error.message.includes('Nama sales')) {
-              updatedRow.errors = { nama_sales: error.message }
-            } else if (error.message.includes('nomor telepon')) {
-              updatedRow.errors = { nomor_telepon: error.message }
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            if (errorMessage.includes('Nama sales')) {
+              updatedRow.errors = { nama_sales: errorMessage }
+            } else if (errorMessage.includes('nomor telepon')) {
+              updatedRow.errors = { nomor_telepon: errorMessage }
             } else {
-              updatedRow.errors = { general: error.message }
+              updatedRow.errors = { general: errorMessage }
             }
           }
         
@@ -92,11 +87,6 @@ export default function AddSalesPage() {
       }
       return row
     }))
-  }
-
-  // Fungsi untuk update form data
-  const updateFormData = (field: keyof FormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   // Tidak auto-add row, biarkan user menambah sendiri
@@ -129,7 +119,7 @@ export default function AddSalesPage() {
         })
       )
       
-      const results = await Promise.all(promises)
+      await Promise.all(promises)
       
       // All promises resolved successfully if we reach here
       
@@ -214,7 +204,7 @@ export default function AddSalesPage() {
                 <div className="text-center py-8 text-gray-500">
                   <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium mb-2">Belum ada data sales</p>
-                  <p className="text-sm">Klik tombol "Tambah Sales" untuk menambah data sales baru</p>
+                  <p className="text-sm">Klik tombol &quot;Tambah Sales&quot; untuk menambah data sales baru</p>
                 </div>
               ) : (
                 <div className="space-y-4">

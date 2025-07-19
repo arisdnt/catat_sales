@@ -48,7 +48,15 @@ export async function GET(request: NextRequest) {
     let query = supabaseAdmin
       .from('toko')
       .select(include_sales === 'true' ? `
-        *,
+        id_toko,
+        nama_toko,
+        kecamatan,
+        kabupaten,
+        link_gmaps,
+        status_toko,
+        dibuat_pada,
+        diperbarui_pada,
+        id_sales,
         sales!inner(
           id_sales,
           nama_sales,
@@ -68,9 +76,13 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(error.message)
     }
 
+    if (!tokoData || !Array.isArray(tokoData)) {
+      return createErrorResponse('Invalid data received from database')
+    }
+
     // Enrich data with barang statistics
     const enrichedData = await Promise.all(
-      tokoData.map(async (toko: TokoData) => {
+      tokoData.map(async (toko: any) => {
         // Get barang terkirim (total dari pengiriman)
         const { data: pengirimanData } = await supabaseAdmin
           .from('pengiriman')
@@ -103,9 +115,10 @@ export async function GET(request: NextRequest) {
         // Process pengiriman data
         if (pengirimanData) {
           const produkTerkirim: { [key: string]: number } = {}
-          pengirimanData.forEach((pengiriman: PengirimanData) => {
-            pengiriman.detail_pengiriman?.forEach((detail: PengirimanDetail) => {
-              const namaProduk = detail.produk?.nama_produk || 'Unknown'
+          pengirimanData.forEach((pengiriman: any) => {
+            pengiriman.detail_pengiriman?.forEach((detail: any) => {
+              const produk = Array.isArray(detail.produk) ? detail.produk[0] : detail.produk
+              const namaProduk = produk?.nama_produk || 'Unknown'
               barangTerkirim += detail.jumlah_kirim
               produkTerkirim[namaProduk] = (produkTerkirim[namaProduk] || 0) + detail.jumlah_kirim
             })
@@ -119,9 +132,10 @@ export async function GET(request: NextRequest) {
         // Process penagihan data
         if (penagihanData) {
           const produkTerbayar: { [key: string]: number } = {}
-          penagihanData.forEach((penagihan: PenagihanData) => {
-            penagihan.detail_penagihan?.forEach((detail: PenagihanDetail) => {
-              const namaProduk = detail.produk?.nama_produk || 'Unknown'
+          penagihanData.forEach((penagihan: any) => {
+            penagihan.detail_penagihan?.forEach((detail: any) => {
+              const produk = Array.isArray(detail.produk) ? detail.produk[0] : detail.produk
+              const namaProduk = produk?.nama_produk || 'Unknown'
               barangTerbayar += detail.jumlah_terjual
               produkTerbayar[namaProduk] = (produkTerbayar[namaProduk] || 0) + detail.jumlah_terjual
             })

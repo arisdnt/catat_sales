@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 import { formatCurrency } from '@/lib/form-utils'
-import { useProdukDetailQuery, useDeleteProdukMutation, useProdukStatsQuery, useProductMovementQuery, type Produk, type ProdukStats } from '@/lib/queries/produk'
+import { useProdukDetailQuery, useDeleteProdukMutation, useProductMovementQuery, type Produk } from '@/lib/queries/produk'
 import { 
   ArrowLeft, 
   Edit, 
@@ -40,7 +39,6 @@ import {
 
 export default function ProdukDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { toast } = useToast()
   const [productId, setProductId] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
@@ -53,13 +51,11 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ id: str
 
   // Queries
   const { data: productResponse, isLoading, error, refetch } = useProdukDetailQuery(productId!)
-  const { data: statsResponse } = useProdukStatsQuery()
   const { data: movementResponse, isLoading: movementLoading, error: movementError } = useProductMovementQuery(productId!)
   const deleteProduct = useDeleteProdukMutation()
 
   const product: Produk | undefined = (productResponse as { data: Produk })?.data
-  const productStats: ProdukStats[] = (statsResponse as { data: ProdukStats[] })?.data || []
-  const movementData = (movementResponse as { data: unknown })?.data
+  const movementData = (movementResponse as { data: any })?.data
 
   const handleDelete = () => {
     if (productId) {
@@ -323,7 +319,7 @@ export default function ProdukDetailPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-3">
                       <h4 className="font-medium text-gray-900">Timeline Pergerakan</h4>
                       <div className="max-h-80 overflow-y-auto space-y-3">
-                        {movementData.movements.map((movement: unknown, index: number) => (
+                        {movementData.movements.map((movement: any, index: number) => (
                           <div 
                             key={index} 
                             className="group flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border hover:border-gray-300"

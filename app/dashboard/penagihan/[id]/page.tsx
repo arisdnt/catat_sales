@@ -43,14 +43,14 @@ export default function PenagihanDetailPage() {
   const id = parseInt(params.id as string)
   const { navigate } = useNavigation()
   const { data: response, isLoading, error } = usePenagihanDetailQuery(id)
-  const penagihan = response?.data
+  const penagihan = (response as { data: any })?.data
 
   const calculations = useMemo(() => {
     if (!penagihan?.detail_penagihan) return null
 
-    const totalItems = penagihan.detail_penagihan.reduce((sum, detail) => sum + detail.jumlah_terjual, 0)
-    const totalReturned = penagihan.detail_penagihan.reduce((sum, detail) => sum + detail.jumlah_kembali, 0)
-    const subtotal = penagihan.detail_penagihan.reduce((sum, detail) => 
+    const totalItems = penagihan.detail_penagihan.reduce((sum: number, detail: any) => sum + detail.jumlah_terjual, 0)
+    const totalReturned = penagihan.detail_penagihan.reduce((sum: number, detail: any) => sum + detail.jumlah_kembali, 0)
+    const subtotal = penagihan.detail_penagihan.reduce((sum: number, detail: any) =>
       sum + (detail.jumlah_terjual * detail.produk.harga_satuan), 0
     )
     const discount = penagihan.potongan_penagihan?.[0]?.jumlah_potongan || 0
@@ -96,7 +96,7 @@ export default function PenagihanDetailPage() {
     )
   }
 
-  const StatusIcon = statusConfig[penagihan.metode_pembayaran]?.icon || CreditCard
+  const StatusIcon = statusConfig[penagihan.metode_pembayaran as keyof typeof statusConfig]?.icon || CreditCard
 
   return (
     <div className="p-8">
@@ -189,7 +189,7 @@ export default function PenagihanDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {penagihan.detail_penagihan.map((detail, index) => (
+                {penagihan.detail_penagihan.map((detail: any, index: number) => (
                   <div key={detail.id_detail_tagih} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-gray-900">{detail.produk.nama_produk}</h4>
@@ -239,8 +239,8 @@ export default function PenagihanDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-500">Metode Pembayaran</label>
-                <Badge className={`mt-1 ${statusConfig[penagihan.metode_pembayaran]?.color}`}>
-                  {statusConfig[penagihan.metode_pembayaran]?.label}
+                <Badge className={`mt-1 ${statusConfig[penagihan.metode_pembayaran as keyof typeof statusConfig]?.color}`}>
+                  {statusConfig[penagihan.metode_pembayaran as keyof typeof statusConfig]?.label}
                 </Badge>
               </div>
               

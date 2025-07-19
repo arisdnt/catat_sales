@@ -5,15 +5,20 @@ import { useRouter } from 'next/navigation'
 import { useForm } from '@tanstack/react-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/components/ui/use-toast'
+
 
 import { FormField } from '@/components/forms/form-field'
 import { useSalesDetailQuery, useUpdateSalesMutation } from '@/lib/queries/sales'
 import { ArrowLeft, Save, Users } from 'lucide-react'
 
+interface SalesData {
+  nama_sales: string
+  nomor_telepon: string
+  status_aktif: boolean
+}
+
 export default function EditSalesPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { toast } = useToast()
   const [salesId, setSalesId] = useState<number | null>(null)
 
   // Initialize sales ID from params
@@ -26,7 +31,7 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
   const { data: salesResponse, isLoading, error } = useSalesDetailQuery(salesId!)
   const updateSales = useUpdateSalesMutation()
 
-  const sales = (salesResponse as { data: any })?.data
+  const sales = (salesResponse as { data: SalesData })?.data
 
   const form = useForm({
     defaultValues: {
@@ -124,9 +129,8 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field
-                  name="nama_sales"
-                  children={(field) => (
+                <form.Field name="nama_sales">
+                  {(field) => (
                     <FormField
                       label="Nama Sales"
                       name={field.name}
@@ -137,11 +141,10 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
                       required
                     />
                   )}
-                />
+                </form.Field>
 
-                <form.Field
-                  name="nomor_telepon"
-                  children={(field) => (
+                <form.Field name="nomor_telepon">
+                  {(field) => (
                     <FormField
                       label="Nomor Telepon"
                       name={field.name}
@@ -152,13 +155,12 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
                       placeholder="Contoh: 08123456789"
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field
-                  name="status_aktif"
-                  children={(field) => (
+                <form.Field name="status_aktif">
+                  {(field) => (
                     <FormField
                       label="Status Sales Aktif"
                       name={field.name}
@@ -168,7 +170,7 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
                       type="checkbox"
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <div className="flex items-center justify-end gap-4 pt-6 border-t">

@@ -39,7 +39,7 @@ const statusConfig = {
 
 export default function BillingPage() {
   const { data: response, isLoading, error, refetch } = usePenagihanQuery(true)
-  const billings = response?.data || []
+  const billings = (response as { data: any[] })?.data || []
   const deleteBilling = useDeletePenagihanMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()

@@ -59,11 +59,12 @@ interface MonthlyTrendsData {
 
 interface CashInHandData {
   total_uang_diterima: number
-  toko?: {
-    sales?: {
+  dibuat_pada: string
+  toko: {
+    sales: {
       nama_sales: string
-    }
-  }
+    }[]
+  }[]
 }
 
 interface CashInHand {
@@ -434,11 +435,13 @@ function processSalesPerformance(salesData: SalesData[]): SalesPerformance[] {
     }
     
     const current = salesMap.get(salesName)
-    current.total_penjualan += item.total_uang_diterima
-    
-    // Count cash payments as setoran (deposits)
-    if (item.metode_pembayaran === 'Cash') {
-      current.total_setoran += item.total_uang_diterima
+    if (current) {
+      current.total_penjualan += item.total_uang_diterima
+      
+      // Count cash payments as setoran (deposits)
+      if (item.metode_pembayaran === 'Cash') {
+        current.total_setoran += item.total_uang_diterima
+      }
     }
   })
   
@@ -458,8 +461,10 @@ function processTopProducts(topProductsData: ProductData[]): TopProduct[] {
   topProductsData.forEach(item => {
     if (productMap.has(item.nama_produk)) {
       const existing = productMap.get(item.nama_produk)
-      existing.total_terjual += item.jumlah_terjual
-      existing.total_nilai += item.nilai_terjual
+      if (existing) {
+        existing.total_terjual += item.jumlah_terjual
+        existing.total_nilai += item.nilai_terjual
+      }
     } else {
       productMap.set(item.nama_produk, {
         nama_produk: item.nama_produk,
@@ -483,8 +488,10 @@ function processTopStores(topStoresData: StoreData[]): TopStore[] {
     const key = item.nama_toko
     if (storeMap.has(key)) {
       const existing = storeMap.get(key)
-      existing.total_pembelian += item.total_uang_diterima
-      existing.total_transaksi += 1
+      if (existing) {
+        existing.total_pembelian += item.total_uang_diterima
+        existing.total_transaksi += 1
+      }
     } else {
       storeMap.set(key, {
         nama_toko: item.nama_toko,
@@ -511,11 +518,13 @@ function processMonthlyTrends(monthlyTrendsData: MonthlyTrendsData): MonthlyTren
       const month = item.dibuat_pada.substring(0, 7)
       if (monthMap.has(month)) {
         const existing = monthMap.get(month)
-        existing.total_penjualan += item.total_uang_diterima
+        if (existing) {
+          existing.total_penjualan += item.total_uang_diterima || 0
+        }
       } else {
         monthMap.set(month, {
           month: month,
-          total_penjualan: item.total_uang_diterima,
+          total_penjualan: item.total_uang_diterima || 0,
           total_setoran: 0
         })
       }
@@ -528,12 +537,14 @@ function processMonthlyTrends(monthlyTrendsData: MonthlyTrendsData): MonthlyTren
       const month = item.dibuat_pada.substring(0, 7)
       if (monthMap.has(month)) {
         const existing = monthMap.get(month)
-        existing.total_setoran += item.total_setoran
+        if (existing) {
+          existing.total_setoran += item.total_setoran || 0
+        }
       } else {
         monthMap.set(month, {
           month: month,
           total_penjualan: 0,
-          total_setoran: item.total_setoran
+          total_setoran: item.total_setoran || 0
         })
       }
     })
@@ -548,15 +559,17 @@ function processCashInHand(cashInHandData: CashInHandData[]): CashInHand[] {
   const salesMap = new Map<string, CashInHand>()
   
   cashInHandData.forEach(item => {
-    if (item.toko && item.toko.sales) {
-      const salesName = item.toko.sales.nama_sales
+    if (item.toko && item.toko.length > 0 && item.toko[0].sales && item.toko[0].sales.length > 0) {
+      const salesName = item.toko[0].sales[0].nama_sales
       if (salesMap.has(salesName)) {
         const existing = salesMap.get(salesName)
-        existing.kas_di_tangan += item.total_uang_diterima
+        if (existing) {
+          existing.kas_di_tangan += item.total_uang_diterima || 0
+        }
       } else {
         salesMap.set(salesName, {
           nama_sales: salesName,
-          kas_di_tangan: item.total_uang_diterima
+          kas_di_tangan: item.total_uang_diterima || 0
         })
       }
     }

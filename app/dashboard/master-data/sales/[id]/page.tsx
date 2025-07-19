@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/components/ui/use-toast'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,16 +39,42 @@ import {
   MapPin,
   ShoppingCart,
   Truck,
-  AlertCircle,
   DollarSign,
-  Package,
-  Target,
-  TrendingDown
+  AlertCircle,
+  Target
 } from 'lucide-react'
+
+interface StoreData {
+  id_toko: number
+  nama_toko: string
+  kecamatan: string
+  kabupaten: string
+  status_toko: boolean
+  id_sales: number
+}
+
+interface ShipmentData {
+  id_pengiriman: number
+  id_toko: number
+  tanggal_kirim: string
+}
+
+interface BillingData {
+  id_penagihan: number
+  id_toko: number
+  tanggal_tagih: string
+  total_uang_diterima: number
+}
+
+interface DepositData {
+  id_setoran: number
+  id_sales: number
+  total_setoran: number
+  tanggal_setoran: string
+}
 
 export default function SalesDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { toast } = useToast()
   const [salesId, setSalesId] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
@@ -74,14 +99,14 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
   const currentStats = salesStats.find(s => s.id_sales === salesId)
   
   // Filter related data
-  const stores = ((storeResponse as { data: any[] })?.data || []).filter((store: any) => store.id_sales === salesId)
-  const shipments = ((shipmentResponse as { data: any[] })?.data || []).filter((shipment: any) => 
-    stores.some((store: any) => store.id_toko === shipment.id_toko)
+  const stores = ((storeResponse as { data: StoreData[] })?.data || []).filter((store: StoreData) => store.id_sales === salesId)
+  const shipments = ((shipmentResponse as { data: ShipmentData[] })?.data || []).filter((shipment: ShipmentData) => 
+    stores.some((store: StoreData) => store.id_toko === shipment.id_toko)
   )
-  const billings = ((billingResponse as { data: any[] })?.data || []).filter((billing: any) => 
-    stores.some((store: any) => store.id_toko === billing.id_toko)
+  const billings = ((billingResponse as { data: BillingData[] })?.data || []).filter((billing: BillingData) => 
+    stores.some((store: StoreData) => store.id_toko === billing.id_toko)
   )
-  const deposits = ((depositResponse as { data: any[] })?.data || []).filter((deposit: any) => 
+  const deposits = ((depositResponse as { data: DepositData[] })?.data || []).filter((deposit: DepositData) => 
     deposit.id_sales === salesId
   )
 
@@ -179,7 +204,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                 <AlertDialogHeader>
                   <AlertDialogTitle>Hapus Sales</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus sales "{sales.nama_sales}"? 
+                    Apakah Anda yakin ingin menghapus sales &quot;{sales.nama_sales}&quot;? 
                     Tindakan ini tidak dapat dibatalkan.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -347,7 +372,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                   </div>
                 ) : stores.length > 0 ? (
                   <div className="space-y-3">
-                    {stores.slice(0, 5).map((store: any) => (
+                    {stores.slice(0, 5).map((store: StoreData) => (
                       <div key={store.id_toko} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         <div className="p-2 bg-blue-100 rounded-full">
                           <Store className="w-4 h-4 text-blue-600" />
@@ -403,12 +428,12 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                       <div className="text-sm text-gray-500">Memuat pengiriman...</div>
                     ) : shipments.length > 0 ? (
                       <div className="space-y-2">
-                        {shipments.slice(0, 3).map((shipment: any) => (
+                        {shipments.slice(0, 3).map((shipment: ShipmentData) => (
                           <div key={shipment.id_pengiriman} className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
                             <Truck className="w-4 h-4 text-blue-600" />
                             <div className="flex-1">
                               <div className="text-sm font-medium text-gray-900">
-                                Pengiriman ke {stores.find((s: any) => s.id_toko === shipment.id_toko)?.nama_toko}
+                                Pengiriman ke {stores.find((s: StoreData) => s.id_toko === shipment.id_toko)?.nama_toko}
                               </div>
                               <div className="text-xs text-gray-600">
                                 {new Date(shipment.tanggal_kirim).toLocaleDateString('id-ID')}
@@ -429,12 +454,12 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                       <div className="text-sm text-gray-500">Memuat penagihan...</div>
                     ) : billings.length > 0 ? (
                       <div className="space-y-2">
-                        {billings.slice(0, 3).map((billing: any) => (
+                        {billings.slice(0, 3).map((billing: BillingData) => (
                           <div key={billing.id_penagihan} className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
                             <ShoppingCart className="w-4 h-4 text-green-600" />
                             <div className="flex-1">
                               <div className="text-sm font-medium text-gray-900">
-                                Penagihan {stores.find((s: any) => s.id_toko === billing.id_toko)?.nama_toko}
+                                Penagihan {stores.find((s: StoreData) => s.id_toko === billing.id_toko)?.nama_toko}
                               </div>
                               <div className="text-xs text-gray-600">
                                 {new Date(billing.tanggal_tagih).toLocaleDateString('id-ID')} - {formatCurrency(billing.total_uang_diterima)}
@@ -455,7 +480,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                       <div className="text-sm text-gray-500">Memuat setoran...</div>
                     ) : deposits.length > 0 ? (
                       <div className="space-y-2">
-                        {deposits.slice(0, 3).map((deposit: any) => (
+                        {deposits.slice(0, 3).map((deposit: DepositData) => (
                           <div key={deposit.id_setoran} className="flex items-center gap-3 p-2 bg-purple-50 rounded-lg">
                             <DollarSign className="w-4 h-4 text-purple-600" />
                             <div className="flex-1">

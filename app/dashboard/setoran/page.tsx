@@ -86,7 +86,7 @@ export default function DepositsPage() {
       ),
       cell: ({ row }) => {
         const method = row.original.metode_pembayaran
-        const amount = parseFloat(row.original.total_uang_diterima)
+        const amount = row.original.total_uang_diterima
         return (
           <div className="font-medium">
             {method === 'Cash' ? (
@@ -111,7 +111,7 @@ export default function DepositsPage() {
       ),
       cell: ({ row }) => {
         const method = row.original.metode_pembayaran
-        const amount = parseFloat(row.original.total_uang_diterima)
+        const amount = row.original.total_uang_diterima
         return (
           <div className="font-medium">
             {method === 'Transfer' ? (

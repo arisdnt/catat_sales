@@ -3,15 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from '@tanstack/react-form'
-import { zodValidator } from '@tanstack/zod-form-adapter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/components/ui/use-toast'
 
 import { FormField } from '@/components/forms/form-field'
 import { tokoSchema, type TokoFormData } from '@/lib/form-utils'
 import { useTokoDetailQuery, useUpdateTokoMutation, useSalesQuery } from '@/lib/queries/toko'
-import { ArrowLeft, Save, Store } from 'lucide-react'
+import { Save, Store } from 'lucide-react'
 
 const statusOptions = [
   { value: 'true', label: 'Aktif' },
@@ -20,7 +18,6 @@ const statusOptions = [
 
 export default function EditTokoPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { toast } = useToast()
   const [tokoId, setTokoId] = useState<number | null>(null)
 
   // Initialize params
@@ -34,9 +31,9 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
   const { data: salesResponse } = useSalesQuery()
   const updateToko = useUpdateTokoMutation()
 
-  const toko = (tokoResponse as { data: any })?.data
-  const salesData = (salesResponse as { data: any[] })?.data || []
-  const salesOptions = salesData.map(s => ({ value: s.id_sales, label: s.nama_sales }))
+  const toko: { id_toko: number; nama_toko: string; kecamatan: string; kabupaten: string; status_toko: boolean; sales_id: number; no_telepon?: string; link_gmaps?: string } = (tokoResponse as { data: any })?.data
+  const salesData: { id_sales: number; nama_sales: string }[] = (salesResponse as { data: any[] })?.data || []
+  const salesOptions = salesData.map(s => ({ value: s.id_sales.toString(), label: s.nama_sales }))
 
   const form = useForm({
     defaultValues: {
@@ -52,7 +49,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       if (tokoId) {
         const updateData = {
           ...value,
-          status_toko: value.status_toko === 'true' || value.status_toko === true,
+          status_toko: Boolean(value.status_toko),
           id_sales: parseInt(value.sales_id as string)
         }
         updateToko.mutate(
@@ -75,8 +72,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       form.setFieldValue('kabupaten', toko.kabupaten)
       form.setFieldValue('no_telepon', toko.no_telepon || '')
       form.setFieldValue('link_gmaps', toko.link_gmaps || '')
-      form.setFieldValue('sales_id', toko.sales_id)
-      form.setFieldValue('status_toko', toko.status_toko ? 'true' : 'false')
+      form.setFieldValue('sales_id', toko.sales_id.toString())
+      form.setFieldValue('status_toko', Boolean(toko.status_toko))
     }
   })
 
@@ -114,26 +111,28 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                   validators={{
                     onChange: tokoSchema.shape.nama_toko
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Nama Toko"
                       name={field.name}
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
+
                       placeholder="Masukkan nama toko"
                       required
                     />
                   )}
-                />
+                </form.Field>
 
                 <form.Field
                   name="sales_id"
                   validators={{
                     onChange: tokoSchema.shape.sales_id
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Sales"
                       name={field.name}
@@ -147,7 +146,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       required
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -156,7 +155,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                   validators={{
                     onChange: tokoSchema.shape.kecamatan
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Kecamatan"
                       name={field.name}
@@ -168,14 +168,15 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       required
                     />
                   )}
-                />
+                </form.Field>
 
                 <form.Field
                   name="kabupaten"
                   validators={{
                     onChange: tokoSchema.shape.kabupaten
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Kabupaten"
                       name={field.name}
@@ -187,32 +188,30 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       required
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <form.Field
                   name="no_telepon"
-                  validators={{
-                    onChange: tokoSchema.shape.no_telepon
-                  }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="No. Telepon"
                       name={field.name}
                       value={field.state.value}
                       onChange={field.handleChange}
                       onBlur={field.handleBlur}
-                      error={field.state.meta.errors?.[0]?.message}
                       placeholder="Contoh: 081234567890"
                       type="tel"
                     />
                   )}
-                />
+                </form.Field>
 
                 <form.Field
                   name="link_gmaps"
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Link Google Maps"
                       name={field.name}
@@ -222,11 +221,12 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       placeholder="https://maps.google.com/..."
                     />
                   )}
-                />
+                </form.Field>
 
                 <form.Field
                   name="status_toko"
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Status"
                       name={field.name}
@@ -238,7 +238,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                       required
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <div className="flex items-center justify-end gap-4 pt-6 border-t">

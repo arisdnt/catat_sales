@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
         const additionalDetailInserts = (additional_shipment as AdditionalShipment).details.map((detail: ShipmentDetail) => ({
           id_pengiriman: additionalShipment.id_pengiriman,
           id_produk: parseInt(detail.id_produk),
-          jumlah_kirim: parseInt(detail.jumlah_kirim)
+          jumlah_kirim: detail.jumlah_kirim
         }))
 
         const { error: additionalDetailError } = await supabaseAdmin

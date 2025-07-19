@@ -117,14 +117,17 @@ export async function GET(request: NextRequest) {
         const runningBalance = penagihan.metode_pembayaran === 'Cash' ? (balanceInfo?.runningBalance || 0) : 0
         const previousBalance = penagihan.metode_pembayaran === 'Cash' ? (balanceInfo?.previousBalance || 0) : 0
 
+        const toko = Array.isArray(penagihan.toko) ? penagihan.toko[0] : penagihan.toko
+        const sales = Array.isArray(toko?.sales) ? toko?.sales[0] : toko?.sales
+        
         return {
           id_penagihan: penagihan.id_penagihan,
-          id_toko: penagihan.toko?.id_toko,
-          nama_toko: penagihan.toko?.nama_toko,
-          kecamatan: penagihan.toko?.kecamatan,
-          kabupaten: penagihan.toko?.kabupaten,
-          nama_sales: penagihan.toko?.sales?.nama_sales,
-          id_sales: penagihan.toko?.sales?.id_sales,
+          id_toko: toko?.id_toko,
+          nama_toko: toko?.nama_toko,
+          kecamatan: toko?.kecamatan,
+          kabupaten: toko?.kabupaten,
+          nama_sales: sales?.nama_sales,
+          id_sales: sales?.id_sales,
           total_uang_diterima: parseFloat(penagihan.total_uang_diterima),
           metode_pembayaran: penagihan.metode_pembayaran,
           ada_potongan: penagihan.ada_potongan,

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
             const productKey = productColumns[j] as keyof ExcelRowData
             const quantity = row[productKey]
             
-            if (quantity && quantity > 0) {
+            if (quantity && Number(quantity) > 0) {
               productQuantities.push({
                 id_produk: priorityProducts[j].id_produk,
                 jumlah: Number(quantity)

@@ -631,7 +631,7 @@ export default function AddPengirimanPage() {
                                   <td className="border-b p-3">
                                     <div className="font-medium text-gray-900">{row.nama_toko}</div>
                                     <div className="text-sm text-gray-500">
-                                      {row.kecamatan}, {row.kabupaten}
+                                      {row.kecamatan}
                                     </div>
                                   </td>
                                   {priorityProducts.map(product => (
