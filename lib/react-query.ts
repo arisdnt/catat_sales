@@ -7,7 +7,7 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 30, // 30 minutes (was cacheTime)
       retry: (failureCount, error: unknown) => {
         // Don't retry on 401/403 errors (auth issues)
-        if (error?.status === 401 || error?.status === 403) {
+        if ((error as any)?.status === 401 || (error as any)?.status === 403) {
           return false
         }
         // Retry up to 3 times for other errors
