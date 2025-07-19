@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,18 +16,61 @@ import {
   Trash2
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
-import { usePengirimanQuery, useDeletePengirimanMutation, type Pengiriman } from '@/lib/queries/pengiriman'
+import { usePengirimanInfiniteQuery, useDeletePengirimanMutation, type Pengiriman } from '@/lib/queries/pengiriman'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, formatDate } from '@/components/shared/data-table'
 import { exportShipmentData } from '@/lib/excel-export'
 
 export default function ShippingPage() {
-  const { data: shipmentsResponse, isLoading, error, refetch } = usePengirimanQuery(true)
-  const shipments = (shipmentsResponse as any)?.data || []
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
+  } = usePengirimanInfiniteQuery(true, 50)
+  
+  const shipments = useMemo(() => {
+    if (!data?.pages) return []
+    return data.pages.flatMap(page => page.data.data)
+  }, [data])
+  
   const deleteShipment = useDeletePengirimanMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
+  
+  // Auto-load next page when user scrolls near bottom
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    
+    const sentinel = document.getElementById('load-more-sentinel-pengiriman')
+    if (sentinel) {
+      observer.observe(sentinel)
+    }
+    
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel)
+      }
+    }
+  }, [loadMore])
 
   // Extract unique values for filters
   const salesOptions = useMemo(() => {
@@ -289,6 +332,9 @@ export default function ShippingPage() {
           }
         ]}
       />
+      
+      {/* Sentinel element for infinite scroll */}
+      <div id="load-more-sentinel-pengiriman" className="h-4" />
     </div>
   )
 }

@@ -159,10 +159,14 @@ class ApiClient {
     })
   }
 
-  // Shipment API
-  async getShipments(includeDetails?: boolean) {
-    const params = includeDetails ? '?include_details=true' : ''
-    return this.request(`/pengiriman${params}`)
+  // Shipments API
+  async getShipments(includeDetails?: boolean, page?: number, limit?: number) {
+    const params = new URLSearchParams()
+    if (includeDetails) params.append('include_details', 'true')
+    if (page) params.append('page', page.toString())
+    if (limit) params.append('limit', limit.toString())
+    const queryString = params.toString()
+    return this.request(`/pengiriman${queryString ? `?${queryString}` : ''}`)
   }
 
   async getShipmentById(id: number) {

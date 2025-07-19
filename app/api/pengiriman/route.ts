@@ -5,6 +5,18 @@ export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
     const include_details = searchParams.get('include_details')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = (page - 1) * limit
+    
+    // Get total count for pagination
+    const { count, error: countError } = await supabaseAdmin
+      .from('pengiriman')
+      .select('*', { count: 'exact', head: true })
+    
+    if (countError) {
+      return createErrorResponse(countError.message)
+    }
     
     const query = supabaseAdmin
       .from('pengiriman')
@@ -52,6 +64,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .order('tanggal_kirim', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     const { data, error } = await query
 
@@ -59,7 +72,22 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(error.message)
     }
 
-    return createSuccessResponse(data)
+    const total = count || 0
+    const totalPages = Math.ceil(total / limit)
+    const hasNextPage = page < totalPages
+    const hasPrevPage = page > 1
+
+    return createSuccessResponse({
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    })
   })
 }
 

@@ -1,6 +1,26 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
+
+export interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
+export interface PaginatedApiResponse<T> {
+  success: boolean
+  data: {
+    data: T[]
+    pagination: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNextPage: boolean
+      hasPrevPage: boolean
+    }
+  }
+}
 
 export interface Pengiriman {
   id_pengiriman: number
@@ -82,6 +102,24 @@ export function usePengirimanDetailQuery(id: number) {
     queryKey: pengirimanKeys.detail(id),
     queryFn: () => apiClient.getShipmentById(id),
     enabled: !!id,
+  })
+}
+
+export function usePengirimanInfiniteQuery(includeDetails?: boolean, limit: number = 50) {
+  return useInfiniteQuery({
+    queryKey: [...pengirimanKeys.list({ includeDetails }), 'infinite'],
+    queryFn: ({ pageParam = 1 }) => 
+      apiClient.getShipments(includeDetails, pageParam, limit) as Promise<PaginatedApiResponse<Pengiriman>>,
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.data.pagination
+      return pagination.hasNextPage ? pagination.page + 1 : undefined
+    },
+    getPreviousPageParam: (firstPage) => {
+      const pagination = firstPage.data.pagination
+      return pagination.hasPrevPage ? pagination.page - 1 : undefined
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    initialPageParam: 1,
   })
 }
 
