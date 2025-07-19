@@ -146,6 +146,7 @@ export function exportStoreData(data: any[]) {
     { key: 'id_sales', header: 'ID Sales', width: 10 },
     { key: 'kecamatan', header: 'Kecamatan', width: 15 },
     { key: 'kabupaten', header: 'Kabupaten', width: 15 },
+    { key: 'no_telepon', header: 'No. Telepon', width: 15 },
     { key: 'link_gmaps', header: 'Link Google Maps', width: 20 },
     { key: 'status_toko', header: 'Status', width: 10, formatter: (value) => value ? 'Aktif' : 'Non-aktif' },
     { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }

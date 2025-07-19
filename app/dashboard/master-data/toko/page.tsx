@@ -119,10 +119,19 @@ export default function TokoTablePage() {
                 .filter(Boolean)
                 .join(', ') || '-'}
             </div>
-            <div className="text-sm text-red-600 mt-1">
-              {row.original.no_telepon || "Nomor telepon belum ada"}
-            </div>
           </div>
+        </div>
+      ),
+      filterFn: (row, id, value) => {
+        return value === 'all' || (row.getValue(id) as string) === value
+      }
+    },
+    {
+      accessorKey: 'no_telepon',
+      header: 'Nomor Telepon',
+      cell: ({ row }) => (
+        <div className="text-sm text-gray-900">
+          {row.original.no_telepon || '-'}
         </div>
       ),
     },
@@ -134,6 +143,9 @@ export default function TokoTablePage() {
           {row.original.kabupaten || '-'}
         </div>
       ),
+      filterFn: (row, id, value) => {
+         return value === 'all' || (row.getValue(id) as string) === value
+       }
     },
     {
       accessorKey: 'id_sales',
@@ -152,6 +164,9 @@ export default function TokoTablePage() {
           </div>
         )
       },
+      filterFn: (row, id, value) => {
+        return value === 'all' || (row.getValue(id) as number).toString() === value
+      }
     },
     {
       accessorKey: 'status_toko',
@@ -348,6 +363,7 @@ export default function TokoTablePage() {
             label: 'Status',
             type: 'select',
             options: [
+              { label: 'Semua Status', value: 'all' },
               { label: 'Aktif', value: 'true' },
               { label: 'Non-aktif', value: 'false' }
             ]
@@ -356,19 +372,28 @@ export default function TokoTablePage() {
             key: 'id_sales',
             label: 'Sales',
             type: 'select',
-            options: salesOptions
+            options: [
+              { label: 'Semua Sales', value: 'all' },
+              ...salesOptions
+            ]
           },
           {
             key: 'kabupaten',
             label: 'Kabupaten',
             type: 'select',
-            options: kabupatenOptions
+            options: [
+              { label: 'Semua Kabupaten', value: 'all' },
+              ...kabupatenOptions
+            ]
           },
           {
             key: 'kecamatan',
             label: 'Kecamatan',
             type: 'select',
-            options: kecamatanOptions
+            options: [
+              { label: 'Semua Kecamatan', value: 'all' },
+              ...kecamatanOptions
+            ]
           }
         ]}
         actions={[

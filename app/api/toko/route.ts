@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
         nama_toko,
         kecamatan,
         kabupaten,
+        no_telepon,
         link_gmaps,
         status_toko,
         dibuat_pada,
@@ -182,7 +183,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { nama_toko, id_sales, kecamatan, kabupaten, link_gmaps, hasInitialStock, initialStock } = body
+    const { nama_toko, id_sales, kecamatan, kabupaten, no_telepon, link_gmaps, hasInitialStock, initialStock } = body
 
     if (!nama_toko || !id_sales) {
       return createErrorResponse('Nama toko and id_sales are required')
@@ -208,6 +209,7 @@ export async function POST(request: NextRequest) {
         id_sales: parseInt(id_sales),
         kecamatan: kecamatan || null,
         kabupaten: kabupaten || null,
+        no_telepon: no_telepon || null,
         link_gmaps: link_gmaps || null,
         status_toko: true
       }])
