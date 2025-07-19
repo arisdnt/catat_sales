@@ -17,7 +17,8 @@ import {
   Menu,
   X,
   BarChart3,
-  Bell
+  Bell,
+  Truck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -46,6 +47,13 @@ const menuItems = [
         icon: CreditCard,
         color: 'text-orange-600',
         bgColor: 'bg-orange-50'
+      },
+      {
+        title: 'Pengiriman',
+        href: '/dashboard/pengiriman',
+        icon: Truck,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50'
       },
       {
         title: 'Setoran',

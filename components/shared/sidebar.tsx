@@ -11,7 +11,8 @@ import {
   Users, 
   Store, 
   ShoppingCart,
-  LogOut 
+  LogOut,
+  Truck 
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -27,6 +28,11 @@ const menuItems = [
     title: 'Pembayaran',
     href: '/dashboard/penagihan',
     icon: CreditCard,
+  },
+  {
+    title: 'Pengiriman',
+    href: '/dashboard/pengiriman',
+    icon: Truck,
   },
   {
     title: 'Setoran',

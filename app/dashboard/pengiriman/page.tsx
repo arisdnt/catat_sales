@@ -246,7 +246,7 @@ export default function ShippingPage() {
             options: kecamatanOptions
           }
         ]}
-        onAdd={() => navigate('/dashboard/pengiriman/add')}
+        // onAdd={() => navigate('/dashboard/pengiriman/add')} // Tombol tambah disembunyikan
         onExport={() => {
           const result = exportShipmentData(shipments)
           if (result.success) {
@@ -263,7 +263,7 @@ export default function ShippingPage() {
           }
         }}
         onRefresh={() => refetch()}
-        addButtonLabel="Tambah Pengiriman"
+        // addButtonLabel="Tambah Pengiriman" // Label tombol tambah disembunyikan
         loading={isLoading}
         emptyStateMessage="Belum ada data pengiriman"
         emptyStateIcon={Truck}
