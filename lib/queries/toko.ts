@@ -42,7 +42,7 @@ export interface CreateTokoData {
 
 export interface UpdateTokoData {
   nama_toko: string
-  id_sales?: number
+  id_sales: number
   kecamatan?: string
   kabupaten?: string
   no_telepon?: string
