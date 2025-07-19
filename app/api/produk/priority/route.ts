@@ -4,16 +4,35 @@ import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResp
 // Get priority products
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
-    const { data, error } = await supabaseAdmin
-      .from('v_produk_prioritas')
-      .select('*')
-      .order('priority_order', { ascending: true })
+    try {
+      // First, get all products to see what we have
+      const { data: allProducts, error: allError } = await supabaseAdmin
+        .from('produk')
+        .select('*')
+        .eq('status_produk', true)
 
-    if (error) {
-      return createErrorResponse(error.message)
+      if (allError) {
+        console.error('Error fetching all products:', allError)
+        return createErrorResponse(`Database error: ${allError.message}`)
+      }
+
+      // Filter for priority products
+      const priorityProducts = allProducts?.filter(product => product.is_priority === true) || []
+
+      // Sort by priority_order
+      priorityProducts.sort((a, b) => {
+        const orderA = a.priority_order || 999
+        const orderB = b.priority_order || 999
+        return orderA - orderB
+      })
+
+      console.log('Priority products found:', priorityProducts.length)
+      
+      return createSuccessResponse(priorityProducts)
+    } catch (error) {
+      console.error('Unexpected error in priority products API:', error)
+      return createErrorResponse('Internal server error')
     }
-
-    return createSuccessResponse(data)
   })
 }
 

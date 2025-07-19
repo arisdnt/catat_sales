@@ -181,3 +181,12 @@ export function useProductMovementQuery(productId: number, startDate?: string, e
     staleTime: 1000 * 60 * 2, // 2 minutes
   })
 }
+
+// Priority Products Query
+export function usePriorityProdukQuery() {
+  return useQuery({
+    queryKey: ['produk', 'priority'],
+    queryFn: () => apiClient.getPriorityProducts() as Promise<ApiResponse<Produk[]>>,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}

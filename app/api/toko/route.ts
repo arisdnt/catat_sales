@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { nama_toko, id_sales, kecamatan, kabupaten, link_gmaps } = body
+    const { nama_toko, id_sales, kecamatan, kabupaten, link_gmaps, hasInitialStock, initialStock } = body
 
     if (!nama_toko || !id_sales) {
       return createErrorResponse('Nama toko and id_sales are required')
@@ -148,7 +148,8 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Sales not found or inactive')
     }
 
-    const { data, error } = await supabaseAdmin
+    // Create toko first
+    const { data: tokoData, error: tokoError } = await supabaseAdmin
       .from('toko')
       .insert([{
         nama_toko,
@@ -169,10 +170,47 @@ export async function POST(request: NextRequest) {
       `)
       .single()
 
-    if (error) {
-      return createErrorResponse(error.message)
+    if (tokoError) {
+      return createErrorResponse(tokoError.message)
     }
 
-    return createSuccessResponse(data, 201)
+    // Handle initial stock if enabled
+    if (hasInitialStock && initialStock && initialStock.length > 0) {
+      try {
+        // Create pengiriman record for initial stock
+        const { data: pengirimanData, error: pengirimanError } = await supabaseAdmin
+          .from('pengiriman')
+          .insert([{
+            id_toko: tokoData.id_toko,
+            tanggal_kirim: new Date().toISOString().split('T')[0]
+          }])
+          .select()
+          .single()
+
+        if (pengirimanError) {
+          throw new Error('Failed to create initial shipment: ' + pengirimanError.message)
+        }
+
+        // Create detail_pengiriman records for each product
+        const detailPengirimanData = initialStock.map((stock: any) => ({
+          id_pengiriman: pengirimanData.id_pengiriman,
+          id_produk: stock.id_produk,
+          jumlah_kirim: stock.jumlah
+        }))
+
+        const { error: detailError } = await supabaseAdmin
+          .from('detail_pengiriman')
+          .insert(detailPengirimanData)
+
+        if (detailError) {
+          throw new Error('Failed to create initial stock details: ' + detailError.message)
+        }
+      } catch (stockError) {
+        // Log error but don't fail the toko creation
+        console.error('Initial stock creation failed:', stockError)
+      }
+    }
+
+    return createSuccessResponse(tokoData, 201)
   })
 }

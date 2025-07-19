@@ -14,7 +14,9 @@ import {
   ExternalLink,
   Package,
   CreditCard,
-  Archive
+  Archive,
+  FileSpreadsheet,
+  Upload
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useTokoQuery, useDeleteTokoMutation, type Toko } from '@/lib/queries/toko'
@@ -23,6 +25,9 @@ import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTable, createSortableHeader, createStatusBadge } from '@/components/shared/data-table'
 import { exportStoreData } from '@/lib/excel-export'
+import ExcelImport from '@/components/shared/excel-import'
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 const statusConfig = {
   true: { label: 'Aktif', color: 'bg-green-100 text-green-800 border-green-200' },
@@ -37,6 +42,7 @@ export default function TokoTablePage() {
   const deleteStore = useDeleteTokoMutation()
   const { navigate } = useNavigation()
   const { toast } = useToast()
+  const [showImportDialog, setShowImportDialog] = useState(false)
 
   const handleDelete = (id: number) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus toko ini?')) {
@@ -313,6 +319,30 @@ export default function TokoTablePage() {
         loading={isLoading}
         emptyStateMessage="Belum ada data toko"
         emptyStateIcon={Store}
+        customActions={[
+          <Dialog key="import" open={showImportDialog} onOpenChange={setShowImportDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                Import Excel
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5" />
+                  Import Data Toko dari Excel
+                </DialogTitle>
+              </DialogHeader>
+              <ExcelImport 
+                onImportComplete={() => {
+                  setShowImportDialog(false)
+                  refetch()
+                }} 
+              />
+            </DialogContent>
+          </Dialog>
+        ]}
         filters={[
           {
             key: 'status_toko',

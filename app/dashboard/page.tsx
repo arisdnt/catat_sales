@@ -514,7 +514,7 @@ export default function DashboardPage() {
                  </div>
                </div>
              ) : (
-               {dashboardStats.salesPerformance?.length ? (
+               dashboardStats.salesPerformance?.length ? (
                  <BarChart
                    data={dashboardStats.salesPerformance}
                    height={320}
@@ -528,7 +528,7 @@ export default function DashboardPage() {
                      <div className="text-sm mt-1">Performa sales akan muncul setelah ada transaksi</div>
                    </div>
                  </div>
-               )}
+               )
              )}
           </CardContent>
         </Card>

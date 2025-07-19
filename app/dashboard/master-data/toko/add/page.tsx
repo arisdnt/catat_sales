@@ -12,11 +12,22 @@ import { ArrowLeft, Save, Store, AlertCircle, Plus, X, Building2 } from 'lucide-
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { tokoSchema, type TokoFormData } from '@/lib/form-utils'
 import { useSalesQuery } from '@/lib/queries/sales'
+import { usePriorityProdukQuery, type Produk } from '@/lib/queries/produk'
+import { Switch } from '@/components/ui/switch'
+import { Package2 } from 'lucide-react'
 
 // Types
+interface InitialStock {
+  id_produk: number
+  nama_produk: string
+  jumlah: number
+}
+
 interface TokoRow extends TokoFormData {
   id: string
   isValid: boolean
+  hasInitialStock: boolean
+  initialStock: InitialStock[]
 }
 
 interface FormData {
@@ -57,13 +68,18 @@ export default function AddTokoPage() {
   const { data: salesResponse, isLoading: salesLoading, error: salesError } = useSalesQuery()
   const salesData: any[] = (salesResponse as any)?.data || []
   
+  const { data: priorityProductsResponse, isLoading: priorityLoading, error: priorityError } = usePriorityProdukQuery()
+  const priorityProducts: Produk[] = (priorityProductsResponse as any)?.data || []
+  
   // Add new toko row
   const addTokoRow = () => {
     const newRow: TokoRow = {
       ...initialTokoData,
       sales_id: formData.selectedSales?.toString() || '',
       id: Date.now().toString(),
-      isValid: false
+      isValid: false,
+      hasInitialStock: false,
+      initialStock: []
     }
     setTokoRows(prev => [...prev, newRow])
   }
@@ -89,6 +105,40 @@ export default function AddTokoPage() {
   // Update form data
   const updateFormData = (updates: Partial<FormData>) => {
     setFormData(prev => ({ ...prev, ...updates }))
+  }
+  
+  // Toggle initial stock for a toko row
+  const toggleInitialStock = (id: string, hasStock: boolean) => {
+    setTokoRows(prev => prev.map(row => {
+      if (row.id === id) {
+        const updatedRow = { 
+          ...row, 
+          hasInitialStock: hasStock,
+          initialStock: hasStock && priorityProducts.length > 0 ? priorityProducts.map(product => ({
+            id_produk: product.id_produk,
+            nama_produk: product.nama_produk,
+            jumlah: 0
+          })) : []
+        }
+        // Re-validate
+        const validation = tokoSchema.safeParse(updatedRow)
+        return { ...updatedRow, isValid: validation.success }
+      }
+      return row
+    }))
+  }
+  
+  // Update initial stock quantity
+  const updateInitialStockQuantity = (tokoId: string, productId: number, quantity: number) => {
+    setTokoRows(prev => prev.map(row => {
+      if (row.id === tokoId) {
+        const updatedInitialStock = row.initialStock.map(stock => 
+          stock.id_produk === productId ? { ...stock, jumlah: quantity } : stock
+        )
+        return { ...row, initialStock: updatedInitialStock }
+      }
+      return row
+    }))
   }
   
   // Add initial row when sales is selected
@@ -129,9 +179,12 @@ export default function AddTokoPage() {
     setError(null)
     
     try {
-      // Submit all toko data
-      const promises = tokoRows.map(row => 
-        fetch('/api/toko', {
+      // Submit all toko data and handle initial stock
+      const results = []
+      
+      for (const row of tokoRows) {
+        // Create toko first
+        const tokoResponse = await fetch('/api/toko', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -141,17 +194,18 @@ export default function AddTokoPage() {
             no_telepon: row.no_telepon,
             link_gmaps: row.link_gmaps,
             sales_id: row.sales_id,
-            status: row.status
+            status: row.status,
+            hasInitialStock: row.hasInitialStock,
+            initialStock: row.hasInitialStock ? row.initialStock.filter(stock => stock.jumlah > 0) : []
           })
         })
-      )
-      
-      const responses = await Promise.all(promises)
-      
-      // Check if all requests were successful
-      const failedResponses = responses.filter(response => !response.ok)
-      if (failedResponses.length > 0) {
-        throw new Error(`Gagal menyimpan ${failedResponses.length} dari ${responses.length} toko`)
+        
+        if (!tokoResponse.ok) {
+          throw new Error(`Gagal menyimpan toko ${row.nama_toko}`)
+        }
+        
+        const tokoResult = await tokoResponse.json()
+        results.push(tokoResult)
       }
 
       toast({
@@ -173,7 +227,7 @@ export default function AddTokoPage() {
     }
   }
 
-  if (salesLoading) {
+  if (salesLoading || priorityLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
@@ -188,14 +242,14 @@ export default function AddTokoPage() {
     )
   }
 
-  if (salesError) {
+  if (salesError || priorityError) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Gagal memuat data sales: {salesError.message}
+              Gagal memuat data: {salesError?.message || priorityError?.message}
             </AlertDescription>
           </Alert>
         </div>
@@ -388,6 +442,69 @@ export default function AddTokoPage() {
                               className="mt-1"
                             />
                           </div>
+                        </div>
+                        
+                        {/* Initial Stock Section */}
+                        <div className="border-t pt-4 mt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Package2 className="w-4 h-4 text-blue-600" />
+                              <Label className="text-sm font-medium text-blue-900">Berikan Stok Awal Produk Prioritas</Label>
+                              {priorityLoading && (
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                              )}
+                            </div>
+                            <Switch
+                              checked={row.hasInitialStock}
+                              onCheckedChange={(checked) => toggleInitialStock(row.id, checked)}
+                              disabled={priorityLoading || priorityProducts.length === 0}
+                            />
+                          </div>
+                          
+                          {row.hasInitialStock && (
+                            <div className="space-y-3 bg-blue-50 p-3 rounded-lg">
+                              <p className="text-xs text-blue-700 mb-3">
+                                Atur jumlah stok awal untuk produk prioritas yang akan diberikan ke toko ini:
+                              </p>
+                              
+                              {priorityLoading ? (
+                                <div className="text-center py-4 text-gray-500">
+                                  <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                  <p className="text-sm">Memuat produk prioritas...</p>
+                                </div>
+                              ) : priorityError ? (
+                                <div className="text-center py-4 text-red-500">
+                                  <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                                  <p className="text-sm">Gagal memuat produk prioritas</p>
+                                  <p className="text-xs mt-1">{priorityError.message}</p>
+                                </div>
+                              ) : priorityProducts.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {row.initialStock.map((stock) => (
+                                    <div key={stock.id_produk} className="flex items-center justify-between bg-white p-2 rounded border">
+                                      <span className="text-sm font-medium text-gray-700 flex-1">
+                                        {stock.nama_produk}
+                                      </span>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        value={stock.jumlah}
+                                        onChange={(e) => updateInitialStockQuantity(row.id, stock.id_produk, parseInt(e.target.value) || 0)}
+                                        className="w-20 text-center"
+                                        placeholder="0"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4 text-gray-500">
+                                  <Package2 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                  <p className="text-sm">Tidak ada produk prioritas tersedia</p>
+                                  <p className="text-xs mt-1">Silakan tambahkan produk prioritas di menu Master Data → Produk</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
