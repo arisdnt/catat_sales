@@ -10,20 +10,10 @@ import { useToast } from '@/components/ui/use-toast'
 
 import { FormField } from '@/components/forms/form-field'
 import { setoranSchema, type SetoranFormData } from '@/lib/form-utils'
+import { useTokoQuery } from '@/lib/queries/toko'
+import { useSalesQuery } from '@/lib/queries/sales'
 import { ArrowLeft, Save, Banknote } from 'lucide-react'
 import { z } from 'zod'
-
-const tokoOptions = [
-  { value: '1', label: 'Toko Berkah Jaya 1' },
-  { value: '2', label: 'Toko Sari Melati 2' },
-  { value: '3', label: 'Minimarket Bahagia 3' }
-]
-
-const salesOptions = [
-  { value: '1', label: 'Ahmad Susanto' },
-  { value: '2', label: 'Budi Santoso' },
-  { value: '3', label: 'Citra Dewi' }
-]
 
 const metodePembayaranOptions = [
   { value: 'Cash', label: 'Cash' },
@@ -52,6 +42,27 @@ const initialData: CustomSetoranFormData = {
 export default function AddSetoranPage() {
   const router = useRouter()
   const { toast } = useToast()
+  
+  // Fetch data from API
+  const { data: tokoResponse } = useTokoQuery()
+  const { data: salesResponse } = useSalesQuery()
+  
+  const tokoData = (tokoResponse as { data: any[] })?.data || []
+  const salesData = (salesResponse as { data: any[] })?.data || []
+  
+  const tokoOptions = tokoData.length > 0 
+    ? tokoData.map(toko => ({
+        value: toko.id_toko.toString(),
+        label: toko.nama_toko
+      }))
+    : [{ value: '', label: 'Data toko belum tersedia' }]
+  
+  const salesOptions = salesData.length > 0
+    ? salesData.map(sales => ({
+        value: sales.id_sales.toString(),
+        label: sales.nama_sales
+      }))
+    : [{ value: '', label: 'Data sales belum tersedia' }]
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm({

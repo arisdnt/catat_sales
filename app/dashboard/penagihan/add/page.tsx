@@ -10,19 +10,9 @@ import { useToast } from '@/components/ui/use-toast'
 
 import { FormField } from '@/components/forms/form-field'
 import { penagihanSchema, type PenagihanFormData } from '@/lib/form-utils'
+import { useTokoQuery } from '@/lib/queries/toko'
+import { useProdukQuery } from '@/lib/queries/produk'
 import { ArrowLeft, Save, Receipt } from 'lucide-react'
-
-const tokoOptions = [
-  { value: '1', label: 'Toko Berkah Jaya 1' },
-  { value: '2', label: 'Toko Sari Melati 2' },
-  { value: '3', label: 'Minimarket Bahagia 3' }
-]
-
-const produkOptions = [
-  { value: '1', label: 'Sabun Mandi Lifebuoy' },
-  { value: '2', label: 'Shampoo Pantene' },
-  { value: '3', label: 'Pasta Gigi Pepsodent' }
-]
 
 const metodePembayaranOptions = [
   { value: 'Cash', label: 'Cash' },
@@ -46,6 +36,27 @@ export default function AddPenagihanPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Fetch data from API
+  const { data: tokoResponse } = useTokoQuery()
+  const { data: produkResponse } = useProdukQuery()
+  
+  const tokoData = (tokoResponse as { data: any[] })?.data || []
+  const produkData = (produkResponse as { data: any[] })?.data || []
+  
+  const tokoOptions = tokoData.length > 0 
+    ? tokoData.map(toko => ({
+        value: toko.id_toko.toString(),
+        label: toko.nama_toko
+      }))
+    : [{ value: '', label: 'Data toko belum tersedia' }]
+  
+  const produkOptions = produkData.length > 0
+    ? produkData.map(produk => ({
+        value: produk.id_produk.toString(),
+        label: produk.nama_produk
+      }))
+    : [{ value: '', label: 'Data produk belum tersedia' }]
 
   const form = useForm({
     defaultValues: initialData,

@@ -514,15 +514,21 @@ export default function DashboardPage() {
                  </div>
                </div>
              ) : (
-               <BarChart
-                 data={dashboardStats.salesPerformance?.length ? dashboardStats.salesPerformance : [
-                   { nama_sales: 'Ahmad', total_setoran: 5000000 },
-                   { nama_sales: 'Budi', total_setoran: 4500000 },
-                   { nama_sales: 'Citra', total_setoran: 3800000 }
-                 ]}
-                 height={320}
-                 formatValue={formatCurrency}
-               />
+               {dashboardStats.salesPerformance?.length ? (
+                 <BarChart
+                   data={dashboardStats.salesPerformance}
+                   height={320}
+                   formatValue={formatCurrency}
+                 />
+               ) : (
+                 <div className="flex items-center justify-center h-80 text-gray-500">
+                   <div className="text-center">
+                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                     <div className="font-medium">Data Belum Tersedia</div>
+                     <div className="text-sm mt-1">Performa sales akan muncul setelah ada transaksi</div>
+                   </div>
+                 </div>
+               )}
              )}
           </CardContent>
         </Card>
@@ -537,18 +543,24 @@ export default function DashboardPage() {
             <CardDescription>Berdasarkan jumlah terjual bulan ini</CardDescription>
           </CardHeader>
           <CardContent>
-            <HorizontalBarChart
-              data={dashboardStats.topProducts?.length ? dashboardStats.topProducts : [
-                { nama_produk: 'Sabun Mandi', total_terjual: 150, total_nilai: 750000 },
-                { nama_produk: 'Shampo', total_terjual: 120, total_nilai: 1800000 },
-                { nama_produk: 'Pasta Gigi', total_terjual: 100, total_nilai: 800000 }
-              ]}
-              height={320}
-              dataKey="total_terjual"
-              labelKey="nama_produk"
-              color="rgba(245, 158, 11, 0.8)"
-              title="Jumlah Terjual"
-            />
+            {dashboardStats.topProducts?.length ? (
+              <HorizontalBarChart
+                data={dashboardStats.topProducts}
+                height={320}
+                dataKey="total_terjual"
+                labelKey="nama_produk"
+                color="rgba(245, 158, 11, 0.8)"
+                title="Jumlah Terjual"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-80 text-gray-500">
+                <div className="text-center">
+                  <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <div className="font-medium">Data Belum Tersedia</div>
+                  <div className="text-sm mt-1">Produk terlaris akan muncul setelah ada penjualan</div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -565,25 +577,31 @@ export default function DashboardPage() {
             <CardDescription>Uang tunai yang belum disetor</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {(dashboardStats.cashInHand?.length ? dashboardStats.cashInHand : [
-                { nama_sales: 'Ahmad', kas_di_tangan: 2500000 },
-                { nama_sales: 'Budi', kas_di_tangan: 1800000 },
-                { nama_sales: 'Citra', kas_di_tangan: 1200000 }
-              ]).map((cash: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-5 h-5 text-blue-600" />
+            {dashboardStats.cashInHand?.length ? (
+              <div className="space-y-4">
+                {dashboardStats.cashInHand.map((cash: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Users className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="font-medium">{cash.nama_sales}</span>
                     </div>
-                    <span className="font-medium">{cash.nama_sales}</span>
+                    <span className="text-lg font-bold text-green-600">
+                      {formatCurrency(cash.kas_di_tangan)}
+                    </span>
                   </div>
-                  <span className="text-lg font-bold text-green-600">
-                    {formatCurrency(cash.kas_di_tangan)}
-                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-32 text-gray-500">
+                <div className="text-center">
+                  <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <div className="font-medium">Data Belum Tersedia</div>
+                  <div className="text-sm mt-1">Kas di tangan sales akan muncul setelah ada pembayaran tunai</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -622,34 +640,40 @@ export default function DashboardPage() {
           <CardDescription>Daftar toko dengan volume pembelian tertinggi bulan ini</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3">Nama Toko</th>
-                  <th className="text-left p-3">Sales</th>
-                  <th className="text-right p-3">Total Pembelian</th>
-                  <th className="text-right p-3">Jumlah Transaksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(dashboardStats.topStores?.length ? dashboardStats.topStores : [
-                  { nama_toko: 'Toko Berkah', nama_sales: 'Ahmad', total_pembelian: 3500000, total_transaksi: 15 },
-                  { nama_toko: 'Warung Sari', nama_sales: 'Budi', total_pembelian: 2800000, total_transaksi: 12 },
-                  { nama_toko: 'Toko Sejahtera', nama_sales: 'Citra', total_pembelian: 2200000, total_transaksi: 10 }
-                ]).map((store: any, index: number) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="p-3 font-medium">{store.nama_toko}</td>
-                    <td className="p-3 text-gray-600">{store.nama_sales}</td>
-                    <td className="p-3 text-right font-semibold text-green-600">
-                      {formatCurrency(store.total_pembelian)}
-                    </td>
-                    <td className="p-3 text-right">{store.total_transaksi}</td>
+          {dashboardStats.topStores?.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3">Nama Toko</th>
+                    <th className="text-left p-3">Sales</th>
+                    <th className="text-right p-3">Total Pembelian</th>
+                    <th className="text-right p-3">Jumlah Transaksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {dashboardStats.topStores.map((store: any, index: number) => (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="p-3 font-medium">{store.nama_toko}</td>
+                      <td className="p-3 text-gray-600">{store.nama_sales}</td>
+                      <td className="p-3 text-right font-semibold text-green-600">
+                        {formatCurrency(store.total_pembelian)}
+                      </td>
+                      <td className="p-3 text-right">{store.total_transaksi}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-32 text-gray-500">
+              <div className="text-center">
+                <Store className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <div className="font-medium">Data Belum Tersedia</div>
+                <div className="text-sm mt-1">Toko terbaik akan muncul setelah ada transaksi penjualan</div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
