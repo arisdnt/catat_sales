@@ -250,3 +250,85 @@ ALTER TABLE ONLY public.pengiriman ADD CONSTRAINT pengiriman_id_bulk_pengiriman_
 ALTER TABLE ONLY public.pengiriman ADD CONSTRAINT pengiriman_id_toko_fkey FOREIGN KEY (id_toko) REFERENCES public.toko(id_toko) ON DELETE CASCADE;
 ALTER TABLE ONLY public.potongan_penagihan ADD CONSTRAINT potongan_penagihan_id_penagihan_fkey FOREIGN KEY (id_penagihan) REFERENCES public.penagihan(id_penagihan) ON DELETE CASCADE;
 ALTER TABLE ONLY public.toko ADD CONSTRAINT toko_id_sales_fkey FOREIGN KEY (id_sales) REFERENCES public.sales(id_sales) ON DELETE CASCADE;
+
+-- Views
+-- View for priority products
+CREATE VIEW public.v_produk_prioritas AS
+SELECT 
+    id_produk,
+    nama_produk,
+    harga_satuan,
+    priority_order,
+    status_produk
+FROM public.produk
+WHERE is_priority = true AND status_produk = true
+ORDER BY priority_order ASC, nama_produk ASC;
+
+-- View for non-priority products
+CREATE VIEW public.v_produk_non_prioritas AS
+SELECT 
+    id_produk,
+    nama_produk,
+    harga_satuan,
+    status_produk
+FROM public.produk
+WHERE (is_priority = false OR is_priority IS NULL) AND status_produk = true
+ORDER BY nama_produk ASC;
+
+-- View for shipping report
+CREATE VIEW public.v_laporan_pengiriman AS
+SELECT 
+    p.id_pengiriman,
+    p.tanggal_kirim,
+    t.nama_toko,
+    t.kecamatan,
+    t.kabupaten,
+    s.nama_sales,
+    pr.nama_produk,
+    dp.jumlah_kirim,
+    pr.harga_satuan,
+    (dp.jumlah_kirim * pr.harga_satuan) as total_nilai,
+    p.dibuat_pada
+FROM public.pengiriman p
+JOIN public.toko t ON p.id_toko = t.id_toko
+JOIN public.sales s ON t.id_sales = s.id_sales
+JOIN public.detail_pengiriman dp ON p.id_pengiriman = dp.id_pengiriman
+JOIN public.produk pr ON dp.id_produk = pr.id_produk;
+
+-- View for billing report
+CREATE VIEW public.v_laporan_penagihan AS
+SELECT 
+    pen.id_penagihan,
+    pen.dibuat_pada as tanggal_tagih,
+    t.nama_toko,
+    t.kecamatan,
+    t.kabupaten,
+    s.nama_sales,
+    pr.nama_produk,
+    dp.jumlah_terjual,
+    dp.jumlah_kembali,
+    pr.harga_satuan,
+    (dp.jumlah_terjual * pr.harga_satuan) as total_nilai_terjual,
+    pen.total_uang_diterima,
+    pen.metode_pembayaran,
+    pen.ada_potongan
+FROM public.penagihan pen
+JOIN public.toko t ON pen.id_toko = t.id_toko
+JOIN public.sales s ON t.id_sales = s.id_sales
+JOIN public.detail_penagihan dp ON pen.id_penagihan = dp.id_penagihan
+JOIN public.produk pr ON dp.id_produk = pr.id_produk;
+
+-- View for deposit reconciliation report
+CREATE VIEW public.v_rekonsiliasi_setoran AS
+SELECT 
+    set.id_setoran,
+    set.dibuat_pada as tanggal_setoran,
+    set.total_setoran,
+    set.penerima_setoran,
+    COALESCE(SUM(pen.total_uang_diterima), 0) as total_penagihan_cash,
+    (set.total_setoran - COALESCE(SUM(pen.total_uang_diterima), 0)) as selisih
+FROM public.setoran set
+LEFT JOIN public.penagihan pen ON DATE(pen.dibuat_pada) <= DATE(set.dibuat_pada) 
+    AND pen.metode_pembayaran = 'Cash'
+GROUP BY set.id_setoran, set.dibuat_pada, set.total_setoran, set.penerima_setoran
+ORDER BY set.dibuat_pada DESC;

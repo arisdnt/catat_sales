@@ -209,3 +209,12 @@ export function usePriorityProdukQuery() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
+
+// Non-Priority Products Query
+export function useNonPriorityProdukQuery() {
+  return useQuery({
+    queryKey: ['produk', 'non-priority'],
+    queryFn: () => apiClient.getNonPriorityProducts() as Promise<ApiResponse<Produk[]>>,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}

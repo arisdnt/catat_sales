@@ -4,15 +4,24 @@ import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResp
 // Get non-priority products
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
-    const { data, error } = await supabaseAdmin
-      .from('v_produk_non_prioritas')
-      .select('*')
-      .order('nama_produk', { ascending: true })
+    try {
+      // Query directly from produk table for non-priority products
+      const { data, error } = await supabaseAdmin
+        .from('produk')
+        .select('id_produk, nama_produk, harga_satuan, status_produk')
+        .eq('status_produk', true)
+        .or('is_priority.is.null,is_priority.eq.false')
+        .order('nama_produk', { ascending: true })
 
-    if (error) {
-      return createErrorResponse(error.message)
+      if (error) {
+        console.error('Error fetching non-priority products:', error)
+        return createErrorResponse(`Database error: ${error.message}`)
+      }
+
+      return createSuccessResponse(data || [])
+    } catch (error) {
+      console.error('Unexpected error in non-priority products API:', error)
+      return createErrorResponse('Internal server error')
     }
-
-    return createSuccessResponse(data)
   })
 }
