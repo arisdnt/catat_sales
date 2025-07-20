@@ -144,7 +144,19 @@ export function useOptimizedPengirimanQuery(params: PengirimanQueryParams = {}) 
         if (sortBy) searchParams.set('sortBy', sortBy)
         if (sortOrder) searchParams.set('sortOrder', sortOrder)
 
+        console.log('Fetching pengiriman data:', {
+          page, limit, search, id_sales, kabupaten, kecamatan,
+          url: `/pengiriman/optimized?${searchParams.toString()}`
+        })
+
         const response = await apiClient.get(`/pengiriman/optimized?${searchParams.toString()}`)
+        
+        console.log('Pengiriman API response:', {
+          hasData: !!response,
+          dataLength: response?.data?.length || 0,
+          pagination: response?.pagination,
+          responseStructure: Object.keys(response || {})
+        })
         
         // The API client returns the response directly, not wrapped in .data
         if (!response || (!response.data && !Array.isArray(response))) {
@@ -467,13 +479,27 @@ export function useOptimizedPengirimanState(initialParams: PengirimanQueryParams
   }, [query.data, query.isLoading, params, prefetch])
 
   return {
-    // Query states - return object with data and pagination structure like toko
+    // Query states - consistent data structure
     data: {
-      data: query.data?.data?.data || query.data?.data || [],
-      pagination: query.data?.data?.pagination || query.data?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 }
+      data: query.data?.data || [],
+      pagination: query.data?.pagination || { 
+        page: 1, 
+        limit: 20, 
+        total: 0, 
+        totalPages: 0, 
+        hasNextPage: false, 
+        hasPrevPage: false 
+      }
     },
     // Legacy compatibility
-    pagination: query.data?.data?.pagination || query.data?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 },
+    pagination: query.data?.pagination || { 
+      page: 1, 
+      limit: 20, 
+      total: 0, 
+      totalPages: 0, 
+      hasNextPage: false, 
+      hasPrevPage: false 
+    },
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,

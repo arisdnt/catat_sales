@@ -291,18 +291,28 @@ function PengirimanDataTable({
 
   // Handle pagination
   const handleNextPage = useCallback(() => {
+    console.log('Next page clicked:', { 
+      currentPage: params.page, 
+      hasNextPage: data?.pagination?.hasNextPage,
+      totalPages: data?.pagination?.totalPages 
+    })
     if (data?.pagination?.hasNextPage) {
       updateParams({ page: (params.page || 1) + 1 })
     }
   }, [data?.pagination?.hasNextPage, params.page, updateParams])
 
   const handlePrevPage = useCallback(() => {
+    console.log('Previous page clicked:', { 
+      currentPage: params.page, 
+      hasPrevPage: data?.pagination?.hasPrevPage 
+    })
     if (data?.pagination?.hasPrevPage) {
       updateParams({ page: (params.page || 1) - 1 })
     }
   }, [data?.pagination?.hasPrevPage, params.page, updateParams])
 
   const handlePageChange = useCallback((page: number) => {
+    console.log('Page change requested:', { page, currentPage: params.page })
     updateParams({ page })
   }, [updateParams])
 
@@ -389,8 +399,9 @@ export default function ShippingPage() {
 
   // Handle search
   const handleSearchChange = useCallback((value: string) => {
+    console.log('Search change:', { value, currentSearch: params.search })
     updateParams({ search: value, page: 1 })
-  }, [updateParams])
+  }, [updateParams, params.search])
 
   // Handle search suggestion selection
   const handleSuggestionSelect = useCallback((suggestion: any) => {
@@ -497,6 +508,17 @@ export default function ShippingPage() {
     if (params.date_to) filters.date_to = params.date_to
     return filters
   }, [params])
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Pengiriman page state:', {
+      params,
+      dataLength: data?.data?.length || 0,
+      pagination: data?.pagination,
+      isLoading,
+      error: error?.message
+    })
+  }, [params, data, isLoading, error])
 
   // Summary statistics with safe defaults
   const summary = filterOptions?.summary

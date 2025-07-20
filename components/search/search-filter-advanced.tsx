@@ -71,6 +71,7 @@ export function SearchFilterToko({
   // Handle debounced search
   useEffect(() => {
     if (debouncedValue !== value && typeof onChange === 'function') {
+      console.log('Search value changed:', { debouncedValue, value })
       onChange(debouncedValue)
     }
   }, [debouncedValue, onChange, value])

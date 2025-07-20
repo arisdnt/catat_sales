@@ -285,9 +285,21 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
     
     console.log('Query parameters:', { search, salesFilter, kabupatenFilter, kecamatanFilter, dateFrom, dateTo })
 
-    // Apply filters
+    // Build search conditions
+    let searchConditions = []
     if (search) {
-      query = query.or(`toko.nama_toko.ilike.%${search}%,id_pengiriman.eq.${search}`)
+      // Try to parse as number for ID search
+      const searchAsNumber = parseInt(search)
+      if (!isNaN(searchAsNumber)) {
+        searchConditions.push(`id_pengiriman.eq.${searchAsNumber}`)
+      }
+      // Add text search for toko name
+      searchConditions.push(`toko.nama_toko.ilike.%${search}%`)
+    }
+
+    // Apply filters
+    if (searchConditions.length > 0) {
+      query = query.or(searchConditions.join(','))
     }
 
     if (salesFilter) {
@@ -310,27 +322,40 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
       query = query.lte('tanggal_kirim', dateTo)
     }
 
-    // Get total count
-    const countQuery = supabase.from('pengiriman').select('*', { count: 'exact', head: true })
+    // Get total count with same filters and joins
+    let countQuery = supabase
+      .from('pengiriman')
+      .select(`
+        id_pengiriman,
+        toko!inner(
+          id_toko,
+          nama_toko,
+          kabupaten,
+          kecamatan,
+          sales!inner(
+            id_sales
+          )
+        )
+      `, { count: 'exact', head: true })
     
     // Apply same filters to count query
-    if (search) {
-      countQuery.or(`toko.nama_toko.ilike.%${search}%,id_pengiriman.eq.${search}`)
+    if (searchConditions.length > 0) {
+      countQuery = countQuery.or(searchConditions.join(','))
     }
     if (salesFilter) {
-      countQuery.eq('toko.sales.id_sales', parseInt(salesFilter))
+      countQuery = countQuery.eq('toko.sales.id_sales', parseInt(salesFilter))
     }
     if (kabupatenFilter) {
-      countQuery.eq('toko.kabupaten', kabupatenFilter)
+      countQuery = countQuery.eq('toko.kabupaten', kabupatenFilter)
     }
     if (kecamatanFilter) {
-      countQuery.eq('toko.kecamatan', kecamatanFilter)
+      countQuery = countQuery.eq('toko.kecamatan', kecamatanFilter)
     }
     if (dateFrom) {
-      countQuery.gte('tanggal_kirim', dateFrom)
+      countQuery = countQuery.gte('tanggal_kirim', dateFrom)
     }
     if (dateTo) {
-      countQuery.lte('tanggal_kirim', dateTo)
+      countQuery = countQuery.lte('tanggal_kirim', dateTo)
     }
     
     const { count: totalCount, error: countError } = await countQuery
