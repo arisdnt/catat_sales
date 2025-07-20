@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
+// Force this API route to use Node.js runtime
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // Type definitions
 interface SalesData {
   nama_sales: string
@@ -139,29 +143,38 @@ interface BillingMovementData {
 }
 
 export async function GET(request: NextRequest) {
-  return handleApiRequest(request, async () => {
+  try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     const start_date = searchParams.get('start_date')
     const end_date = searchParams.get('end_date')
     const time_filter = searchParams.get('time_filter')
 
-    switch (type) {
-      case 'pengiriman':
-        return await getLaporanPengiriman(start_date, end_date)
-      case 'penagihan':
-        return await getLaporanPenagihan(start_date, end_date)
-      case 'rekonsiliasi':
-        return await getLaporanRekonsiliasi(start_date, end_date)
-      case 'dashboard-stats':
-        return await getDashboardStats(time_filter)
-      case 'product-movement':
-        const product_id = searchParams.get('product_id')
-        return await getProductMovement(product_id, start_date, end_date)
-      default:
-        return createErrorResponse('Invalid report type. Use: pengiriman, penagihan, rekonsiliasi, dashboard-stats, or product-movement')
+    // For dashboard-stats, allow access without authentication for now
+    if (type === 'dashboard-stats') {
+      return await getDashboardStats(time_filter)
     }
-  })
+
+    // For other endpoints, use authentication
+    return handleApiRequest(request, async () => {
+      switch (type) {
+        case 'pengiriman':
+          return await getLaporanPengiriman(start_date, end_date)
+        case 'penagihan':
+          return await getLaporanPenagihan(start_date, end_date)
+        case 'rekonsiliasi':
+          return await getLaporanRekonsiliasi(start_date, end_date)
+        case 'product-movement':
+          const product_id = searchParams.get('product_id')
+          return await getProductMovement(product_id, start_date, end_date)
+        default:
+          return createErrorResponse('Invalid report type. Use: pengiriman, penagihan, rekonsiliasi, dashboard-stats, or product-movement')
+      }
+    })
+  } catch (error) {
+    console.error('API Error:', error)
+    return createErrorResponse('Internal server error', 500)
+  }
 }
 
 async function getLaporanPengiriman(start_date?: string | null, end_date?: string | null) {

@@ -9,6 +9,7 @@
   NEXT_PRIVATE_TARGET = "server"
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
+  NETLIFY_NEXT_PLUGIN_SKIP = "false"
 
 # API routes
 [[redirects]]
