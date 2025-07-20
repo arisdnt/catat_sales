@@ -4,9 +4,6 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  
-  [plugins.inputs]
-    target = "server"
 
 [build.environment]
   NEXT_PRIVATE_TARGET = "server"

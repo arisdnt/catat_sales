@@ -85,7 +85,29 @@ Setelah deployment, test endpoint berikut:
 - Pastikan mengembalikan JSON response dengan data dashboard
 - Test juga endpoint lain dengan authentication
 
-## Troubleshooting
+## Troubleshooting API 404 Issues on Netlify
+
+If you encounter 404 errors for API routes on Netlify, here are the solutions that have been implemented:
+
+### 1. Next.js Configuration (`next.config.js`)
+- **Removed**: `output: 'standalone'` (causes issues with Netlify)
+- **Removed**: `experimental.serverComponentsExternalPackages` (moved to `serverExternalPackages`)
+- **Removed**: `rewrites()` function (conflicts with Netlify plugin)
+- **Added**: `experimental.serverMinification: false` for Next.js 15 compatibility
+
+### 2. Netlify Configuration (`netlify.toml`)
+- **Removed**: Manual API redirect rules (handled by Next.js plugin)
+- **Removed**: Plugin inputs configuration (not supported in v5)
+- **Added**: `NETLIFY_NEXT_PLUGIN_SKIP = "false"` to ensure Next.js plugin is active
+- **Added**: `NEXT_PRIVATE_STANDALONE = "true"` for proper server rendering
+- **Added**: Node.js 18 environment variables for compatibility
+
+### 3. API Route Configuration (`app/api/laporan/route.ts`)
+- **Added**: `export const runtime = 'nodejs'` to force Node.js runtime
+- **Added**: `export const dynamic = 'force-dynamic'` for dynamic behavior
+- **Modified**: Bypassed authentication for `dashboard-stats` endpoint specifically
+
+## General Troubleshooting
 
 ### Jika masih terjadi 404:
 1. **Check Netlify build logs** untuk error
