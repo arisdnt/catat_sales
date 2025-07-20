@@ -94,7 +94,7 @@ function SetoranDataTable({
   onView: (setoran: SetoranWithStats) => void
   onEdit: (setoran: SetoranWithStats) => void
 }) {
-  // Define table columns (similar structure to toko columns)
+  // Define responsive columns with balanced sizing and left alignment
   const columns = useMemo<ColumnDef<SetoranWithStats>[]>(() => [
     {
       accessorKey: 'id_setoran',
@@ -102,24 +102,16 @@ function SetoranDataTable({
       cell: ({ row }) => {
         const setoran = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-green-50 rounded-lg">
-              <Banknote className="w-4 h-4 text-green-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900 truncate">#{setoran.id_setoran}</div>
-              <div className="flex items-center gap-1 text-sm text-gray-500">
-                <Building className="w-3 h-3" />
-                <span className="font-mono">Setoran</span>
-              </div>
-            </div>
-          </motion.div>
+          <div className="text-left">
+            <div className="font-mono text-sm font-medium text-gray-900">#{setoran.id_setoran}</div>
+            <div className="text-xs text-gray-500">Transaksi Setoran</div>
+          </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'high', columnType: 'id' },
     },
     {
       accessorKey: 'total_setoran',
@@ -127,54 +119,92 @@ function SetoranDataTable({
       cell: ({ row }) => {
         const setoran = row.original
         return (
-          <div className="flex items-start gap-2">
-            <DollarSign className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {formatCurrency(setoran.total_setoran)}
-              </div>
-              <div className="text-xs text-gray-500">
-                Jumlah disetor
-              </div>
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {formatCurrency(setoran.total_setoran)}
+            </div>
+            <div className="text-xs text-gray-500">
+              Total uang yang disetor
             </div>
           </div>
         )
       },
+      size: 160,
+      minSize: 140,
+      maxSize: 180,
+      meta: { priority: 'high', columnType: 'currency' },
     },
     {
       accessorKey: 'penerima_setoran',
-      header: 'Penerima',
+      header: 'Penerima Setoran',
       cell: ({ row }) => {
         const setoran = row.original
         return (
-          <div className="flex items-start gap-2">
-            <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {setoran.penerima_setoran || '-'}
-              </div>
-              <div className="text-xs text-gray-500">
-                {setoran.penerima_setoran ? 'Penerima setoran' : 'Belum ada'}
-              </div>
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {setoran.penerima_setoran || 'Belum ada penerima'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {setoran.penerima_setoran ? 'Petugas yang menerima' : 'Perlu diisi'}
             </div>
           </div>
         )
       },
+      size: 170,
+      minSize: 150,
+      maxSize: 200,
+      meta: { priority: 'medium', columnType: 'name' },
     },
     {
       accessorKey: 'dibuat_pada',
-      header: 'Tanggal Dibuat',
+      header: 'Waktu Setoran',
       cell: ({ row }) => {
         const setoran = row.original
+        const date = new Date(setoran.dibuat_pada)
         return (
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-900">
-              {new Date(setoran.dibuat_pada).toLocaleDateString('id-ID')}
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })}
+            </div>
+            <div className="text-xs text-gray-500">
+              {date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })} WIB
             </div>
           </div>
         )
       },
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      meta: { priority: 'medium', columnType: 'date' },
+    },
+    {
+      accessorKey: 'status_setoran',
+      header: 'Status & Keterangan',
+      cell: ({ row }) => {
+        const setoran = row.original
+        // This is a placeholder for additional status information if available
+        return (
+          <div className="text-left">
+            <div className="text-sm font-medium text-green-700">
+              Setor Berhasil
+            </div>
+            <div className="text-xs text-gray-500">
+              Uang telah diterima
+            </div>
+          </div>
+        )
+      },
+      size: 150,
+      minSize: 130,
+      maxSize: 170,
+      meta: { priority: 'low', columnType: 'status', hideOnMobile: true },
     },
   ], [])
 
@@ -385,7 +415,7 @@ export default function DepositsPage() {
       variants={pageVariants}
       initial="hidden"
       animate="visible" 
-      className="p-6 space-y-6"
+      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
       {/* Page Header (identical structure to toko) */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -411,7 +441,7 @@ export default function DepositsPage() {
       {/* Integrated Data Table Card (identical structure to toko) */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section (identical to toko) */}
         <div className="p-6 border-b bg-gray-50">
@@ -429,7 +459,7 @@ export default function DepositsPage() {
         </div>
 
         {/* Data Table Section (identical structure to toko) */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <SetoranDataTable
             data={data}
             isLoading={isLoading}

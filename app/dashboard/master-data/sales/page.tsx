@@ -14,7 +14,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  DollarSign
+  DollarSign,
+  Store,
+  Package
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
@@ -121,32 +123,23 @@ function SalesDataTable({
   onView: (sales: SalesWithStats) => void
   onEdit: (sales: SalesWithStats) => void
 }) {
-  // Define table columns (similar structure to toko columns)
+  // Define table columns with optimized compact layout
   const columns = useMemo<ColumnDef<SalesWithStats>[]>(() => [
     {
       accessorKey: 'nama_sales',
-      header: 'Nama Sales',
+      header: 'Sales',
       cell: ({ row }) => {
         const sales = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-cyan-50 rounded-lg">
-              <Users className="w-4 h-4 text-cyan-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900 truncate">{sales.nama_sales}</div>
-              <div className="flex items-center gap-1 text-sm text-gray-500">
-                <Target className="w-3 h-3" />
-                <span className="font-mono">#{sales.id_sales}</span>
-              </div>
-            </div>
-          </motion.div>
+          <div className="min-w-0 text-left">
+            <div className="font-medium text-gray-900 truncate">{sales.nama_sales}</div>
+            <div className="text-xs text-gray-500 font-mono">#{sales.id_sales}</div>
+          </div>
         )
       },
+      size: 180,
+      minSize: 160,
+      maxSize: 220,
     },
     {
       accessorKey: 'nomor_telepon',
@@ -154,56 +147,109 @@ function SalesDataTable({
       cell: ({ row }) => {
         const sales = row.original
         return (
-          <div className="flex items-start gap-2">
-            <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {sales.nomor_telepon || '-'}
-              </div>
-              <div className="text-xs text-gray-500">
-                {sales.nomor_telepon ? 'Terverifikasi' : 'Belum ada'}
-              </div>
+          <div className="min-w-0 text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {sales.nomor_telepon || '-'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {sales.nomor_telepon ? 'Verified' : 'No phone'}
             </div>
           </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
     },
     {
       accessorKey: 'status_aktif',
       header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.original.status_aktif),
+      cell: ({ row }) => (
+        <div className="text-left">
+          <Badge variant="outline" className={`text-xs ${
+            row.original.status_aktif 
+              ? 'border-green-200 text-green-700 bg-green-50' 
+              : 'border-red-200 text-red-700 bg-red-50'
+          }`}>
+            {row.original.status_aktif ? 'AKTIF' : 'NON'}
+          </Badge>
+        </div>
+      ),
+      size: 100,
+      minSize: 80,
+      maxSize: 120,
     },
     {
-      accessorKey: 'stats',
-      header: 'Statistik',
+      accessorKey: 'total_toko',
+      header: 'Total Toko',
       cell: ({ row }) => {
         const sales = row.original
-        const stats = sales.stats || {
-          total_stores: 0,
-          total_shipped_items: 0,
-          total_revenue: 0
-        }
+        const stats = sales.stats || { total_stores: 0 }
         
         return (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-xs">
-              <Target className="w-3 h-3 text-blue-500" />
-              <span className="text-gray-600">Toko:</span>
-              <span className="font-medium text-blue-600">{formatNumber(stats.total_stores)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <TrendingUp className="w-3 h-3 text-green-500" />
-              <span className="text-gray-600">Kirim:</span>
-              <span className="font-medium text-green-600">{formatNumber(stats.total_shipped_items)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <DollarSign className="w-3 h-3 text-purple-500" />
-              <span className="text-gray-600">Revenue:</span>
-              <span className="font-medium text-purple-600">{formatCurrency(stats.total_revenue)}</span>
+          <div className="text-left flex items-center gap-2">
+            <Store className="h-4 w-4 text-blue-500" />
+            <div>
+              <div className="text-sm font-medium text-blue-600">
+                {formatNumber(stats.total_stores)}
+              </div>
+              <div className="text-xs text-gray-500">toko</div>
             </div>
           </div>
         )
       },
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      meta: { priority: 'medium', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'total_items',
+      header: 'Total Items',
+      cell: ({ row }) => {
+        const sales = row.original
+        const stats = sales.stats || { total_shipped_items: 0 }
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <Package className="h-4 w-4 text-green-500" />
+            <div>
+              <div className="text-sm font-medium text-green-600">
+                {formatNumber(stats.total_shipped_items)}
+              </div>
+              <div className="text-xs text-gray-500">items</div>
+            </div>
+          </div>
+        )
+      },
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      meta: { priority: 'medium', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'total_revenue',
+      header: 'Total Revenue',
+      cell: ({ row }) => {
+        const sales = row.original
+        const stats = sales.stats || { total_revenue: 0 }
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-purple-500" />
+            <div>
+              <div className="text-sm font-medium text-purple-600">
+                {formatCurrency(stats.total_revenue)}
+              </div>
+              <div className="text-xs text-gray-500">revenue</div>
+            </div>
+          </div>
+        )
+      },
+      size: 150,
+      minSize: 130,
+      maxSize: 170,
+      meta: { priority: 'medium', columnType: 'stats' },
     },
     {
       accessorKey: 'dibuat_pada',
@@ -211,14 +257,20 @@ function SalesDataTable({
       cell: ({ row }) => {
         const sales = row.original
         return (
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-900">
-              {new Date(sales.dibuat_pada).toLocaleDateString('id-ID')}
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {new Date(sales.dibuat_pada).toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+              })}
             </div>
           </div>
         )
       },
+      size: 110,
+      minSize: 90,
+      maxSize: 130,
     },
   ], [])
 
@@ -429,7 +481,7 @@ export default function SalesPage() {
       variants={pageVariants}
       initial="hidden"
       animate="visible" 
-      className="p-6 space-y-6"
+      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
       {/* Page Header (identical structure to toko) */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -455,7 +507,7 @@ export default function SalesPage() {
       {/* Integrated Data Table Card (identical structure to toko) */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section (identical to toko) */}
         <div className="p-6 border-b bg-gray-50">
@@ -473,7 +525,7 @@ export default function SalesPage() {
         </div>
 
         {/* Data Table Section (identical structure to toko) */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <SalesDataTable
             data={data}
             isLoading={isLoading}

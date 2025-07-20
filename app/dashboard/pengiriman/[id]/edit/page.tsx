@@ -122,7 +122,7 @@ export default function EditPengirimanPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 bg-white min-h-screen">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
@@ -137,7 +137,7 @@ export default function EditPengirimanPage() {
 
   if (error || !pengiriman) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 bg-white min-h-screen">
         <div className="text-center py-12">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Pengiriman Tidak Ditemukan</h2>
@@ -158,182 +158,184 @@ export default function EditPengirimanPage() {
   }, 0)
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate(`/dashboard/pengiriman/${id}`)}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Pengiriman</h1>
-            <p className="text-gray-600">#{pengiriman.id_pengiriman}</p>
+    <div className="w-full bg-white min-h-screen">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(`/dashboard/pengiriman/${id}`)}
+              className="shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Edit Pengiriman</h1>
+              <p className="text-gray-600 text-sm sm:text-base">#{pengiriman.id_pengiriman}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informasi Toko */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Informasi Toko
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Nama Toko</p>
-              <p className="font-medium text-lg">{pengiriman.toko?.nama_toko}</p>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Informasi Toko */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <MapPin className="w-5 h-5 text-blue-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Informasi Toko</h2>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Alamat</p>
-              <p className="font-medium">
-                {pengiriman.toko?.kecamatan}, {pengiriman.toko?.kabupaten}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Form Pengiriman */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Informasi Pengiriman
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <Label htmlFor="tanggal_kirim">Tanggal Kirim</Label>
-                <Input
-                  id="tanggal_kirim"
-                  type="date"
-                  value={tanggalKirim}
-                  onChange={(e) => setTanggalKirim(e.target.value)}
-                  required
-                />
+                <p className="text-sm font-medium text-gray-500 mb-1">Nama Toko</p>
+                <p className="text-base font-medium text-gray-900">{pengiriman.toko?.nama_toko}</p>
               </div>
-              <div className="flex items-end">
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-500">Total Item</p>
-                  <Badge className="bg-blue-100 text-blue-800">{totalQuantity} pcs</Badge>
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Alamat</p>
+                <p className="text-base text-gray-900">
+                  {pengiriman.toko?.kecamatan}, {pengiriman.toko?.kabupaten}
+                </p>
+              </div>
+            </div>
+          </div>
+
+            {/* Form Pengiriman */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-green-600" />
                 </div>
-                <div className="ml-6 space-y-2">
-                  <p className="text-sm text-gray-500">Total Nilai</p>
-                  <p className="font-medium">Rp {totalValue.toLocaleString('id-ID')}</p>
+                <h2 className="text-lg font-semibold text-gray-900">Informasi Pengiriman</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div>
+                  <Label htmlFor="tanggal_kirim" className="text-sm font-medium text-gray-700">Tanggal Kirim</Label>
+                  <Input
+                    id="tanggal_kirim"
+                    type="date"
+                    value={tanggalKirim}
+                    onChange={(e) => setTanggalKirim(e.target.value)}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Total Item</p>
+                  <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">{totalQuantity} pcs</Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Total Nilai</p>
+                  <p className="text-lg font-semibold text-gray-900">Rp {totalValue.toLocaleString('id-ID')}</p>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Detail Produk */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Detail Produk
+            {/* Detail Produk */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Package className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">Detail Produk</h2>
+                </div>
+                <Button type="button" onClick={handleAddDetail} size="sm" className="shrink-0">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tambah Item
+                </Button>
               </div>
-              <Button type="button" onClick={handleAddDetail} size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Item
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {details.map((detail, index) => {
-                const product = detail.produk || products.find((p: any) => p.id_produk === detail.id_produk)
-                return (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg">
-                    <div className="md:col-span-5">
-                      <Label>Produk</Label>
-                      <Select
-                        value={detail.id_produk.toString()}
-                        onValueChange={(value) => handleDetailChange(index, 'id_produk', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih produk" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product: any) => (
-                            <SelectItem key={product.id_produk} value={product.id_produk.toString()}>
-                              {product.nama_produk} - Rp {product.harga_satuan.toLocaleString('id-ID')}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Jumlah</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={detail.jumlah_kirim}
-                        onChange={(e) => handleDetailChange(index, 'jumlah_kirim', e.target.value)}
-                        placeholder="Jumlah"
-                      />
-                    </div>
-                    <div className="md:col-span-3 flex items-end">
-                      <div>
-                        <p className="text-sm text-gray-500">Subtotal</p>
-                        <p className="font-medium">
-                          Rp {((product?.harga_satuan || 0) * detail.jumlah_kirim).toLocaleString('id-ID')}
-                        </p>
+              <div className="space-y-4">
+                {details.map((detail, index) => {
+                  const product = detail.produk || products.find((p: any) => p.id_produk === detail.id_produk)
+                  return (
+                    <div key={index} className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="lg:col-span-5">
+                        <Label className="text-sm font-medium text-gray-700">Produk</Label>
+                        <Select
+                          value={detail.id_produk.toString()}
+                          onValueChange={(value) => handleDetailChange(index, 'id_produk', value)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Pilih produk" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((product: any) => (
+                              <SelectItem key={product.id_produk} value={product.id_produk.toString()}>
+                                {product.nama_produk} - Rp {product.harga_satuan.toLocaleString('id-ID')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </div>
-                    <div className="md:col-span-2 flex items-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveDetail(index)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                      <div className="lg:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Jumlah</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={detail.jumlah_kirim}
+                          onChange={(e) => handleDetailChange(index, 'jumlah_kirim', e.target.value)}
+                          placeholder="Jumlah"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="lg:col-span-3 flex items-end">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Subtotal</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            Rp {((product?.harga_satuan || 0) * detail.jumlah_kirim).toLocaleString('id-ID')}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="lg:col-span-2 flex items-end justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveDetail(index)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 )
               })}
-              
-              {details.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>Belum ada produk ditambahkan</p>
-                  <p className="text-sm">Klik "Tambah Item" untuk menambah produk</p>
-                </div>
-              )}
+                
+                {details.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <Package className="w-10 h-10 text-gray-400" />
+                    </div>
+                    <p className="text-lg font-medium text-gray-600 mb-2">Belum ada produk ditambahkan</p>
+                    <p className="text-sm text-gray-500">Klik "Tambah Item" untuk menambah produk</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Submit Button */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(`/dashboard/pengiriman/${id}`)}
-          >
-            Batal
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || details.length === 0}
-            className="flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-          </Button>
-        </div>
+            {/* Submit Button */}
+            <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(`/dashboard/pengiriman/${id}`)}
+                className="w-full sm:w-auto"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || details.length === 0}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <Save className="w-4 h-4" />
+                {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </div>
       </form>
     </div>
   )

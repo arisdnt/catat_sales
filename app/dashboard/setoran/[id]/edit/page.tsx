@@ -115,7 +115,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
         <div className="w-full max-w-4xl mx-auto animate-pulse">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-10 w-10 bg-gray-200 rounded"></div>
@@ -129,7 +129,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
 
   if (error || !setoran) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
         <div className="w-full max-w-4xl mx-auto text-center">
           <div className="text-red-600 mb-4">
             {error ? 'Error loading setoran data' : 'Data setoran tidak ditemukan'}
@@ -143,7 +143,7 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
       <div className="w-full space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">

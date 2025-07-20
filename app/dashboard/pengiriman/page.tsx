@@ -13,11 +13,18 @@ import {
   Calendar,
   User,
   ExternalLink,
+  PackageOpen,
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { HighPerformanceDataTable as DataTablePengiriman } from '@/components/shared/data-table-toko'
@@ -92,7 +99,7 @@ function PengirimanDataTable({
   onView: (pengiriman: PengirimanWithDetails) => void
   onEdit: (pengiriman: PengirimanWithDetails) => void
 }) {
-  // Define table columns
+  // Define responsive columns with balanced sizing and left alignment
   const columns = useMemo<ColumnDef<PengirimanWithDetails>[]>(() => [
     {
       accessorKey: 'id_pengiriman',
@@ -100,142 +107,185 @@ function PengirimanDataTable({
       cell: ({ row }) => {
         const pengiriman = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <Package className="w-4 h-4 text-emerald-600" />
+          <div className="text-left">
+            <div className="font-mono text-sm font-medium text-gray-900">#{pengiriman.id_pengiriman}</div>
+            <div className="text-xs text-gray-500">
+              {new Date(pengiriman.tanggal_kirim).toLocaleDateString('id-ID', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric' 
+              })}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900">#{pengiriman.id_pengiriman}</div>
-              <div className="text-sm text-gray-500">
-                {formatDate(pengiriman.tanggal_kirim)}
-              </div>
-            </div>
-          </motion.div>
+          </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'high', columnType: 'id' },
     },
     {
       accessorKey: 'nama_toko',
-      header: 'Toko',
+      header: 'Nama Toko',
       cell: ({ row }) => {
         const pengiriman = row.original
         return (
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <MapPin className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900 truncate">{pengiriman.nama_toko}</div>
-              {pengiriman.link_gmaps ? (
-                <a 
-                  href={pengiriman.link_gmaps} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 w-fit"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Google Maps
-                </a>
-              ) : (
-                <div className="text-sm text-gray-500">
-                  Tanpa lokasi
-                </div>
-              )}
-            </div>
+          <div className="text-left">
+            <div className="font-medium text-gray-900 truncate">{pengiriman.nama_toko}</div>
+            {pengiriman.link_gmaps && (
+              <a 
+                href={pengiriman.link_gmaps} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Lihat di Maps
+              </a>
+            )}
           </div>
         )
       },
+      size: 180,
+      minSize: 150,
+      maxSize: 220,
+      meta: { priority: 'high', columnType: 'description' },
     },
     {
-      accessorKey: 'lokasi',
-      header: 'Lokasi',
+      accessorKey: 'kabupaten',
+      header: 'Kabupaten',
       cell: ({ row }) => {
         const pengiriman = row.original
         return (
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {pengiriman.kecamatan || '-'}
-              </div>
-              <div className="text-xs text-gray-500">
-                {pengiriman.kabupaten || '-'}
-              </div>
-            </div>
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {pengiriman.kabupaten || '-'}
+            </span>
           </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
+    },
+    {
+      accessorKey: 'kecamatan',
+      header: 'Kecamatan',
+      cell: ({ row }) => {
+        const pengiriman = row.original
+        return (
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {pengiriman.kecamatan || '-'}
+            </span>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
     },
     {
       accessorKey: 'nama_sales',
-      header: 'Sales',
+      header: 'Sales Pengirim',
       cell: ({ row }) => {
         const pengiriman = row.original
         
         return (
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <User className="w-4 h-4 text-blue-600" />
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {pengiriman.nama_sales || 'Sales tidak tersedia'}
             </div>
-            <div className="min-w-0">
-              <div className="font-medium text-gray-900 truncate">
-                {pengiriman.nama_sales || 'Sales Tidak Ditemukan'}
-              </div>
-              <div className="text-xs text-gray-500">ID: {pengiriman.id_sales}</div>
+            <div className="text-xs text-gray-500">
+              ID Sales: {pengiriman.id_sales}
             </div>
           </div>
         )
       },
+      size: 150,
+      minSize: 130,
+      maxSize: 180,
+      meta: { priority: 'medium', columnType: 'name' },
     },
     {
       accessorKey: 'tanggal_kirim',
       header: 'Tanggal Kirim',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-900">{formatDate(row.getValue('tanggal_kirim'))}</span>
+        <div className="text-left">
+          <div className="text-sm font-medium text-gray-900">
+            {formatDate(row.getValue('tanggal_kirim'))}
+          </div>
+          <div className="text-xs text-gray-500">
+            {new Date(row.getValue('tanggal_kirim')).toLocaleDateString('id-ID', { weekday: 'short' })}
+          </div>
         </div>
       ),
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      meta: { priority: 'medium', columnType: 'date' },
     },
     {
       id: 'total_quantity',
-      header: 'Total Quantity',
+      header: 'Detail Pengiriman',
       cell: ({ row }) => {
         const pengiriman = row.original
         const totalQty = pengiriman.total_quantity || 0
         const details = pengiriman.detail_pengiriman || []
         
+        const tooltipContent = useMemo(() => {
+          if (!details || details.length === 0) {
+            return <p className="text-sm text-gray-500">Tidak ada detail pengiriman</p>
+          }
+          return (
+            <div className="space-y-1">
+              {details.map((detail: any, index: number) => (
+                <div key={`${pengiriman.id_pengiriman}-detail-${index}`} className="flex justify-between text-sm">
+                  <span className="text-gray-700">{detail.nama_produk}</span>
+                  <span className="font-medium">{formatNumber(detail.jumlah_kirim)}</span>
+                </div>
+              ))}
+              <div className="border-t pt-1 mt-2">
+                <div className="flex justify-between font-semibold">
+                  <span>Total Item:</span>
+                  <span>{formatNumber(totalQty)}</span>
+                </div>
+              </div>
+            </div>
+          )
+        }, [details, totalQty, pengiriman.id_pengiriman])
+        
         return (
-          <div className="relative group">
-            <div className="flex items-center gap-2 cursor-help">
-              <Package className="w-4 h-4 text-gray-400" />
-              <span className="font-medium text-gray-900">{formatNumber(totalQty)}</span>
-            </div>
-            
-            {/* Tooltip */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
-              <div className="font-semibold mb-1">Detail Barang:</div>
-              {details.length > 0 ? (
-                details.map((detail, index) => (
-                  <div key={index} className="flex justify-between gap-2">
-                    <span>{detail.nama_produk}:</span>
-                    <span>{detail.jumlah_kirim} pcs</span>
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <div className="text-left flex items-center gap-2 cursor-help">
+                <PackageOpen className="h-4 w-4 text-blue-500" />
+                <div>
+                  <div className="text-sm font-medium text-blue-600">
+                    {formatNumber(totalQty)} item
                   </div>
-                ))
-              ) : (
-                <div>Tidak ada detail barang</div>
-              )}
-              {/* Arrow */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-800"></div>
-            </div>
-          </div>
+                  <div className="text-xs text-gray-500">
+                    {details.length} produk
+                  </div>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs">
+                <p className="font-semibold mb-2">Detail Pengiriman #{pengiriman.id_pengiriman}</p>
+                {tooltipContent}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )
       },
+      size: 160,
+      minSize: 140,
+      maxSize: 200,
+      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
     },
   ], [])
 
@@ -452,12 +502,13 @@ export default function ShippingPage() {
   const summary = filterOptions?.summary
 
   return (
-    <motion.div 
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible" 
-      className="p-6 space-y-6"
-    >
+    <TooltipProvider>
+      <motion.div 
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible" 
+        className="p-6 space-y-6 w-full max-w-full overflow-hidden"
+      >
       {/* Page Header */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex-1">
@@ -479,7 +530,7 @@ export default function ShippingPage() {
       {/* Integrated Data Table Card */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section */}
         <div className="p-6 border-b bg-gray-50">
@@ -497,7 +548,7 @@ export default function ShippingPage() {
         </div>
 
         {/* Data Table Section */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <PengirimanDataTable
             data={data}
             isLoading={isLoading}
@@ -511,6 +562,7 @@ export default function ShippingPage() {
           />
         </div>
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </TooltipProvider>
   )
 }

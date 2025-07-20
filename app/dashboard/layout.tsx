@@ -12,13 +12,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { isCollapsed } = useSidebar()
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <ModernSidebar />
       <main className={cn(
-        "overflow-x-hidden transition-all duration-300",
+        "transition-all duration-300 max-w-full",
         isCollapsed ? "ml-16" : "ml-72"
       )}>
-        <div className="h-full">
+        <div className="w-full max-w-full overflow-hidden">
           {children}
         </div>
       </main>

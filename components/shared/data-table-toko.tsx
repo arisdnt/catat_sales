@@ -199,12 +199,14 @@ export function HighPerformanceDataTable<T>({
     if (actions.length > 0) {
       cols.push({
         id: 'actions',
+        header: 'Aksi',
         enableHiding: false,
+        enableSorting: false,
         cell: ({ row }) => {
           const rowData = row.original
 
           return (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-start gap-1">
               {actions.map((action, index) => {
                 const Icon = action.icon
                 const isDisabled = action.disabled?.(rowData) || false
@@ -236,7 +238,9 @@ export function HighPerformanceDataTable<T>({
             </div>
           )
         },
-        size: actions.length * 40 + 20,
+        size: 120,
+        minSize: 100,
+        maxSize: 150,
       })
     }
 
@@ -332,7 +336,7 @@ export function HighPerformanceDataTable<T>({
       variants={tableVariants}
       initial="hidden"
       animate="visible"
-      className={cn('bg-white rounded-lg border shadow-sm', className)}
+      className={cn('bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden', className)}
     >
       {/* Header */}
     {hasHeaderContent && (
@@ -412,11 +416,10 @@ export function HighPerformanceDataTable<T>({
       {/* Table Container */}
       <div 
         ref={tableContainerRef}
-        className="overflow-auto"
-        style={{ maxHeight: enableVirtualization && maxHeight !== 'none' ? maxHeight : 'none' }}
+        className="w-full max-w-full"
       >
-        <Table>
-          <TableHeader className="sticky top-0 bg-white z-10">
+        <Table className="w-full table-fixed">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -427,11 +430,17 @@ export function HighPerformanceDataTable<T>({
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'font-semibold',
-                        canSort && 'cursor-pointer select-none hover:bg-gray-50'
+                        'font-semibold text-left px-4 py-3',
+                        'border-b border-gray-200',
+                        'bg-gray-50/50',
+                        canSort && 'cursor-pointer select-none hover:bg-gray-100'
                       )}
-                      style={{ width: header.getSize() !== 150 ? header.getSize() : 'auto' }}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                      style={{
+                        width: header.column.columnDef.size ? `${header.column.columnDef.size}px` : 'auto',
+                        minWidth: header.column.columnDef.minSize ? `${header.column.columnDef.minSize}px` : 'auto',
+                        maxWidth: header.column.columnDef.maxSize ? `${header.column.columnDef.maxSize}px` : 'auto'
+                      }}
                     >
                       <div className="flex items-center gap-2">
                         {header.isPlaceholder
@@ -503,9 +512,16 @@ export function HighPerformanceDataTable<T>({
                         <TableCell 
                           key={cell.id}
                           className={cn(
-                            'py-4',
+                            'px-4 py-3 text-left align-top',
+                            'border-b border-gray-100',
+                            'overflow-hidden text-ellipsis',
                             cellClassName?.(cell.column.id, row.original)
                           )}
+                          style={{
+                            width: cell.column.columnDef.size ? `${cell.column.columnDef.size}px` : 'auto',
+                            minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : 'auto',
+                            maxWidth: cell.column.columnDef.maxSize ? `${cell.column.columnDef.maxSize}px` : 'auto'
+                          }}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
@@ -532,9 +548,16 @@ export function HighPerformanceDataTable<T>({
                     <TableCell 
                       key={cell.id}
                       className={cn(
-                        'py-4',
+                        'px-4 py-3 text-left align-top',
+                        'border-b border-gray-100',
+                        'overflow-hidden text-ellipsis',
                         cellClassName?.(cell.column.id, row.original)
                       )}
+                      style={{
+                        width: cell.column.columnDef.size ? `${cell.column.columnDef.size}px` : 'auto',
+                        minWidth: cell.column.columnDef.minSize ? `${cell.column.columnDef.minSize}px` : 'auto',
+                        maxWidth: cell.column.columnDef.maxSize ? `${cell.column.columnDef.maxSize}px` : 'auto'
+                      }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

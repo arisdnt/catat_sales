@@ -91,7 +91,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-white min-h-screen">
         <div className="max-w-4xl mx-auto animate-pulse">
           <div className="flex items-center gap-4 mb-6">
             <div className="h-10 w-10 bg-gray-200 rounded"></div>
@@ -105,7 +105,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
 
   if (error || !product) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-white min-h-screen">
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-red-600 mb-4">
             {error ? 'Error loading product data' : 'Data produk tidak ditemukan'}
@@ -119,7 +119,7 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
       <div className="w-full max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -139,14 +139,14 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Informasi Dasar
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Package className="h-5 w-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Informasi Dasar</h2>
+              </div>
+              <div className="space-y-6">
                 <FormField
                   control={form.control}
                   name="nama_produk"
@@ -183,15 +183,15 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
                   )}
                 />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="status_produk"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Status Aktif</FormLabel>
-                          <FormDescription>
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg bg-gray-50 border border-gray-200 p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base font-medium text-gray-900">Status Aktif</FormLabel>
+                          <FormDescription className="text-sm text-gray-600">
                             Produk dapat dijual
                           </FormDescription>
                         </div>
@@ -209,10 +209,10 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
                     control={form.control}
                     name="is_priority"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Prioritas</FormLabel>
-                          <FormDescription>
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg bg-gray-50 border border-gray-200 p-4">
+                        <div className="space-y-1">
+                          <FormLabel className="text-base font-medium text-gray-900">Prioritas</FormLabel>
+                          <FormDescription className="text-sm text-gray-600">
                             Produk prioritas
                           </FormDescription>
                         </div>
@@ -226,11 +226,11 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
                     )}
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
               <Button
                 type="button"
                 variant="outline"

@@ -132,7 +132,7 @@ function PenagihanDataTable({
   onView: (penagihan: any) => void
   onEdit: (penagihan: any) => void
 }) {
-  // Define table columns (similar structure to toko columns)
+  // Define responsive columns with balanced sizing and left alignment
   const columns = useMemo<ColumnDef<any>[]>(() => [
     {
       accessorKey: 'id_penagihan',
@@ -140,93 +140,116 @@ function PenagihanDataTable({
       cell: ({ row }) => {
         const penagihan = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-orange-50 rounded-lg">
-              <Receipt className="w-4 h-4 text-orange-600" />
+          <div className="text-left">
+            <div className="font-mono text-sm font-medium text-gray-900">#{penagihan.id_penagihan}</div>
+            <div className="text-xs text-gray-500">
+              {new Date(penagihan.dibuat_pada).toLocaleDateString('id-ID', { 
+                day: '2-digit', 
+                month: 'short',
+                year: 'numeric'
+              })}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900">#{penagihan.id_penagihan}</div>
-              <div className="text-sm text-gray-500">
-                {formatDate(penagihan.dibuat_pada)}
-              </div>
-            </div>
-          </motion.div>
+          </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'high', columnType: 'id' },
     },
     {
       accessorKey: 'toko_info',
-      header: 'Toko',
+      header: 'Nama Toko & Lokasi',
       cell: ({ row }) => {
         const penagihan = row.original
         const toko = penagihan.toko
         return (
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {toko?.nama_toko || '-'}
-              </div>
-              <div className="text-xs text-gray-500">
-                {toko?.kecamatan ? `${toko.kecamatan}, ` : ''}{toko?.kabupaten || ''}
-              </div>
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {toko?.nama_toko || '-'}
+            </div>
+            <div className="text-xs text-gray-500 truncate">
+              {toko?.kecamatan && toko?.kabupaten 
+                ? `${toko.kecamatan}, ${toko.kabupaten}`
+                : toko?.kabupaten || 'Lokasi tidak tersedia'
+              }
             </div>
           </div>
         )
       },
+      size: 200,
+      minSize: 180,
+      maxSize: 250,
+      meta: { priority: 'high', columnType: 'name' },
     },
     {
-      accessorKey: 'total_uang_diterima',
-      header: 'Total Diterima',
-      cell: ({ row }) => {
-        const penagihan = row.original
-        const potongan = penagihan.potongan_penagihan?.[0]
-        return (
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-900">
-              {formatCurrency(penagihan.total_uang_diterima)}
-              {penagihan.ada_potongan && (
-                <div className="text-xs text-yellow-600 flex items-center gap-1">
-                  <Minus className="w-3 h-3" />
-                  Potongan: {formatCurrency(potongan?.jumlah_potongan || 0)}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'sales',
+      accessorKey: 'sales_info',
       header: 'Sales',
       cell: ({ row }) => {
         const penagihan = row.original
         const toko = penagihan.toko
         
         return (
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Users className="w-4 h-4 text-blue-600" />
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {toko?.sales?.nama_sales || 'Sales tidak tersedia'}
             </div>
-            <div className="min-w-0">
-              <div className="font-medium text-gray-900 truncate">
-                {toko?.sales?.nama_sales || 'Sales Tidak Ditemukan'}
-              </div>
-              <div className="text-xs text-gray-500">ID: {toko?.sales?.id_sales || '-'}</div>
+            <div className="text-xs text-gray-500">
+              ID: {toko?.sales?.id_sales || '-'}
             </div>
           </div>
         )
       },
+      size: 150,
+      minSize: 130,
+      maxSize: 180,
+      meta: { priority: 'medium', columnType: 'name' },
+    },
+    {
+      accessorKey: 'total_uang_diterima',
+      header: 'Total Pembayaran',
+      cell: ({ row }) => {
+        const penagihan = row.original
+        const potongan = penagihan.potongan_penagihan?.[0]
+        return (
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {formatCurrency(penagihan.total_uang_diterima)}
+            </div>
+            {penagihan.ada_potongan && (
+              <div className="text-xs text-amber-600">
+                Potongan: {formatCurrency(potongan?.jumlah_potongan || 0)}
+              </div>
+            )}
+          </div>
+        )
+      },
+      size: 160,
+      minSize: 140,
+      maxSize: 180,
+      meta: { priority: 'high', columnType: 'currency' },
     },
     {
       accessorKey: 'metode_pembayaran',
-      header: 'Metode',
-      cell: ({ row }) => createStatusBadge(row.getValue('metode_pembayaran')),
+      header: 'Metode Bayar',
+      cell: ({ row }) => {
+        const method = row.getValue('metode_pembayaran') as string
+        return (
+          <div className="text-left">
+            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+              method === 'Cash' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-blue-100 text-blue-800'
+            }`}>
+              {method === 'Cash' ? 'Tunai' : 'Transfer'}
+            </span>
+          </div>
+        )
+      },
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      meta: { priority: 'medium', columnType: 'status' },
     },
     {
       accessorKey: 'detail_info',
@@ -237,20 +260,20 @@ function PenagihanDataTable({
         const totalQuantity = details.reduce((sum: number, detail: any) => sum + detail.jumlah_terjual, 0)
         
         return (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-xs">
-              <Package className="w-3 h-3 text-blue-500" />
-              <span className="text-gray-600">Terjual:</span>
-              <span className="font-medium text-blue-600">{formatNumber(totalQuantity)}</span>
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {formatNumber(totalQuantity)} item terjual
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Receipt className="w-3 h-3 text-green-500" />
-              <span className="text-gray-600">Produk:</span>
-              <span className="font-medium text-green-600">{formatNumber(details.length)}</span>
+            <div className="text-xs text-gray-500">
+              {details.length} jenis produk
             </div>
           </div>
         )
       },
+      size: 180,
+      minSize: 160,
+      maxSize: 220,
+      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
     },
   ], [])
 
@@ -466,7 +489,7 @@ export default function PenagihanPage() {
       variants={pageVariants}
       initial="hidden"
       animate="visible" 
-      className="p-6 space-y-6"
+      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
       {/* Page Header (identical structure to toko) */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -492,7 +515,7 @@ export default function PenagihanPage() {
       {/* Integrated Data Table Card (identical structure to toko) */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section (identical to toko) */}
         <div className="p-6 border-b bg-gray-50">
@@ -510,7 +533,7 @@ export default function PenagihanPage() {
         </div>
 
         {/* Data Table Section (identical structure to toko) */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <PenagihanDataTable
             data={data}
             isLoading={isLoading}

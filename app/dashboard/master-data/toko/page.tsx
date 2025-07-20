@@ -16,12 +16,21 @@ import {
   Archive,
   Phone,
   CheckCircle,
-  XCircle
+  XCircle,
+  Truck,
+  DollarSign,
+  Warehouse
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
@@ -122,208 +131,285 @@ function TokoDataTable({
       cell: ({ row }) => {
         const toko = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <Store className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900 truncate">{toko.nama_toko}</div>
-              {toko.link_gmaps ? (
+          <div className="text-left">
+            <div className="font-medium text-gray-900 truncate">{toko.nama_toko}</div>
+            {toko.link_gmaps && (
+              <a 
+                href={toko.link_gmaps} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Lihat di Maps
+              </a>
+            )}
+          </div>
+        )
+      },
+      size: 180,
+      minSize: 160,
+      maxSize: 220,
+      meta: { priority: 'high', columnType: 'description' },
+    },
+    {
+      accessorKey: 'kabupaten',
+      header: 'Kabupaten',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {toko.kabupaten || '-'}
+            </span>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
+    },
+    {
+      accessorKey: 'kecamatan',
+      header: 'Kecamatan',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {toko.kecamatan || '-'}
+            </span>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
+    },
+    {
+      accessorKey: 'nomor_telepon',
+      header: 'Nomor Telepon',
+      cell: ({ row }) => {
+        const toko = row.original
+        const phoneNumber = toko.nomor_telepon || toko.no_telepon || toko.telepon
+        
+        return (
+          <div className="text-left">
+            {phoneNumber ? (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-green-600" />
                 <a 
-                  href={toko.link_gmaps} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                  href={`tel:${phoneNumber}`}
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                   onClick={(e) => e.stopPropagation()}
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 w-fit"
                 >
-                  <ExternalLink className="w-3 h-3" />
-                  Google Maps
+                  {phoneNumber}
                 </a>
-              ) : (
-                <div className="text-sm text-gray-500">
-                  Tanpa lokasi
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )
-      },
-    },
-    {
-      accessorKey: 'lokasi',
-      header: 'Lokasi',
-      cell: ({ row }) => {
-        const toko = row.original
-        return (
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {toko.kecamatan || '-'}
               </div>
-              <div className="text-xs text-gray-500">
-                {toko.kabupaten || '-'}
-              </div>
-            </div>
+            ) : (
+              <span className="text-sm text-gray-400 italic">Tidak tersedia</span>
+            )}
           </div>
         )
       },
+      size: 150,
+      minSize: 130,
+      maxSize: 170,
+      meta: { priority: 'medium', columnType: 'contact' },
     },
     {
-      accessorKey: 'kontak',
-      header: 'Kontak',
-      cell: ({ row }) => {
-        const toko = row.original
-        return (
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-900">
-              {toko.no_telepon || '-'}
-            </div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'sales',
-      header: 'Sales',
+      accessorKey: 'sales_info',
+      header: 'Sales Penanggung Jawab',
       cell: ({ row }) => {
         const toko = row.original
         
         return (
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Users className="w-4 h-4 text-blue-600" />
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 truncate">
+              {(toko as any).nama_sales || 'Sales tidak tersedia'}
             </div>
-            <div className="min-w-0">
-              <div className="font-medium text-gray-900 truncate">
-                {(toko as any).nama_sales || 'Sales Tidak Ditemukan'}
-              </div>
-              <div className="text-xs text-gray-500">ID: {toko.id_sales}</div>
+            <div className="text-xs text-gray-500">
+              ID Sales: {toko.id_sales}
             </div>
           </div>
         )
       },
+      size: 170,
+      minSize: 150,
+      maxSize: 200,
+      meta: { priority: 'medium', columnType: 'name' },
     },
     {
       accessorKey: 'status_toko',
-      header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.original.status_toko),
+      header: 'Status Toko',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="text-left">
+            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+              toko.status_toko 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {toko.status_toko ? 'Aktif' : 'Tidak Aktif'}
+            </span>
+          </div>
+        )
+      },
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      meta: { priority: 'medium', columnType: 'status' },
     },
     {
       accessorKey: 'barang_terkirim',
-      header: 'Terkirim',
+      header: 'Barang Terkirim',
       cell: ({ row }) => {
         const toko = row.original
-        return (
-          <div 
-            className="group relative cursor-pointer"
-            title="Hover untuk detail produk"
-          >
-            <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-blue-500" />
-              <span className="font-medium text-blue-600">{formatNumber(toko.barang_terkirim)}</span>
-            </div>
-            
-            {/* Tooltip dengan detail produk */}
-            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
-              <div className="text-sm font-medium text-gray-900 mb-2">Detail Barang Terkirim</div>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Produk:</span>
-                  <span className="font-medium">{toko.detail_terkirim?.total_produk || 0} jenis</span>
+        const tooltipContent = useMemo(() => {
+          if (!toko.detail_barang_terkirim || toko.detail_barang_terkirim.length === 0) {
+            return <p className="text-sm text-gray-500">Belum ada barang terkirim</p>
+          }
+          return (
+            <div className="space-y-1">
+              {toko.detail_barang_terkirim.map((item: any, index: number) => (
+                <div key={`${toko.id_toko}-terkirim-${index}`} className="flex justify-between text-sm">
+                  <span className="text-gray-700">{item.nama_produk}</span>
+                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Quantity:</span>
-                  <span className="font-medium">{formatNumber(toko.barang_terkirim)} pcs</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Rata-rata per Produk:</span>
-                  <span className="font-medium">{toko.detail_terkirim?.total_produk ? Math.round(toko.barang_terkirim / toko.detail_terkirim.total_produk) : 0} pcs</span>
+              ))}
+              <div className="border-t pt-1 mt-2">
+                <div className="flex justify-between font-semibold">
+                  <span>Total:</span>
+                  <span>{formatNumber(toko.barang_terkirim)}</span>
                 </div>
               </div>
             </div>
-          </div>
+          )
+        }, [toko.detail_barang_terkirim, toko.barang_terkirim, toko.id_toko])
+        
+        return (
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <div className="text-left flex items-center gap-2 cursor-help">
+                <Truck className="h-4 w-4 text-blue-500" />
+                <span className="font-medium text-blue-600">{formatNumber(toko.barang_terkirim)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs">
+                <p className="font-semibold mb-2">Barang Terkirim ke {toko.nama_toko}</p>
+                {tooltipContent}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
     },
     {
       accessorKey: 'barang_terbayar',
-      header: 'Terbayar',
+      header: 'Barang Terbayar',
       cell: ({ row }) => {
         const toko = row.original
-        return (
-          <div 
-            className="group relative cursor-pointer"
-            title="Hover untuk detail produk"
-          >
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-green-500" />
-              <span className="font-medium text-green-600">{formatNumber(toko.barang_terbayar)}</span>
-            </div>
-            
-            {/* Tooltip dengan detail produk */}
-            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
-              <div className="text-sm font-medium text-gray-900 mb-2">Detail Barang Terbayar</div>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Produk:</span>
-                  <span className="font-medium">{toko.detail_terbayar?.total_produk || 0} jenis</span>
+        const tooltipContent = useMemo(() => {
+          if (!toko.detail_barang_terbayar || toko.detail_barang_terbayar.length === 0) {
+            return <p className="text-sm text-gray-500">Belum ada barang terbayar</p>
+          }
+          return (
+            <div className="space-y-1">
+              {toko.detail_barang_terbayar.map((item: any, index: number) => (
+                <div key={`${toko.id_toko}-terbayar-${index}`} className="flex justify-between text-sm">
+                  <span className="text-gray-700">{item.nama_produk}</span>
+                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Quantity:</span>
-                  <span className="font-medium">{formatNumber(toko.barang_terbayar)} pcs</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Rata-rata per Produk:</span>
-                  <span className="font-medium">{toko.detail_terbayar?.total_produk ? Math.round(toko.barang_terbayar / toko.detail_terbayar.total_produk) : 0} pcs</span>
+              ))}
+              <div className="border-t pt-1 mt-2">
+                <div className="flex justify-between font-semibold">
+                  <span>Total:</span>
+                  <span>{formatNumber(toko.barang_terbayar)}</span>
                 </div>
               </div>
             </div>
-          </div>
+          )
+        }, [toko.detail_barang_terbayar, toko.barang_terbayar, toko.id_toko])
+        
+        return (
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <div className="text-left flex items-center gap-2 cursor-help">
+                <DollarSign className="h-4 w-4 text-green-500" />
+                <span className="font-medium text-green-600">{formatNumber(toko.barang_terbayar)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs">
+                <p className="font-semibold mb-2">Barang Terbayar dari {toko.nama_toko}</p>
+                {tooltipContent}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
     },
     {
       accessorKey: 'sisa_stok',
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const toko = row.original
-        return (
-          <div 
-            className="group relative cursor-pointer"
-            title="Hover untuk detail produk"
-          >
-            <div className="flex items-center gap-2">
-              <Archive className="w-4 h-4 text-orange-500" />
-              <span className="font-medium text-orange-600">{formatNumber(toko.sisa_stok)}</span>
-            </div>
-            
-            {/* Tooltip dengan detail produk */}
-            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-64 -top-2 left-full ml-2">
-              <div className="text-sm font-medium text-gray-900 mb-2">Detail Sisa Stok</div>
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Produk:</span>
-                  <span className="font-medium">{toko.detail_sisa?.total_produk || 0} jenis</span>
+        const tooltipContent = useMemo(() => {
+          if (!toko.detail_sisa_stok || toko.detail_sisa_stok.length === 0) {
+            return <p className="text-sm text-gray-500">Tidak ada sisa stok</p>
+          }
+          return (
+            <div className="space-y-1">
+              {toko.detail_sisa_stok.map((item: any, index: number) => (
+                <div key={`${toko.id_toko}-stok-${index}`} className="flex justify-between text-sm">
+                  <span className="text-gray-700">{item.nama_produk}</span>
+                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Quantity:</span>
-                  <span className="font-medium">{formatNumber(toko.sisa_stok)} pcs</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Rata-rata per Produk:</span>
-                  <span className="font-medium">{toko.detail_sisa?.total_produk ? Math.round(toko.sisa_stok / toko.detail_sisa.total_produk) : 0} pcs</span>
+              ))}
+              <div className="border-t pt-1 mt-2">
+                <div className="flex justify-between font-semibold">
+                  <span>Total:</span>
+                  <span>{formatNumber(toko.sisa_stok)}</span>
                 </div>
               </div>
             </div>
-          </div>
+          )
+        }, [toko.detail_sisa_stok, toko.sisa_stok, toko.id_toko])
+        
+        return (
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <div className="text-left flex items-center gap-2 cursor-help">
+                <Warehouse className="h-4 w-4 text-orange-500" />
+                <span className="font-medium text-orange-600">{formatNumber(toko.sisa_stok)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-xs">
+                <p className="font-semibold mb-2">Sisa Stok di {toko.nama_toko}</p>
+                {tooltipContent}
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )
       },
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
     },
   ], [])
 
@@ -532,12 +618,13 @@ export default function TokoPage() {
   const summary = data?.summary
 
   return (
-    <motion.div 
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible" 
-      className="p-6 space-y-6"
-    >
+    <TooltipProvider>
+      <motion.div 
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible" 
+        className="p-6 space-y-6 w-full max-w-full overflow-hidden"
+      >
       {/* Page Header */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex-1">
@@ -562,7 +649,7 @@ export default function TokoPage() {
       {/* Integrated Data Table Card */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section */}
         <div className="p-6 border-b bg-gray-50">
@@ -580,7 +667,7 @@ export default function TokoPage() {
         </div>
 
         {/* Data Table Section */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <TokoDataTable
             data={data}
             isLoading={isLoading}
@@ -595,5 +682,6 @@ export default function TokoPage() {
         </div>
       </motion.div>
     </motion.div>
+    </TooltipProvider>
   )
 }

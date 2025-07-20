@@ -320,7 +320,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
 
     // Get aggregation data for each toko
     const tokoIds = data?.map((t: any) => t.id_toko) || []
-    let aggregationData: Record<number, any> = {}
+    const aggregationData: Record<number, any> = {}
     
     if (tokoIds.length > 0) {
       try {

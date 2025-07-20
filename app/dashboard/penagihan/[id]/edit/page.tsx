@@ -231,7 +231,7 @@ export default function EditPenagihanPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-white min-h-screen">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -250,7 +250,7 @@ export default function EditPenagihanPage() {
 
   if (error || !penagihan) {
     return (
-      <div className="p-8">
+      <div className="p-8 bg-white min-h-screen">
         <div className="text-center">
           <div className="text-red-600 mb-4">Error loading billing details</div>
           <Button onClick={() => navigate('/dashboard/penagihan')}>Back to Billings</Button>
@@ -260,7 +260,7 @@ export default function EditPenagihanPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 bg-white min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -292,88 +292,90 @@ export default function EditPenagihanPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Store Information (Read-only) */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="w-5 h-5" />
-                  Informasi Toko
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Nama Toko</label>
-                    <p className="text-lg font-semibold text-gray-900">{penagihan.toko.nama_toko}</p>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Store className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Informasi Toko</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Nama Toko</label>
+                  <p className="text-lg font-semibold text-gray-900">{penagihan.toko.nama_toko}</p>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <User className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Sales</label>
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{penagihan.toko.sales.nama_sales}</span>
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-gray-500">Lokasi</label>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">
-                        {penagihan.toko.kecamatan}, {penagihan.toko.kabupaten}
-                      </span>
-                    </div>
+                    <label className="text-sm font-medium text-gray-700">Sales</label>
+                    <p className="text-base font-semibold text-gray-900">{penagihan.toko.sales.nama_sales}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <MapPin className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Lokasi</label>
+                    <p className="text-base font-semibold text-gray-900">
+                      {penagihan.toko.kecamatan}, {penagihan.toko.kabupaten}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Product Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-5 h-5" />
-                    Detail Produk
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addProductDetail}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Tambah Produk
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Package className="w-5 h-5 text-purple-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Detail Produk</h2>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div></div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addProductDetail}
+                  className="flex items-center gap-2 shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  Tambah Produk
+                </Button>
+              </div>
+              <div className="space-y-6">
                   {formData.details.map((detail, index) => {
                     const product = products.find(p => p.id_produk === detail.id_produk)
                     return (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-medium text-gray-900">Produk {index + 1}</h4>
+                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <h4 className="text-lg font-semibold text-gray-900">Produk {index + 1}</h4>
                           {formData.details.length > 1 && (
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => removeProductDetail(index)}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="md:col-span-2">
-                            <Label htmlFor={`product-${index}`}>Produk</Label>
+                        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                          <div className="lg:col-span-2">
+                            <Label htmlFor={`product-${index}`} className="text-sm font-medium text-gray-700">Produk</Label>
                             <Select
                               value={detail.id_produk.toString()}
                               onValueChange={(value) => updateProductDetail(index, 'id_produk', parseInt(value))}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="Pilih produk" />
                               </SelectTrigger>
                               <SelectContent>
@@ -388,44 +390,46 @@ export default function EditPenagihanPage() {
                           </div>
                           
                           <div>
-                            <Label htmlFor={`sold-${index}`}>Jumlah Terjual</Label>
+                            <Label htmlFor={`sold-${index}`} className="text-sm font-medium text-gray-700">Jumlah Terjual</Label>
                             <Input
                               id={`sold-${index}`}
                               type="number"
                               min="0"
                               value={detail.jumlah_terjual}
                               onChange={(e) => updateProductDetail(index, 'jumlah_terjual', parseInt(e.target.value) || 0)}
+                              className="mt-1"
                             />
                           </div>
                           
                           <div>
-                            <Label htmlFor={`returned-${index}`}>Jumlah Kembali</Label>
+                            <Label htmlFor={`returned-${index}`} className="text-sm font-medium text-gray-700">Jumlah Kembali</Label>
                             <Input
                               id={`returned-${index}`}
                               type="number"
                               min="0"
                               value={detail.jumlah_kembali}
                               onChange={(e) => updateProductDetail(index, 'jumlah_kembali', parseInt(e.target.value) || 0)}
+                              className="mt-1"
                             />
                           </div>
                         </div>
                         
                         {product && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                               <div>
-                                <span className="text-gray-500">Harga Satuan:</span>
-                                <p className="font-medium">{formatCurrency(product.harga_satuan)}</p>
+                                <span className="text-gray-500 block mb-1">Harga Satuan:</span>
+                                <p className="font-medium text-gray-900">{formatCurrency(product.harga_satuan)}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500">Net Terjual:</span>
+                                <span className="text-gray-500 block mb-1">Net Terjual:</span>
                                 <p className="font-medium text-blue-600">
                                   {detail.jumlah_terjual - detail.jumlah_kembali} unit
                                 </p>
                               </div>
                               <div>
-                                <span className="text-gray-500">Subtotal:</span>
-                                <p className="font-semibold">
+                                <span className="text-gray-500 block mb-1">Subtotal:</span>
+                                <p className="font-semibold text-gray-900">
                                   {formatCurrency(detail.jumlah_terjual * product.harga_satuan)}
                                 </p>
                               </div>
@@ -437,9 +441,12 @@ export default function EditPenagihanPage() {
                   })}
                   
                   {formData.details.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Belum ada produk ditambahkan</p>
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                        <Package className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <p className="text-lg font-medium text-gray-600 mb-2">Belum ada produk ditambahkan</p>
+                      <p className="text-sm text-gray-500 mb-6">Tambahkan produk untuk melanjutkan penagihan</p>
                       <Button
                         type="button"
                         variant="outline"
@@ -451,28 +458,28 @@ export default function EditPenagihanPage() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Payment Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Informasi Pembayaran
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Informasi Pembayaran</h3>
+              </div>
+              <div className="space-y-6">
                 <div>
-                  <Label htmlFor="payment-method">Metode Pembayaran</Label>
+                  <Label htmlFor="payment-method" className="text-sm font-medium text-gray-700">Metode Pembayaran</Label>
                   <Select
                     value={formData.metode_pembayaran}
                     onValueChange={(value: 'Cash' | 'Transfer') => setFormData(prev => ({ ...prev, metode_pembayaran: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -483,7 +490,7 @@ export default function EditPenagihanPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="total-received">Total Uang Diterima</Label>
+                  <Label htmlFor="total-received" className="text-sm font-medium text-gray-700">Total Uang Diterima</Label>
                   <Input
                     id="total-received"
                     type="number"
@@ -491,44 +498,45 @@ export default function EditPenagihanPage() {
                     step="0.01"
                     value={formData.total_uang_diterima}
                     onChange={(e) => setFormData(prev => ({ ...prev, total_uang_diterima: parseFloat(e.target.value) || 0 }))}
+                    className="mt-1"
                   />
                 </div>
                 
-                <Separator />
+                <Separator className="my-4" />
                 
-                <div className="space-y-3">
-                  <div className="flex justify-between">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatCurrency(calculations.subtotal)}</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(calculations.subtotal)}</span>
                   </div>
                   
                   {formData.ada_potongan && calculations.discount > 0 && (
-                    <div className="flex justify-between text-red-600">
+                    <div className="flex justify-between items-center text-red-600">
                       <span>Potongan</span>
                       <span className="font-medium">-{formatCurrency(calculations.discount)}</span>
                     </div>
                   )}
                   
-                  <Separator />
+                  <Separator className="my-4" />
                   
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total Kalkulasi</span>
+                  <div className="flex justify-between items-center text-lg font-bold bg-green-50 p-3 rounded-lg">
+                    <span className="text-gray-900">Total Kalkulasi</span>
                     <span className="text-green-600">{formatCurrency(calculations.calculatedTotal)}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Discount Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Potongan
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Potongan</h3>
+              </div>
+              <div className="space-y-6">
+                <div className="flex items-center space-x-3">
                   <Checkbox
                     id="has-discount"
                     checked={formData.ada_potongan}
@@ -540,13 +548,13 @@ export default function EditPenagihanPage() {
                       }))
                     }}
                   />
-                  <Label htmlFor="has-discount">Ada potongan</Label>
+                  <Label htmlFor="has-discount" className="text-sm font-medium text-gray-700">Ada potongan</Label>
                 </div>
                 
                 {formData.ada_potongan && (
-                  <div className="space-y-3">
+                  <div className="space-y-6">
                     <div>
-                      <Label htmlFor="discount-amount">Jumlah Potongan</Label>
+                      <Label htmlFor="discount-amount" className="text-sm font-medium text-gray-700">Jumlah Potongan</Label>
                       <Input
                         id="discount-amount"
                         type="number"
@@ -561,11 +569,12 @@ export default function EditPenagihanPage() {
                             alasan: prev.potongan?.alasan
                           }
                         }))}
+                        className="mt-1"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="discount-reason">Alasan Potongan</Label>
+                      <Label htmlFor="discount-reason" className="text-sm font-medium text-gray-700">Alasan Potongan</Label>
                       <Textarea
                         id="discount-reason"
                         placeholder="Masukkan alasan potongan (opsional)"
@@ -578,17 +587,18 @@ export default function EditPenagihanPage() {
                             alasan: e.target.value
                           }
                         }))}
+                        className="mt-1"
                       />
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

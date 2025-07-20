@@ -14,7 +14,10 @@ import {
   Star,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Truck,
+  CreditCard,
+  Warehouse
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
@@ -155,7 +158,7 @@ function ProdukDataTable({
   onView: (produk: ProdukWithStats) => void
   onEdit: (produk: ProdukWithStats) => void
 }) {
-  // Define table columns (similar structure to toko columns)
+  // Define responsive columns with balanced sizing and left alignment
   const columns = useMemo<ColumnDef<ProdukWithStats>[]>(() => [
     {
       accessorKey: 'nama_produk',
@@ -163,104 +166,169 @@ function ProdukDataTable({
       cell: ({ row }) => {
         const produk = row.original
         return (
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="p-2 bg-purple-50 rounded-lg">
-              <Package className="w-4 h-4 text-purple-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium text-gray-900 truncate">{produk.nama_produk}</div>
-              <div className="flex items-center gap-1 text-sm text-gray-500">
-                <Barcode className="w-3 h-3" />
-                <span className="font-mono">#{produk.id_produk}</span>
-              </div>
-            </div>
-          </motion.div>
+          <div className="text-left">
+            <div className="font-medium text-gray-900 truncate">{produk.nama_produk}</div>
+            <div className="text-xs text-gray-500 font-mono">ID: #{produk.id_produk}</div>
+          </div>
         )
       },
+      size: 200,
+      minSize: 180,
+      maxSize: 250,
+      meta: { priority: 'high', columnType: 'name' },
     },
     {
       accessorKey: 'harga_satuan',
-      header: 'Harga',
+      header: 'Harga Satuan',
       cell: ({ row }) => {
         const produk = row.original
         return (
-          <div className="flex items-start gap-2">
-            <DollarSign className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900">
-                {formatCurrency(produk.harga_satuan)}
-              </div>
-              <div className="text-xs text-gray-500">
-                Per unit
-              </div>
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900">
+              {formatCurrency(produk.harga_satuan)}
+            </div>
+            <div className="text-xs text-gray-500">per unit</div>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'high', columnType: 'currency' },
+    },
+    {
+      accessorKey: 'priority_status',
+      header: 'Prioritas & Status',
+      cell: ({ row }) => {
+        const produk = row.original
+        return (
+          <div className="text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                produk.is_priority 
+                  ? 'bg-yellow-100 text-yellow-800' 
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {produk.is_priority ? `Prioritas ${produk.priority_order || 0}` : 'Non Prioritas'}
+              </span>
+            </div>
+            <div>
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                produk.status_produk 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {produk.status_produk ? 'Aktif' : 'Tidak Aktif'}
+              </span>
             </div>
           </div>
         )
       },
+      size: 160,
+      minSize: 140,
+      maxSize: 180,
+      meta: { priority: 'medium', columnType: 'status' },
     },
     {
-      accessorKey: 'priority_info',
-      header: 'Prioritas',
+      accessorKey: 'barang_terkirim',
+      header: 'Barang Terkirim',
       cell: ({ row }) => {
         const produk = row.original
-        return createPriorityBadge(produk.is_priority, produk.priority_order)
-      },
-    },
-    {
-      accessorKey: 'status_produk',
-      header: 'Status',
-      cell: ({ row }) => createStatusBadge(row.original.status_produk),
-    },
-    {
-      accessorKey: 'stats',
-      header: 'Statistik',
-      cell: ({ row }) => {
-        const produk = row.original
-        const stats = produk.stats || {
-          total_terkirim: 0,
-          total_terbayar: 0,
-          sisa_stok: 0
-        }
+        const stats = produk.stats || { total_terkirim: 0 }
         
         return (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-xs">
-              <TrendingUp className="w-3 h-3 text-blue-500" />
-              <span className="text-gray-600">Terkirim:</span>
-              <span className="font-medium text-blue-600">{formatNumber(stats.total_terkirim)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <CheckCircle className="w-3 h-3 text-green-500" />
-              <span className="text-gray-600">Terbayar:</span>
-              <span className="font-medium text-green-600">{formatNumber(stats.total_terbayar)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs">
-              <Package className="w-3 h-3 text-orange-500" />
-              <span className="text-gray-600">Sisa Stok:</span>
-              <span className="font-medium text-orange-600">{formatNumber(stats.sisa_stok)}</span>
+          <div className="text-left flex items-center gap-2">
+            <Truck className="h-4 w-4 text-blue-500" />
+            <div>
+              <div className="text-sm font-medium text-blue-600">
+                {formatNumber(stats.total_terkirim)}
+              </div>
+              <div className="text-xs text-gray-500">unit</div>
             </div>
           </div>
         )
       },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'barang_terbayar',
+      header: 'Barang Terbayar',
+      cell: ({ row }) => {
+        const produk = row.original
+        const stats = produk.stats || { total_terbayar: 0 }
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-green-500" />
+            <div>
+              <div className="text-sm font-medium text-green-600">
+                {formatNumber(stats.total_terbayar)}
+              </div>
+              <div className="text-xs text-gray-500">unit</div>
+            </div>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'stok_di_toko',
+      header: 'Stok di Toko',
+      cell: ({ row }) => {
+        const produk = row.original
+        const stats = produk.stats || { sisa_stok: 0 }
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <Warehouse className="h-4 w-4 text-orange-500" />
+            <div>
+              <div className="text-sm font-medium text-orange-600">
+                {formatNumber(stats.sisa_stok)}
+              </div>
+              <div className="text-xs text-gray-500">unit</div>
+            </div>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'stats' },
     },
     {
       accessorKey: 'dibuat_pada',
-      header: 'Dibuat',
+      header: 'Tanggal Dibuat',
       cell: ({ row }) => {
         const produk = row.original
+        const date = new Date(produk.dibuat_pada)
         return (
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="text-sm text-gray-900">
-              {new Date(produk.dibuat_pada).toLocaleDateString('id-ID')}
+          <div>
+            <div className="text-sm font-medium text-gray-900">
+              {date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+              })}
+            </div>
+            <div className="text-xs text-gray-500">
+              {date.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
             </div>
           </div>
         )
       },
+      size: 150,
+      minSize: 130,
+      maxSize: 180,
+      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
     },
   ], [])
 
@@ -467,7 +535,7 @@ export default function ProdukPage() {
       variants={pageVariants}
       initial="hidden"
       animate="visible" 
-      className="p-6 space-y-6"
+      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
       {/* Page Header (identical structure to toko) */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -493,7 +561,7 @@ export default function ProdukPage() {
       {/* Integrated Data Table Card (identical structure to toko) */}
       <motion.div 
         variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm overflow-hidden"
+        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
         {/* Search and Filter Section (identical to toko) */}
         <div className="p-6 border-b bg-gray-50">
@@ -511,7 +579,7 @@ export default function ProdukPage() {
         </div>
 
         {/* Data Table Section (identical structure to toko) */}
-        <div className="flex flex-col">
+        <div className="w-full">
           <ProdukDataTable
             data={data}
             isLoading={isLoading}

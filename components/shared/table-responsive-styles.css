@@ -1,0 +1,183 @@
+/* Responsive Table Optimization Styles */
+.optimized-table-container {
+  @apply w-full overflow-hidden;
+}
+
+.optimized-table-wrapper {
+  @apply w-full overflow-x-auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.optimized-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.optimized-table-wrapper::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+.optimized-table-wrapper::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded;
+}
+
+.optimized-table-wrapper::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+.optimized-table {
+  @apply w-full min-w-max table-fixed border-collapse;
+}
+
+/* Column sizing classes */
+.col-xs { width: 60px; }
+.col-sm { width: 80px; }
+.col-md { width: 100px; }
+.col-lg { width: 120px; }
+.col-xl { width: 140px; }
+.col-2xl { width: 160px; }
+.col-3xl { width: 180px; }
+.col-4xl { width: 200px; }
+.col-5xl { width: 220px; }
+.col-flex { width: auto; min-width: 120px; }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .optimized-table-container {
+    @apply -mx-4;
+  }
+  
+  .optimized-table-wrapper {
+    @apply px-4;
+  }
+  
+  .optimized-table {
+    font-size: 13px;
+  }
+  
+  .optimized-table th,
+  .optimized-table td {
+    @apply px-2 py-2;
+  }
+  
+  /* Hide less important columns on mobile */
+  .hide-mobile {
+    @apply hidden;
+  }
+  
+  /* Compact spacing for mobile */
+  .mobile-compact {
+    @apply text-xs leading-tight;
+  }
+}
+
+@media (max-width: 640px) {
+  .optimized-table {
+    font-size: 12px;
+  }
+  
+  .optimized-table th,
+  .optimized-table td {
+    @apply px-1 py-1;
+  }
+  
+  /* Hide additional columns on small screens */
+  .hide-sm {
+    @apply hidden;
+  }
+}
+
+/* Text truncation utilities */
+.truncate-cell {
+  @apply truncate max-w-0;
+}
+
+.truncate-2-lines {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Compact badge styles */
+.compact-badge {
+  @apply px-1.5 py-0.5 text-xs font-medium rounded;
+}
+
+/* Responsive number formatting */
+.responsive-number {
+  @apply font-mono text-sm;
+}
+
+@media (max-width: 640px) {
+  .responsive-number {
+    @apply text-xs;
+  }
+}
+
+/* Status indicator optimization */
+.status-dot {
+  @apply w-2 h-2 rounded-full inline-block;
+}
+
+.status-active {
+  @apply bg-green-500;
+}
+
+.status-inactive {
+  @apply bg-red-500;
+}
+
+.status-pending {
+  @apply bg-yellow-500;
+}
+
+/* Action button spacing */
+.action-buttons {
+  @apply flex items-center gap-1;
+}
+
+@media (max-width: 640px) {
+  .action-buttons {
+    @apply gap-0.5;
+  }
+}
+
+/* Hover effects for better UX */
+.table-row-hover {
+  @apply transition-colors duration-150;
+}
+
+.table-row-hover:hover {
+  @apply bg-gray-50;
+}
+
+/* Loading state styles */
+.table-loading {
+  @apply animate-pulse;
+}
+
+.table-loading .skeleton-row {
+  @apply bg-gray-200 h-4 rounded mb-2;
+}
+
+/* Error state styles */
+.table-error {
+  @apply text-center py-8 text-gray-500;
+}
+
+/* Empty state styles */
+.table-empty {
+  @apply text-center py-12 text-gray-400;
+}
+
+/* Pagination styles */
+.pagination-compact {
+  @apply flex items-center justify-between px-2;
+}
+
+@media (max-width: 640px) {
+  .pagination-compact {
+    @apply flex-col gap-2;
+  }
+}

@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Status options
-    let statusOptions: Array<{ value: string; label: string; count?: number }> = [
+    const statusOptions: Array<{ value: string; label: string; count?: number }> = [
       { value: 'true', label: 'Aktif' },
       { value: 'false', label: 'Non-aktif' }
     ]

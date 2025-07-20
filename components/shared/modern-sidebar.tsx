@@ -131,7 +131,7 @@ export function ModernSidebar() {
 
   return (
     <div className={cn(
-      "fixed left-0 top-0 h-screen bg-white border-r border-gray-100 transition-all duration-300 flex flex-col shadow-lg z-40",
+      "fixed left-0 top-0 h-screen bg-white border-r border-gray-300 transition-all duration-300 flex flex-col z-40",
       isCollapsed ? "w-16" : "w-72"
     )}>
       {/* Header */}

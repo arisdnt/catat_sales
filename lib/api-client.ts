@@ -391,6 +391,49 @@ class ApiClient {
     if (timeFilter) params.append('time_filter', timeFilter)
     return this.request(`/laporan?${params.toString()}`)
   }
+
+  // Materialized Views API
+  async getMaterializedView(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', params?: string) {
+    const queryString = params ? `?${params}` : ''
+    return this.request(`/mv/${entity}${queryString}`)
+  }
+
+  async getMaterializedViewById(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', id: number, extraParams?: string) {
+    const params = new URLSearchParams({ id: id.toString() })
+    if (extraParams) {
+      const extraParamsObj = new URLSearchParams(extraParams)
+      extraParamsObj.forEach((value, key) => params.append(key, value))
+    }
+    return this.request(`/mv/${entity}?${params.toString()}`)
+  }
+
+  // Optimized search methods
+  async searchStores(searchTerm: string, filters?: {
+    sales_id?: number
+    kabupaten?: string
+    kecamatan?: string
+  }) {
+    const params = new URLSearchParams()
+    if (searchTerm) params.append('search', searchTerm)
+    if (filters?.sales_id) params.append('sales_id', filters.sales_id.toString())
+    if (filters?.kabupaten) params.append('kabupaten', filters.kabupaten)
+    if (filters?.kecamatan) params.append('kecamatan', filters.kecamatan)
+    
+    return this.request(`/mv/toko?${params.toString()}`)
+  }
+
+  async searchProducts(searchTerm: string, withStats: boolean = true, priorityOnly: boolean = false) {
+    const params = new URLSearchParams()
+    if (searchTerm) params.append('search', searchTerm)
+    if (withStats) params.append('withStats', 'true')
+    if (priorityOnly) params.append('priority_only', 'true')
+    
+    return this.request(`/mv/produk?${params.toString()}`)
+  }
+
+  async searchSales(searchTerm: string) {
+    return this.request('/mv/sales')
+  }
 }
 
 export const apiClient = new ApiClient()
