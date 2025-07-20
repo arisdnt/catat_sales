@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createSuccessResponse } from '@/lib/api-helpers'
 
 export async function GET(request: NextRequest) {

@@ -431,7 +431,7 @@ class ApiClient {
     return this.request(`/mv/produk?${params.toString()}`)
   }
 
-  async searchSales(searchTerm: string) {
+  async searchSales(_searchTerm: string) {
     return this.request('/mv/sales')
   }
 }

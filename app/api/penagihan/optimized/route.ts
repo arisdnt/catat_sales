@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
           result = searchData
           console.log('Search function successful, found:', result?.length || 0, 'results')
           
-        } catch (searchFunctionError) {
+        } catch (_searchFunctionError) {
           console.warn('Search function not available, using fallback query')
           result = null
         }

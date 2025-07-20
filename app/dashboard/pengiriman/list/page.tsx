@@ -19,7 +19,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { usePengirimanQuery, useDeletePengirimanMutation, type Pengiriman } from '@/lib/queries/pengiriman'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { DataTable, createSortableHeader, formatDate } from '@/components/shared/data-table'
+import { DataTableBasic as DataTable, createSortableHeader, formatDate } from '@/components/data-tables'
 import { exportShipmentData } from '@/lib/excel-export'
 
 export default function ShippingPage() {
@@ -45,7 +45,7 @@ export default function ShippingPage() {
             <Package className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <div className="font-medium text-gray-900">#{row.getValue('id_pengiriman')}</div>
+            <div className="font-medium text-gray-900">#{row.getValue("id_pengiriman")}</div>
             <div className="text-sm text-gray-500">
               {formatDate(row.original.tanggal_kirim)}
             </div>
@@ -85,7 +85,7 @@ export default function ShippingPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gray-400" />
-          <span className="text-gray-900">{formatDate(row.getValue('tanggal_kirim'))}</span>
+          <span className="text-gray-900">{formatDate(row.getValue("tanggal_kirim"))}</span>
         </div>
       ),
     },

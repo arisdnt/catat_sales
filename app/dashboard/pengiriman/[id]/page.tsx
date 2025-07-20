@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { usePengirimanDetailQuery } from '@/lib/queries/pengiriman'
 import { useNavigation } from '@/lib/hooks/use-navigation'
-import { formatDate } from '@/components/shared/data-table'
+import { formatDate } from '@/components/data-tables'
 
 export default function PengirimanDetailPage() {
   const params = useParams()
@@ -121,7 +121,7 @@ export default function PengirimanDetailPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Total Nilai</p>
-                <p className="text-lg font-semibold text-gray-900">Rp {totalValue.toLocaleString('id-ID')}</p>
+                <p className="text-lg font-semibold text-gray-900">Rp {totalValue.toLocaleString("id-ID")}</p>
               </div>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function PengirimanDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">Telepon</p>
-                  <p className="text-base font-semibold text-gray-900">{pengiriman.toko?.sales?.nomor_telepon || '-'}</p>
+                  <p className="text-base font-semibold text-gray-900">{pengiriman.toko?.sales?.nomor_telepon || "-"}</p>
                 </div>
               </div>
             </div>
@@ -198,14 +198,14 @@ export default function PengirimanDetailPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <p className="text-gray-900">Rp {detail.produk.harga_satuan.toLocaleString('id-ID')}</p>
+                      <p className="text-gray-900">Rp {detail.produk.harga_satuan.toLocaleString("id-ID")}</p>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <Badge variant="secondary">{detail.jumlah_kirim} pcs</Badge>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <p className="font-medium text-gray-900">
-                        Rp {(detail.jumlah_kirim * detail.produk.harga_satuan).toLocaleString('id-ID')}
+                        Rp {(detail.jumlah_kirim * detail.produk.harga_satuan).toLocaleString("id-ID")}
                       </p>
                     </td>
                   </tr>
@@ -219,7 +219,7 @@ export default function PengirimanDetailPage() {
                   </td>
                   <td className="py-4 px-4 text-right">
                     <p className="font-bold text-xl text-gray-900">
-                      Rp {totalValue.toLocaleString('id-ID')}
+                      Rp {totalValue.toLocaleString("id-ID")}
                     </p>
                   </td>
                 </tr>

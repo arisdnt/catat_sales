@@ -9,10 +9,14 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { ArrowLeft, Save, Receipt, Plus, X, Search, AlertCircle, DollarSign } from 'lucide-react'
+import { ArrowLeft, Save, Receipt, Plus, X, Search, AlertCircle, DollarSign, User } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { apiClient } from '@/lib/api-client'
 import { useSalesQuery } from '@/lib/queries/sales'
+import { useCreatePenagihanMutation, penagihanKeys } from '@/lib/queries/penagihan'
+import { penagihanOptimizedKeys } from '@/lib/queries/penagihan-optimized'
+import { mvKeys } from '@/lib/queries/materialized-views'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Types
 interface PriorityProduct {
@@ -73,6 +77,8 @@ interface FormData {
 export default function CreatePenagihanPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const createMutation = useCreatePenagihanMutation()
   
   // Loading and error states
   const [isLoading, setIsLoading] = useState(false)
@@ -137,7 +143,7 @@ export default function CreatePenagihanPage() {
     loadProducts()
   }, [toast])
 
-  // Load stores when sales is selected
+  // Load stores when sales is selected - optimized without loading state
   useEffect(() => {
     const loadStores = async () => {
       if (!formData.selectedSales) {
@@ -148,7 +154,7 @@ export default function CreatePenagihanPage() {
         return
       }
 
-      setIsLoading(true)
+      // Don't show loading state to prevent page reload appearance
       setError(null)
       
       try {
@@ -170,9 +176,8 @@ export default function CreatePenagihanPage() {
           description: errorMessage,
           variant: 'destructive'
         })
-      } finally {
-        setIsLoading(false)
       }
+      // Removed setIsLoading(false) to prevent loading state
     }
 
     loadStores()
@@ -579,6 +584,14 @@ export default function CreatePenagihanPage() {
         description: `Penagihan berhasil disimpan untuk ${storeRows.length} toko`,
       })
 
+      // Invalidate penagihan queries to refresh data
+      queryClient.invalidateQueries({ queryKey: penagihanKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: penagihanKeys.all })
+      queryClient.invalidateQueries({ queryKey: penagihanOptimizedKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: penagihanOptimizedKeys.all })
+      queryClient.invalidateQueries({ queryKey: mvKeys.penagihan() })
+      queryClient.invalidateQueries({ queryKey: mvKeys.penagihanAggregates() })
+      
       // Reset form after successful submission
       setFormData({ 
         selectedSales: null
@@ -586,6 +599,9 @@ export default function CreatePenagihanPage() {
       setStoreRows([])
       setSearchQuery('')
       setFilteredStores([])
+      
+      // Navigate back to penagihan list page
+      router.push('/dashboard/penagihan')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan saat menyimpan data'
       setError(errorMessage)
@@ -718,14 +734,15 @@ export default function CreatePenagihanPage() {
     }
   }
 
-  if (salesLoading || isLoading) {
+  // Only show loading for sales data, not for stores loading
+  if (salesLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full bg-white min-h-screen">
+        <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Memuat data...</p>
+              <p className="mt-2 text-gray-600">Memuat data sales...</p>
             </div>
           </div>
         </div>
@@ -735,8 +752,8 @@ export default function CreatePenagihanPage() {
 
   if (salesError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full bg-white min-h-screen">
+        <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -749,8 +766,8 @@ export default function CreatePenagihanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+    <div className="w-full bg-white min-h-screen">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
@@ -758,45 +775,48 @@ export default function CreatePenagihanPage() {
           </Alert>
         )}
 
-        <Card className="border-0 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-            <CardTitle className="flex items-center justify-between text-green-900">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Form Pembayaran</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Buat penagihan untuk toko-toko yang sudah dikirim barang</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="penagihan-form"
+              disabled={isSubmitting || !formData.selectedSales || storeRows.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </div>
+        </div>
+        <form id="penagihan-form" onSubmit={handleSubmit} className="space-y-8">
+          {/* Sales and Store Selection - No Card Styling */}
+          <div className="space-y-2">
+            {/* Sales Selection Row */}
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5" />
-                Form Pembayaran
+                <User className="w-4 h-4 text-gray-600" />
+                <Label className="text-sm font-medium text-gray-700">Pilih Sales :</Label>
               </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  className="flex items-center gap-2 border-gray-300 hover:bg-gray-50"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  form="penagihan-form"
-                  disabled={isSubmitting || !formData.selectedSales || storeRows.length === 0}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 shadow-lg"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 lg:p-8">
-            <form id="penagihan-form" onSubmit={handleSubmit} className="space-y-8">
-              {/* Header Section */}
-              <div className="max-w-md">
-                <Label htmlFor="sales" className="text-sm font-medium text-gray-700">Pilih Sales</Label>
+              <div className="flex-1 max-w-sm">
                 <Select 
                   value={formData.selectedSales?.toString() || ''} 
                   onValueChange={(value) => updateFormData({ selectedSales: parseInt(value) })}
                 >
-                  <SelectTrigger className="mt-2 h-12 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500">
+                  <SelectTrigger className="h-10 text-sm">
                     <SelectValue placeholder="-- Pilih Sales --" />
                   </SelectTrigger>
                   <SelectContent>
@@ -808,488 +828,341 @@ export default function CreatePenagihanPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-
-              {/* Store Search Section */}
-              {formData.selectedSales && stores.length > 0 && (
-                <div className="space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Input
-                        type="text"
-                        placeholder="Cari toko: nama, kecamatan, atau kabupaten..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => setShowSuggestions(true)}
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        className="pl-11 h-12 text-sm border-gray-300 focus:border-green-500 focus:ring-green-500"
-                      />
-                        
-                        {/* Search suggestions dropdown */}
-                        {showSuggestions && searchQuery && (
-                          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                            {filteredStores.length > 0 ? (
-                              filteredStores.map(store => (
-                                <button
-                                  key={store.id_toko}
-                                  type="button"
-                                  onClick={() => addStoreToTable(store)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                                >
-                                  <div className="font-medium text-gray-900">{store.nama_toko}</div>
-                                  <div className="text-sm text-gray-500">
-                                    {store.kecamatan}, {store.kabupaten}
-                                  </div>
-                                </button>
-                              ))
-                            ) : (
-                              <div className="p-4 text-center text-gray-500">
-                                Tidak ada toko yang ditemukan
+            {/* Store Selection Row */}
+            {formData.selectedSales && stores.length > 0 && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-600" />
+                  <Label className="text-sm font-medium text-gray-700">Pilih Toko :</Label>
+                </div>
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Cari toko: nama, kecamatan, atau kabupaten..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="pl-10 h-10 text-sm"
+                  />
+                    
+                    {/* Search suggestions dropdown */}
+                    {showSuggestions && searchQuery && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                        {filteredStores.length > 0 ? (
+                          filteredStores.map(store => (
+                            <button
+                              key={store.id_toko}
+                              type="button"
+                              onClick={() => addStoreToTable(store)}
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            >
+                              <div className="font-medium text-gray-900">{store.nama_toko}</div>
+                              <div className="text-sm text-gray-500">
+                                {store.kecamatan}, {store.kabupaten}
                               </div>
-                            )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-gray-500">
+                            Tidak ada toko yang ditemukan
                           </div>
                         )}
                       </div>
-                      
-                      {storeRows.length > 0 && (
-                        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="font-medium">{storeRows.length} toko</span> dipilih
-                        </div>
-                      )}
-                    </div>
-
-                  {/* Selected Stores Table */}
+                    )}
+                  </div>
+                  
                   {storeRows.length > 0 && (
-                    <div className="space-y-6">
-
-                      <div className="border rounded-lg overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                          <table className="w-full border-collapse bg-white table-fixed">
-                            <thead>
-                              <tr className="bg-gray-50">
-                                <th className="border-b p-4 text-left font-semibold text-gray-900 w-48">
-                                  <div className="break-words">Toko</div>
-                                </th>
-                                {priorityProducts.map(product => (
-                                  <th key={product.id_produk} className="border-b p-4 text-center font-semibold text-gray-900 w-32">
-                                    <div className="text-sm break-words leading-tight">{product.nama_produk}</div>
-                                    <div className="text-xs text-gray-500 font-normal mt-1">
-                                      Rp {product.harga_satuan.toLocaleString()}
-                                    </div>
-                                  </th>
-                                ))}
-                                <th className="border-b p-4 text-center font-semibold text-gray-900 w-36">
-                                  <div className="break-words">Uang Diterima</div>
-                                </th>
-                                <th className="border-b p-4 text-center font-semibold text-gray-900 w-32">
-                                  <div className="break-words">Metode Bayar</div>
-                                </th>
-                                <th className="border-b p-4 text-center font-semibold text-gray-900 w-32">
-                                  <div className="break-words">Kirim Tambahan</div>
-                                </th>
-                                <th className="border-b p-4 text-center font-semibold text-gray-900 w-28">
-                                  <div className="break-words">Potongan</div>
-                                </th>
-                                <th className="border-b p-4 text-center font-semibold text-gray-900 w-20">
-                                  <div className="break-words">Aksi</div>
-                                </th>
-                              </tr>
-                            </thead>
-                          <tbody>
-                            {storeRows.map((row, storeIndex) => (
-                              <React.Fragment key={row.id_toko}>
-                                <tr className={`hover:bg-opacity-80 transition-colors ${
-                                  storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                }`}>
-                                  <td className="border-b p-4">
-                                    <div className="font-medium text-gray-900 text-sm break-words">{row.nama_toko}</div>
-                                    <div className="text-xs text-gray-500 break-words">
-                                      {row.kecamatan}, {row.kabupaten}
-                                    </div>
-                                    <div className="text-xs text-green-600 font-medium mt-2">
-                                      Total: Rp {calculateStoreTotal(row).toLocaleString()}
-                                      {row.ada_potongan && row.jumlah_potongan > 0 && (
-                                        <div className="text-xs text-red-600">
-                                          Setelah Potongan: Rp {(calculateStoreTotal(row) - row.jumlah_potongan).toLocaleString()}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  {priorityProducts.map(product => (
-                                    <td key={product.id_produk} className="border-b p-4 text-center">
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        value={row.priority_terjual[product.id_produk] || ''}
-                                        onChange={(e) => updatePriorityQuantity(storeIndex, product.id_produk, parseInt(e.target.value) || 0)}
-                                        onKeyDown={handleKeyDown}
-                                        className={`w-full text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                          storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                        }`}
-                                        placeholder="0"
-                                      />
-                                    </td>
-                                  ))}
-                                  <td className="border-b p-4 text-center">
-                                    <Input
-                                      type="text"
-                                      value={`Rp ${row.total_uang_diterima.toLocaleString()}`}
-                                      readOnly
-                                      className={`w-full text-center text-lg font-bold text-red-600 cursor-not-allowed ${
-                                        storeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-green-100'
-                                      }`}
-                                      title="Nilai otomatis berdasarkan barang yang diinput (setelah potongan)"
-                                    />
-                                  </td>
-                                  <td className="border-b p-4 text-center">
-                                    <Select
-                                      value={row.metode_pembayaran}
-                                      onValueChange={(value: 'Cash' | 'Transfer') => updateBillingInfo(storeIndex, 'metode_pembayaran', value)}
-                                    >
-                                      <SelectTrigger className={`w-full text-sm ${
-                                        storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                      }`}>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Cash">Cash</SelectItem>
-                                        <SelectItem value="Transfer">Transfer</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </td>
-                                  <td className="border-b p-4 text-center">
-                                    <div className="flex justify-center">
-                                      <Checkbox
-                                        checked={row.additional_shipment.enabled}
-                                        onCheckedChange={(checked) => toggleStoreAdditionalShipment(storeIndex, checked as boolean)}
-                                      />
-                                    </div>
-                                  </td>
-                                  <td className="border-b p-4 text-center">
-                                    <div className="space-y-2">
-                                      <div className="flex justify-center">
-                                        <Checkbox
-                                          checked={row.ada_potongan}
-                                          onCheckedChange={(checked) => updateBillingInfo(storeIndex, 'ada_potongan', checked as boolean)}
-                                        />
-                                      </div>
-                                      {row.ada_potongan && (
-                                        <div className="space-y-2">
-                                          <Input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={row.jumlah_potongan || ''}
-                                            onChange={(e) => updateBillingInfo(storeIndex, 'jumlah_potongan', parseFloat(e.target.value) || 0)}
-                                            className={`w-full text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                              storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                            }`}
-                                            placeholder="0"
-                                          />
-                                          <Input
-                                            type="text"
-                                            value={row.alasan_potongan}
-                                            onChange={(e) => updateBillingInfo(storeIndex, 'alasan_potongan', e.target.value)}
-                                            className={`w-full text-center text-sm ${
-                                              storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                            }`}
-                                            placeholder="Alasan"
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="border-b p-4 text-center">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => removeStoreRow(storeIndex)}
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </Button>
-                                  </td>
-                                </tr>
-                                
-                                {/* Transaction Detail (Receipt) Row */}
-                                <tr>
-                                  <td colSpan={priorityProducts.length + 6} className="border-b p-0">
-                                    <div className={`p-4 lg:p-6 ${
-                                      storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                    }`}>
-                                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {/* Left Side - Store Info */}
-                                        <div className="space-y-2">
-                                          <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                                            <Receipt className="w-4 h-4" />
-                                            Detail Transaksi - {row.nama_toko}
-                                          </h4>
-                                          <div className="text-sm text-gray-600">
-                                            {new Date().toLocaleDateString('id-ID', {
-                                              weekday: 'long',
-                                              year: 'numeric',
-                                              month: 'long',
-                                              day: 'numeric'
-                                            })}
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Right Side - Receipt */}
-                                        <div className={`p-4 rounded-lg border shadow-sm ${
-                                          storeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-green-100'
-                                        }`}>
-                                          {/* Items */}
-                                          <div className="space-y-2 mb-4">
-                                            {/* Priority Products */}
-                                            {priorityProducts.map(product => {
-                                              const quantity = row.priority_terjual[product.id_produk] || 0;
-                                              if (quantity === 0) return null;
-                                              const subtotal = quantity * product.harga_satuan;
-                                              return (
-                                                <div key={product.id_produk} className="flex justify-between items-center text-sm">
-                                                  <div className="flex-1">
-                                                    <div className="font-medium">{product.nama_produk}</div>
-                                                    <div className="text-gray-500">
-                                                      {quantity} x Rp {product.harga_satuan.toLocaleString()}
-                                                    </div>
-                                                  </div>
-                                                  <div className="font-medium">
-                                                    Rp {subtotal.toLocaleString()}
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
-                                            
-                                            {/* Non-Priority Products */}
-                                            {row.non_priority_items.map((item, itemIndex) => {
-                                              if (item.id_produk === 0 || item.jumlah_terjual === 0) return null;
-                                              const product = nonPriorityProducts.find(p => p.id_produk === item.id_produk);
-                                              if (!product) return null;
-                                              const subtotal = item.jumlah_terjual * product.harga_satuan;
-                                              return (
-                                                <div key={itemIndex} className="flex justify-between items-center text-sm">
-                                                  <div className="flex-1">
-                                                    <div className="font-medium">{product.nama_produk}</div>
-                                                    <div className="text-gray-500">
-                                                      {item.jumlah_terjual} x Rp {product.harga_satuan.toLocaleString()}
-                                                    </div>
-                                                  </div>
-                                                  <div className="font-medium">
-                                                    Rp {subtotal.toLocaleString()}
-                                                  </div>
-                                                </div>
-                                              );
-                                            })}
-                                            
-                                            {/* Show message if no items */}
-                                            {(() => {
-                                              const hasPriorityItems = Object.values(row.priority_terjual).some(qty => qty > 0);
-                                              const hasNonPriorityItems = row.non_priority_items.some(item => 
-                                                item.id_produk > 0 && item.jumlah_terjual > 0
-                                              );
-                                              if (!hasPriorityItems && !hasNonPriorityItems) {
-                                                return (
-                                                  <div className="text-center text-gray-500 py-4">
-                                                    <div className="text-sm">Belum ada barang yang diinput</div>
-                                                  </div>
-                                                );
-                                              }
-                                              return null;
-                                            })()}
-                                          </div>
-                                          
-                                          {/* Summary */}
-                                          <div className="border-t pt-4">
-                                            <div className="flex justify-between items-center mb-2">
-                                              <span className="text-sm font-medium">Subtotal:</span>
-                                              <span className="text-sm font-medium">
-                                                Rp {calculateStoreTotal(row).toLocaleString()}
-                                              </span>
-                                            </div>
-                                            
-                                            {row.ada_potongan && row.jumlah_potongan > 0 && (
-                                              <div className="flex justify-between items-center mb-2 text-red-600">
-                                                <span className="text-sm">
-                                                  Potongan {row.alasan_potongan ? `(${row.alasan_potongan})` : ''}:
-                                                </span>
-                                                <span className="text-sm">
-                                                  -Rp {row.jumlah_potongan.toLocaleString()}
-                                                </span>
-                                              </div>
-                                            )}
-                                            
-                                            <div className="border-t pt-2 mt-2">
-                                              <div className="flex justify-between items-center text-lg font-bold">
-                                                <span>Total:</span>
-                                                <span>
-                                                  Rp {(calculateStoreTotal(row) - (row.ada_potongan ? row.jumlah_potongan : 0)).toLocaleString()}
-                                                </span>
-                                              </div>
-                                            </div>
-                                            
-                                            <div className="mt-3 pt-3 border-t">
-                                              <div className="flex justify-between items-center text-sm">
-                                                <span>Metode Pembayaran:</span>
-                                                <span className="font-medium">{row.metode_pembayaran}</span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                                
-                                {/* Additional shipment items row */}
-                                {row.additional_shipment.enabled && (
-                                  <tr>
-                                    <td colSpan={priorityProducts.length + 6} className="border-b p-0">
-                                      <div className={`p-4 lg:p-6 border-l-4 border-purple-400 ${
-                                        storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                      }`}>
-                                        <div className="flex items-center justify-between mb-4">
-                                          <h4 className="font-medium text-purple-900">
-                                            Pengiriman Tambahan untuk {row.nama_toko}
-                                          </h4>
-                                        </div>
-                                        
-                                        {/* Priority Products Section */}
-                                        <div className="mb-6">
-                                          <h5 className="font-medium text-purple-800 mb-3">Produk Prioritas</h5>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                            {priorityProducts.map(product => (
-                                              <div key={product.id_produk} className={`p-3 rounded border ${
-                                                storeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-green-100'
-                                              }`}>
-                                                <div className="text-sm font-medium text-gray-900 mb-1">
-                                                  {product.nama_produk}
-                                                </div>
-                                                <div className="text-xs text-gray-500 mb-2">
-                                                  Rp {product.harga_satuan.toLocaleString()}
-                                                </div>
-                                                <Input
-                                                  type="number"
-                                                  min="0"
-                                                  value={row.additional_shipment.priority_products[product.id_produk] || ''}
-                                                  onChange={(e) => updateStoreAdditionalPriorityProduct(storeIndex, product.id_produk, parseInt(e.target.value) || 0)}
-                                                  className={`text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                                    storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                                  }`}
-                                                  placeholder="0"
-                                                />
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Non-Priority Products Section */}
-                                        <div className="space-y-4">
-                                          <div className="border-t border-purple-200 pt-4">
-                                            <h5 className="font-medium text-purple-800 mb-3">Barang Non-Prioritas</h5>
-                                            
-                                            
-                                            {/* Non-Priority for Additional Shipment */}
-                                            <div>
-                                              <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center space-x-3">
-                                                  <Checkbox
-                                                    checked={row.additional_shipment.has_non_priority}
-                                                    onCheckedChange={(checked) => toggleStoreAdditionalNonPriority(storeIndex, checked as boolean)}
-                                                  />
-                                                  <Label className="font-medium text-gray-700">
-                                                    Untuk Pengiriman Tambahan
-                                                  </Label>
-                                                </div>
-                                                {row.additional_shipment.has_non_priority && (
-                                                  <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => addStoreAdditionalNonPriorityItem(storeIndex)}
-                                                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                                                  >
-                                                    <Plus className="w-4 h-4 mr-2" />
-                                                    Tambah Barang
-                                                  </Button>
-                                                )}
-                                              </div>
-                                              
-                                              {row.additional_shipment.has_non_priority && (
-                                                <div className="space-y-3">
-                                                  {row.additional_shipment.non_priority_details.map((item, itemIndex) => (
-                                                    <div key={itemIndex} className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded border ${
-                                                      storeIndex % 2 === 0 ? 'bg-gray-50' : 'bg-green-100'
-                                                    }`}>
-                                                      <div className="flex-1 w-full">
-                                                        <Label className="text-sm font-medium">Produk</Label>
-                                                        <Select
-                                                          value={item.id_produk.toString()}
-                                                          onValueChange={(value) => updateStoreAdditionalNonPriorityItem(storeIndex, itemIndex, 'id_produk', parseInt(value))}
-                                                        >
-                                                          <SelectTrigger className={`mt-1 ${
-                                                            storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                                          }`}>
-                                                            <SelectValue placeholder="Pilih produk" />
-                                                          </SelectTrigger>
-                                                          <SelectContent>
-                                                            {nonPriorityProducts.map(product => (
-                                                              <SelectItem key={product.id_produk} value={product.id_produk.toString()}>
-                                                                {product.nama_produk} - Rp {product.harga_satuan.toLocaleString()}
-                                                              </SelectItem>
-                                                            ))}
-                                                          </SelectContent>
-                                                        </Select>
-                                                      </div>
-                                                      <div className="w-full sm:w-24">
-                                                        <Label className="text-sm font-medium">Jumlah Kirim</Label>
-                                                        <Input
-                                                          type="number"
-                                                          min="0"
-                                                          value={item.jumlah_kirim}
-                                                          onChange={(e) => updateStoreAdditionalNonPriorityItem(storeIndex, itemIndex, 'jumlah_kirim', parseInt(e.target.value) || 0)}
-                                                          className={`text-center mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                                            storeIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'
-                                                          }`}
-                                                          placeholder="0"
-                                                        />
-                                                      </div>
-                                                      <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => removeStoreAdditionalNonPriorityItem(storeIndex, itemIndex)}
-                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                      >
-                                                        <X className="w-4 h-4" />
-                                                      </Button>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            ))}
-                          </tbody>
-                        </table>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-md border border-green-200 ml-4">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="font-medium">{storeRows.length} toko</span>
                     </div>
                   )}
                 </div>
-              )}
+            )}
+          </div>
 
-              {/* Status Information & Total Transaction */}
-              {storeRows.length > 0 && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+          {/* Individual Store Sections */}
+          {storeRows.length > 0 && (
+            <div className="space-y-8">
+              {storeRows.map((row, storeIndex) => (
+                <div key={`store-section-${row.id_toko}`} className="space-y-6">
+                  {/* Form Input Barang Toko */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Receipt className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {row.nama_toko} - <span className="text-sm text-gray-500 font-normal">{row.kecamatan}, {row.kabupaten}</span>
+                          </h3>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeStoreRow(storeIndex)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Hapus Toko
+                      </Button>
+                    </div>
+
+                    {/* Products Input Table */}
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full" style={{tableLayout: 'auto'}}>
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th 
+                                className="px-4 py-3 text-left text-sm font-medium text-gray-700 border-r border-gray-200" 
+                                style={{width: '30%', minWidth: '200px'}}
+                              >
+                                Nama Barang
+                              </th>
+                              {priorityProducts.map((product, index) => {
+                                const productColumnWidth = `${Math.floor(60 / priorityProducts.length)}%`
+                                return (
+                                  <th 
+                                    key={product.id_produk} 
+                                    className="px-3 py-3 text-center text-sm font-medium text-gray-700 border-r border-gray-200"
+                                    style={{width: productColumnWidth, minWidth: '100px'}}
+                                  >
+                                    <div className="space-y-1">
+                                      <div className="font-semibold text-xs leading-tight">{product.nama_produk}</div>
+                                      <div className="text-xs text-gray-500">Rp {product.harga_satuan.toLocaleString()}</div>
+                                    </div>
+                                  </th>
+                                )
+                              })}
+                              <th 
+                                className="px-2 py-3 text-center text-sm font-medium text-gray-700"
+                                style={{width: '10%', minWidth: '80px'}}
+                              >
+                                Options
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 border-r border-gray-200">
+                                <div className="font-medium text-gray-900 text-sm">
+                                  {row.nama_toko} - <span className="text-xs text-gray-500 font-normal">{row.kecamatan}, {row.kabupaten}</span>
+                                </div>
+                              </td>
+                              {priorityProducts.map(product => (
+                                <td key={product.id_produk} className="px-2 py-3 border-r border-gray-200">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={row.priority_terjual[product.id_produk] || ''}
+                                    onChange={(e) => updatePriorityQuantity(storeIndex, product.id_produk, parseInt(e.target.value) || 0)}
+                                    onKeyDown={handleKeyDown}
+                                    className="w-full text-center text-sm h-9 px-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    placeholder="0"
+                                  />
+                                </td>
+                              ))}
+                              <td className="px-2 py-3 text-center">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeStoreRow(storeIndex)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2 text-xs"
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  Hapus
+                                </Button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Ringkasan Barang Toko */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left: Payment Details */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <DollarSign className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900">Detail Pembayaran</h4>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm">Metode Bayar</Label>
+                            <Select
+                              value={row.metode_pembayaran}
+                              onValueChange={(value: 'Cash' | 'Transfer') => updateBillingInfo(storeIndex, 'metode_pembayaran', value)}
+                            >
+                              <SelectTrigger className="text-sm h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Cash">Cash</SelectItem>
+                                <SelectItem value="Transfer">Transfer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm">Total Diterima</Label>
+                            <Input
+                              type="text"
+                              value={`Rp ${row.total_uang_diterima.toLocaleString()}`}
+                              readOnly
+                              className="text-center font-bold text-green-600 bg-gray-50 text-sm h-8"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Checkbox
+                              checked={row.ada_potongan}
+                              onCheckedChange={(checked) => updateBillingInfo(storeIndex, 'ada_potongan', checked as boolean)}
+                            />
+                            <Label className="text-sm">Ada Potongan</Label>
+                          </div>
+                          
+                          {row.ada_potongan && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <Label className="text-sm">Jumlah Potongan</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={row.jumlah_potongan || ''}
+                                  onChange={(e) => updateBillingInfo(storeIndex, 'jumlah_potongan', parseFloat(e.target.value) || 0)}
+                                  className="text-sm h-8"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-sm">Alasan Potongan</Label>
+                                <Input
+                                  type="text"
+                                  value={row.alasan_potongan}
+                                  onChange={(e) => updateBillingInfo(storeIndex, 'alasan_potongan', e.target.value)}
+                                  className="text-sm h-8"
+                                  placeholder="Alasan potongan"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Summary */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Receipt className="w-5 h-5 text-green-600" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900">Ringkasan Barang</h4>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {priorityProducts.map(product => {
+                          const quantity = row.priority_terjual[product.id_produk] || 0
+                          const amount = quantity * product.harga_satuan
+                          
+                          if (quantity === 0) return null
+                          
+                          return (
+                            <div key={`summary-${row.id_toko}-${product.id_produk}`} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 text-sm">{product.nama_produk}</div>
+                                <div className="text-xs text-gray-500">
+                                  {quantity} pcs × Rp {product.harga_satuan.toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold text-gray-900 text-sm">
+                                  Rp {amount.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                        
+                        {Object.values(row.priority_terjual).every(qty => qty === 0) && (
+                          <div className="text-center text-gray-500 py-4 text-sm">Belum ada barang terjual</div>
+                        )}
+                        
+                        {/* Total Section */}
+                        {Object.values(row.priority_terjual).some(qty => qty > 0) && (
+                          <div className="pt-3 border-t border-gray-200 mt-3">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="font-semibold text-gray-900">Total</div>
+                                <div className="text-xs text-gray-500">
+                                  {Object.values(row.priority_terjual).reduce((sum, qty) => sum + qty, 0)} item
+                                  {row.ada_potongan ? ` • Potongan Rp ${row.jumlah_potongan.toLocaleString()}` : ''}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xl font-bold text-green-600">
+                                  Rp {row.total_uang_diterima.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Overall Summary */}
+              <div className="bg-white rounded-lg p-6 border border-gray-200 mt-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Ringkasan Keseluruhan</h4>
+                </div>
+                
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-semibold text-gray-900">Total Semua Toko</div>
+                      <div className="text-sm text-gray-500">
+                        {storeRows.length} toko • {storeRows.reduce((total, row) => {
+                          return total + Object.values(row.priority_terjual).reduce((sum, qty) => sum + qty, 0)
+                        }, 0)} item
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-green-600">
+                        Rp {storeRows.reduce((total, row) => total + row.total_uang_diterima, 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status Information & Total Transaction */}
+          {storeRows.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left Column - Store Status */}
                     <div className="space-y-4">
@@ -1355,12 +1228,30 @@ export default function CreatePenagihanPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-gray-200">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              className="w-full sm:w-auto"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !formData.selectedSales || storeRows.length === 0}
+              className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <Save className="w-4 h-4" />
+              {isSubmitting ? 'Menyimpan...' : 'Simpan Penagihan'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )

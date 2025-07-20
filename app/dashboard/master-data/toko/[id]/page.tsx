@@ -107,7 +107,7 @@ export default function TokoDetailPage({ params }: { params: Promise<{ id: strin
                     <label className="text-sm font-medium text-gray-600">Sales</label>
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-gray-400" />
-                      <p className="text-gray-900">{toko.sales?.nama_sales || 'Tidak ada sales'}</p>
+                      <p className="text-gray-900">{toko.sales?.nama_sales || "Tidak ada sales"}</p>
                     </div>
                   </div>
 

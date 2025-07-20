@@ -10,10 +10,6 @@ interface SearchSuggestion {
   metadata?: Record<string, any>
 }
 
-interface SuggestionResponse {
-  suggestions: SearchSuggestion[]
-  loading: boolean
-}
 
 // Validate and extract user from JWT
 async function validateRequest(request: NextRequest) {
@@ -33,7 +29,7 @@ async function validateRequest(request: NextRequest) {
       throw new Error('Invalid token')
     }
     return decoded
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Invalid token')
   }
 }

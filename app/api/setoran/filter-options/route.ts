@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Process penerima options
-      const penerimaCount = {}
+      const penerimaCount: Record<string, number> = {}
       penerimaData?.forEach(item => {
         if (item.penerima_setoran) {
           penerimaCount[item.penerima_setoran] = (penerimaCount[item.penerima_setoran] || 0) + 1

@@ -4,6 +4,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  output: 'standalone',
+  trailingSlash: false,
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -14,6 +19,10 @@ const nextConfig = {
       }
     }
     return config
+  },
+  // Optimize for production builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   }
 }
 

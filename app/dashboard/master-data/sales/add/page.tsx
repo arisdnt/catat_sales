@@ -124,7 +124,7 @@ export default function AddSalesPage() {
         })
       )
       
-      const results = await Promise.all(promises)
+      const _results = await Promise.all(promises)
       
       // All promises resolved successfully if we reach here
       

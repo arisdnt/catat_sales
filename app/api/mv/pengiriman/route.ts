@@ -21,11 +21,20 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('start_date')
     const endDate = searchParams.get('end_date')
 
-    let query = supabase.from('mv_pengiriman_aggregates').select('*')
-
     if (id) {
-      query = query.eq('id_pengiriman', id).single()
+      // Handle single record request
+      const query = supabase.from('mv_pengiriman_aggregates').select('*').eq('id_pengiriman', id).single()
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Error fetching pengiriman by ID:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({ data })
     } else {
+      // Handle multiple records request
+      let query = supabase.from('mv_pengiriman_aggregates').select('*')
       // Apply filters using optimized indexes
       if (sales_id) query = query.eq('id_sales', sales_id)
       if (kabupaten) query = query.eq('kabupaten', kabupaten)
@@ -41,16 +50,16 @@ export async function GET(request: NextRequest) {
       }
 
       query = query.order('tanggal_kirim', { ascending: false })
+      
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching shipment aggregate:', error)
+        return NextResponse.json({ error: 'Failed to fetch shipment data' }, { status: 500 })
+      }
+
+      return NextResponse.json(data)
     }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching shipment aggregate:', error)
-      return NextResponse.json({ error: 'Failed to fetch shipment data' }, { status: 500 })
-    }
-
-    return NextResponse.json(data)
   } catch (error) {
     console.error('Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

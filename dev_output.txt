@@ -1,0 +1,21 @@
+
+> sistem-penjualan-titip-bayar@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.4.1
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.5.61:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ⚠ Invalid next.config.js options detected: 
+ ⚠     Unrecognized key(s) in object: 'swcMinify'
+ ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+ ✓ Ready in 2.9s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 712ms (108 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 6.3s (661 modules)
+ GET / 307 in 6933ms
+ ✓ Compiled in 961ms (284 modules)
+[?25h

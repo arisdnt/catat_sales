@@ -180,7 +180,7 @@ export default function CreateSetoranPage() {
                   <div>
                     <p className="text-sm text-green-700">Total Setoran</p>
                     <p className="text-xl font-bold text-green-900">
-                      Rp {formData.total_setoran.toLocaleString('id-ID')}
+                      Rp {formData.total_setoran.toLocaleString("id-ID")}
                     </p>
                   </div>
                   <div>

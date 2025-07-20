@@ -27,7 +27,10 @@
       "Bash(ls:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(npx eslint:*)",
+      "Bash(timeout:*)",
+      "Bash(npx next build:*)"
     ],
     "deny": []
   }

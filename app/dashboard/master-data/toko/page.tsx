@@ -33,8 +33,8 @@ import {
 } from '@/components/ui/tooltip'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
-import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
+import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import {
   useOptimizedTokoState,
   useInvalidateOptimizedToko,
@@ -194,7 +194,7 @@ function TokoDataTable({
       header: 'Nomor Telepon',
       cell: ({ row }) => {
         const toko = row.original
-        const phoneNumber = toko.nomor_telepon || toko.no_telepon || toko.telepon
+        const phoneNumber = (toko as any).nomor_telepon || (toko as any).no_telepon || (toko as any).telepon
         
         return (
           <div className="text-left">
@@ -269,7 +269,7 @@ function TokoDataTable({
       header: 'Barang Terkirim',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = useMemo(() => {
+        const tooltipContent = (() => {
           if (!toko.detail_barang_terkirim || toko.detail_barang_terkirim.length === 0) {
             return <p className="text-sm text-gray-500">Belum ada barang terkirim</p>
           }
@@ -289,7 +289,7 @@ function TokoDataTable({
               </div>
             </div>
           )
-        }, [toko.detail_barang_terkirim, toko.barang_terkirim, toko.id_toko])
+        })()
         
         return (
           <Tooltip delayDuration={200}>
@@ -318,7 +318,7 @@ function TokoDataTable({
       header: 'Barang Terbayar',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = useMemo(() => {
+        const tooltipContent = (() => {
           if (!toko.detail_barang_terbayar || toko.detail_barang_terbayar.length === 0) {
             return <p className="text-sm text-gray-500">Belum ada barang terbayar</p>
           }
@@ -338,7 +338,7 @@ function TokoDataTable({
               </div>
             </div>
           )
-        }, [toko.detail_barang_terbayar, toko.barang_terbayar, toko.id_toko])
+        })()
         
         return (
           <Tooltip delayDuration={200}>
@@ -367,7 +367,7 @@ function TokoDataTable({
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = useMemo(() => {
+        const tooltipContent = (() => {
           if (!toko.detail_sisa_stok || toko.detail_sisa_stok.length === 0) {
             return <p className="text-sm text-gray-500">Tidak ada sisa stok</p>
           }
@@ -387,7 +387,7 @@ function TokoDataTable({
               </div>
             </div>
           )
-        }, [toko.detail_sisa_stok, toko.sisa_stok, toko.id_toko])
+        })()
         
         return (
           <Tooltip delayDuration={200}>

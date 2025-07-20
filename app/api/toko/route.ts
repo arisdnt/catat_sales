@@ -6,19 +6,6 @@ interface ProductDetail {
   jumlah: number
 }
 
-interface PengirimanDetail {
-  jumlah_kirim: number
-  produk: {
-    nama_produk: string
-  }
-}
-
-interface PenagihanDetail {
-  jumlah_terjual: number
-  produk: {
-    nama_produk: string
-  }
-}
 
 
 

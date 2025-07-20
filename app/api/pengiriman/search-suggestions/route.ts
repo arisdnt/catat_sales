@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { supabaseAdmin, handleApiRequest, createSuccessResponse } from '@/lib/api-helpers'
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       if (tokoData && tokoData.length > 0) {
         // Remove duplicates based on toko name
         const uniqueToko = Array.from(
-          new Map(tokoData.map(item => [item.toko.nama_toko, item])).values()
+          new Map(tokoData.map((item: any) => [item.toko.nama_toko, item])).values()
         )
         
         suggestions.push(...uniqueToko.map((item: any) => ({

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { supabaseAdmin, handleApiRequest, createSuccessResponse } from '@/lib/api-helpers'
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       const avgPrice = prices.length > 0 ? prices.reduce((sum, price) => sum + price, 0) / prices.length : 0
       
       // Create price range suggestions
-      const priceRanges = []
+      const priceRanges: Array<{label: string, value: string, min: number, max: number, count?: number}> = []
       if (maxPrice > 0) {
         const ranges = [
           { min: 0, max: 10000, label: 'Di bawah Rp 10.000' },
@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
             priceRanges.push({
               value: `${range.min}-${range.max === Number.MAX_SAFE_INTEGER ? '' : range.max}`,
               label: range.label,
+              min: range.min,
+              max: range.max,
               count
             })
           }

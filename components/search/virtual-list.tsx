@@ -107,7 +107,7 @@ export function VirtualSelectList<T>({
   items,
   renderItem,
   onSelect,
-  selectedItem,
+  selectedItem: _selectedItem,
   className,
   maxHeight = 300,
   isLoading = false,
@@ -170,7 +170,7 @@ export function VirtualTableList<T>({
   className,
   rowHeight = 60,
   maxHeight = 600,
-  isLoading = false,
+  isLoading: _isLoading = false,
   onLoadMore,
   hasNextPage = false,
 }: VirtualTableListProps<T>) {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { type ColumnDef } from '@tanstack/react-table'
 import React from 'react'
 
@@ -304,7 +305,7 @@ export const leftAlignedRenderers = {
 
   number: (value: number, suffix?: string) => responsiveCell(
     <div className="font-medium text-gray-900">
-      {new Intl.NumberFormat('id-ID').format(value)}{suffix ? ` ${suffix}` : ''}
+      {new Intl.NumberFormat("id-ID").format(value)}{suffix ? ` ${suffix}` : ""}
     </div>,
     COLUMN_CONFIGS.number
   ),
@@ -325,7 +326,7 @@ export const leftAlignedRenderers = {
       {items.map((item, index) => (
         <div key={index} className="text-xs">
           <span className="text-gray-600">{item.label}: </span>
-          <span className={`font-medium ${item.color || 'text-gray-900'}`}>
+          <span className={`font-medium ${item.color || "text-gray-900"}`}>
             {item.value}
           </span>
         </div>

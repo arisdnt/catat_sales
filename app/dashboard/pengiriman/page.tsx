@@ -27,8 +27,8 @@ import {
 } from '@/components/ui/tooltip'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { HighPerformanceDataTable as DataTablePengiriman } from '@/components/shared/data-table-toko'
-import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import { DataTableAdvanced as DataTablePengiriman } from '@/components/data-tables'
+import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import {
   useOptimizedPengirimanState,
   useInvalidateOptimizedPengiriman,

@@ -3,7 +3,7 @@
 import { AuthProvider } from '@/components/providers/auth-provider'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { SidebarProvider, useSidebar } from '@/components/providers/sidebar-provider'
-import { ModernSidebar } from '@/components/shared/modern-sidebar'
+import { SidebarModern } from '@/components/navigation'
 import { AuthGuard } from '@/components/layout/auth-guard'
 import { Toaster } from '@/components/ui/toaster'
 import { cn } from '@/lib/utils'
@@ -13,7 +13,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   
   return (
     <div className="min-h-screen bg-white">
-      <ModernSidebar />
+      <SidebarModern />
       <main className={cn(
         "transition-all duration-300 max-w-full",
         isCollapsed ? "ml-16" : "ml-72"

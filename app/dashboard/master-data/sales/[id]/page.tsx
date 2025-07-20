@@ -149,7 +149,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
       <div className="p-8">
         <div className="max-w-6xl mx-auto text-center">
           <div className="text-red-600 mb-4">
-            {error ? 'Error loading sales data' : 'Data sales tidak ditemukan'}
+            {error ? "Error loading sales data" : "Data sales tidak ditemukan"}
           </div>
           <div className="space-x-4">
             <Button onClick={() => refetch()} variant="outline">
@@ -215,7 +215,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                     className="bg-red-600 hover:bg-red-700"
                     disabled={deleteSales.isPending}
                   >
-                    {deleteSales.isPending ? 'Menghapus...' : 'Hapus'}
+                    {deleteSales.isPending ? "Menghapus..." : "Hapus"}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -255,7 +255,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                         <Phone className="w-4 h-4" />
                         Nomor Telepon
                       </label>
-                      <p className="text-gray-900">{sales.nomor_telepon || 'Tidak tersedia'}</p>
+                      <p className="text-gray-900">{sales.nomor_telepon || "Tidak tersedia"}</p>
                     </div>
                   </div>
 
@@ -264,9 +264,9 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                       <label className="text-sm font-medium text-gray-600">Status</label>
                       <div className="mt-1">
                         <Badge 
-                          className={sales.status_aktif ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                          className={sales.status_aktif ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
                         >
-                          {sales.status_aktif ? 'Aktif' : 'Nonaktif'}
+                          {sales.status_aktif ? "Aktif" : "Nonaktif"}
                         </Badge>
                       </div>
                     </div>
@@ -384,8 +384,8 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                             {store.kecamatan}, {store.kabupaten}
                           </div>
                         </div>
-                        <Badge className={store.status_toko ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                          {store.status_toko ? 'Aktif' : 'Nonaktif'}
+                        <Badge className={store.status_toko ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                          {store.status_toko ? "Aktif" : "Nonaktif"}
                         </Badge>
                       </div>
                     ))}
@@ -436,7 +436,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                                 Pengiriman ke {stores.find((s: StoreData) => s.id_toko === shipment.id_toko)?.nama_toko}
                               </div>
                               <div className="text-xs text-gray-600">
-                                {new Date(shipment.tanggal_kirim).toLocaleDateString('id-ID')}
+                                {new Date(shipment.tanggal_kirim).toLocaleDateString("id-ID")}
                               </div>
                             </div>
                           </div>
@@ -462,7 +462,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                                 Penagihan {stores.find((s: StoreData) => s.id_toko === billing.id_toko)?.nama_toko}
                               </div>
                               <div className="text-xs text-gray-600">
-                                {new Date(billing.tanggal_tagih).toLocaleDateString('id-ID')} - {formatCurrency(billing.total_uang_diterima)}
+                                {new Date(billing.tanggal_tagih).toLocaleDateString("id-ID")} - {formatCurrency(billing.total_uang_diterima)}
                               </div>
                             </div>
                           </div>
@@ -488,7 +488,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                                 Setoran {formatCurrency(deposit.total_setoran)}
                               </div>
                               <div className="text-xs text-gray-600">
-                                {new Date(deposit.tanggal_setoran).toLocaleDateString('id-ID')}
+                                {new Date(deposit.tanggal_setoran).toLocaleDateString("id-ID")}
                               </div>
                             </div>
                           </div>
@@ -549,7 +549,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                 <Button
                   variant="outline"
                   className="w-full justify-start"
-                  onClick={() => router.push('/dashboard/master-data/sales')}
+                  onClick={() => router.push("/dashboard/master-data/sales")}
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Lihat Semua Sales

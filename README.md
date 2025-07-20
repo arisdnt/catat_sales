@@ -1,251 +1,349 @@
-# Sistem Penjualan Titip Bayar
+# 🏪 Sistem Manajemen Penjualan Titip Bayar
 
-Sistem komprehensif untuk mengelola penjualan dengan model titip bayar, yang mencakup pengiriman barang, penagihan, dan setoran uang tunai.
+> **Sales Management System** - Aplikasi web modern untuk mengelola penjualan dengan model titip bayar (consignment sales)
 
-## 🚀 Fitur Utama
+[![Built with Next.js](https://img.shields.io/badge/built%20with-Next.js%2015-000000.svg?style=flat-square&logo=next.js)](https://nextjs.org)
+[![Powered by Supabase](https://img.shields.io/badge/powered%20by-Supabase-3ECF8E.svg?style=flat-square&logo=supabase)](https://supabase.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Deployed on Netlify](https://img.shields.io/badge/deployed%20on-Netlify-00C7B7?style=flat-square&logo=netlify)](https://netlify.com)
 
-- **Dashboard Analitik**: Ringkasan statistik dan pendapatan harian
-- **Master Data**: Kelola produk, toko, dan sales
-- **Pengiriman**: Catat pengiriman barang ke toko
-- **Penagihan**: Proses penagihan dengan detail barang terjual dan retur
-- **Setoran**: Rekonsiliasi setoran uang tunai
-- **Laporan**: Laporan rekonsiliasi dan tracking yang lengkap
-- **Autentikasi**: Sistem login yang aman dengan Supabase Auth
+## 📋 Deskripsi
 
-## 🛠️ Teknologi yang Digunakan
+Sistem komprehensif untuk mengelola **penjualan dengan model titip bayar** (consignment sales), yang mencakup pengiriman barang, penagihan, dan setoran uang tunai. Dibangun dengan teknologi modern untuk memastikan performa optimal dan pengalaman pengguna yang lancar.
 
-- **Frontend**: Next.js 15 dengan App Router
-- **UI Framework**: Tailwind CSS + shadcn/ui
-- **Database**: Supabase (PostgreSQL)
-- **Autentikasi**: Supabase Auth
-- **TypeScript**: Untuk type safety
-- **Form Handling**: React Hook Form dengan Zod validation
+### 🎯 Model Bisnis: Titip Bayar (Consignment Sales)
 
-## 📋 Prasyarat
+**Alur Bisnis:**
+1. **Sales** mengirim produk ke **Toko** tanpa pembayaran di muka
+2. **Toko** menjual produk kepada konsumen akhir  
+3. **Sales** melakukan penagihan berkala untuk produk yang terjual
+4. **Toko** membayar hanya untuk produk yang terjual, bisa mengembalikan yang tidak laku
+5. **Sales** menyetor uang hasil penagihan ke kantor pusat
 
-Sebelum memulai, pastikan Anda memiliki:
+## ✨ Fitur Unggulan
 
-- Node.js 18+ dan npm
-- Akun Supabase
-- Git
+### 📊 Dashboard & Analytics
+- **Real-time Statistics**: Monitoring performa penjualan harian
+- **Interactive Charts**: Visualisasi data dengan Chart.js dan Recharts
+- **Performance Insights**: Analisis tren penjualan dan performa sales
 
-## 🎯 Setup Database di Supabase
+### 🗃️ Master Data Management
+- **Sales Management**: Kelola data tenaga penjualan dan teritori
+- **Product Management**: CRUD produk dengan kategorisasi prioritas
+- **Store Management**: Database toko dengan mapping ke sales
 
-1. **Buat Project Baru di Supabase**
-   - Kunjungi [supabase.com](https://supabase.com)
-   - Buat project baru
-   - Tunggu hingga database siap
+### 🚚 Operasional Harian
+- **Shipment Tracking**: Pencatatan pengiriman barang ke toko
+- **Billing System**: Penagihan dengan dukungan retur dan potongan
+- **Cash Deposits**: Rekonsiliasi setoran uang tunai
+- **Bulk Operations**: Import/export data dalam jumlah besar
 
-2. **Jalankan SQL Schema**
-   - Buka SQL Editor di dashboard Supabase
-   - Copy semua kode dari file `database-schema.sql`
-   - Jalankan script untuk membuat semua tabel dan konfigurasi
+### 📈 Reporting & Reconciliation
+- **Comprehensive Reports**: Laporan pengiriman, penagihan, dan rekonsiliasi
+- **Excel Export**: Export data ke format Excel untuk analisis lanjutan
+- **Audit Trail**: Tracking perubahan data untuk keperluan audit
 
-3. **Konfigurasi Authentication**
-   - Di dashboard Supabase, buka Authentication > Settings
-   - Pastikan "Enable email confirmations" dinonaktifkan untuk development
-   - Buat user pertama melalui Authentication > Users
+### 🔐 Security & Performance
+- **Row Level Security**: Keamanan data tingkat baris dengan Supabase RLS
+- **Optimized Queries**: Query database yang dioptimasi untuk performa
+- **Virtual Scrolling**: Handling dataset besar dengan performa tinggi
+- **Progressive Loading**: Smart prefetching dan caching
 
-## ⚙️ Setup Aplikasi
+## 🛠️ Tech Stack
 
-1. **Clone dan Install Dependencies**
-   ```bash
-   # Install dependencies
-   npm install
-   ```
+### Frontend
+- **Framework**: Next.js 15 dengan App Router
+- **Language**: TypeScript untuk type safety
+- **UI Library**: Tailwind CSS + shadcn/ui + Radix UI
+- **State Management**: TanStack Query + React Context
+- **Forms**: React Hook Form + Zod validation
+- **Charts**: Chart.js + Recharts
 
-2. **Konfigurasi Environment Variables**
-   File `.env.local` sudah dikonfigurasi dengan kredensial Supabase Anda:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://juhibrdtpxfccbbzuqyd.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
+### Backend & Database  
+- **Database**: Supabase (PostgreSQL) dengan Row Level Security
+- **API**: Next.js API Routes dengan RESTful design
+- **Authentication**: Supabase Auth dengan JWT tokens
+- **File Storage**: Supabase Storage untuk dokumen
 
-3. **Setup Database**
-   - Buka dashboard Supabase: https://supabase.com/dashboard
-   - Masuk ke SQL Editor
-   - Copy dan jalankan seluruh kode dari file `database-schema.sql`
+### Performance & Developer Experience
+- **Caching**: TanStack Query dengan background updates
+- **Optimization**: Bundle optimization dengan SWC
+- **Type Safety**: Fully typed dengan database schema
+- **DevTools**: ESLint, Prettier, TypeScript strict mode
 
-4. **Buat User Pertama**
-   ```bash
-   # Setelah aplikasi berjalan, buat user dengan:
-   curl -X POST http://localhost:3000/api/auth/create-user \
-     -H "Content-Type: application/json" \
-     -d '{"email":"admin@example.com","password":"password123"}'
-   ```
+## 🚀 Quick Start
 
-5. **Jalankan Development Server**
-   ```bash
-   npm run dev
-   ```
+### Prerequisites
 
-   Aplikasi akan tersedia di `http://localhost:3000`
+- **Node.js** 18+ dan npm/yarn
+- **Git** untuk version control  
+- **Akun Supabase** untuk database dan auth
 
-## 📊 Struktur Database
-
-### Tabel Master
-- **sales**: Data sales/tenaga penjualan
-- **produk**: Data produk yang dijual
-- **toko**: Data toko/klien dengan relasi ke sales
-
-### Tabel Transaksi
-- **pengiriman** & **detail_pengiriman**: Header dan detail pengiriman barang
-- **penagihan** & **detail_penagihan**: Header dan detail penagihan
-- **potongan_penagihan**: Data potongan jika ada
-- **setoran**: Data setoran uang tunai
-
-### Views untuk Laporan
-- **v_laporan_pengiriman**: Laporan pengiriman dengan join
-- **v_laporan_penagihan**: Laporan penagihan dengan join
-- **v_rekonsiliasi_setoran**: Laporan rekonsiliasi setoran
-
-## 🔄 Alur Bisnis
-
-1. **Setup Master Data**
-   - Tambahkan data sales
-   - Tambahkan data produk
-   - Tambahkan data toko dengan sales yang bertanggung jawab
-
-2. **Proses Pengiriman**
-   - Sales mencatat pengiriman barang ke toko
-   - Sistem mencatat detail produk dan jumlah yang dikirim
-
-3. **Proses Penagihan**
-   - Sales melakukan penagihan ke toko
-   - Mencatat barang yang terjual, retur, dan potongan (jika ada)
-   - Sistem menghitung total uang yang diterima
-
-4. **Proses Setoran**
-   - Sales menyetor uang tunai ke kantor
-   - Sistem melakukan rekonsiliasi dengan penagihan cash
-
-## 🔌 API Endpoints
-
-### Master Data
-- **Sales**: `/api/sales` - GET, POST, PUT, DELETE
-- **Products**: `/api/produk` - GET, POST, PUT, DELETE
-- **Stores**: `/api/toko` - GET, POST, PUT, DELETE
-
-### Transactions
-- **Shipments**: `/api/pengiriman` - GET, POST, PUT, DELETE
-- **Billings**: `/api/penagihan` - GET, POST, PUT, DELETE
-- **Deposits**: `/api/setoran` - GET, POST, PUT, DELETE
-
-### Reports
-- **Reports**: `/api/laporan` - GET dengan parameter type:
-  - `pengiriman` - Laporan pengiriman
-  - `penagihan` - Laporan penagihan
-  - `rekonsiliasi` - Laporan rekonsiliasi setoran
-  - `dashboard-stats` - Statistik dashboard
-
-### Authentication
-- Semua API endpoint membutuhkan Authorization header dengan Bearer token
-- Token didapat dari Supabase Auth session
-- Middleware otomatis memvalidasi token pada setiap request
-
-## 🗃️ Struktur Folder
-
-```
-├── app/                          # Next.js App Router
-│   ├── (auth)/login/            # Halaman login
-│   ├── (dashboard)/             # Layout dashboard dengan sidebar
-│   │   └── dashboard/
-│   │       ├── page.tsx         # Dashboard utama
-│   │       ├── master-data/     # CRUD master data
-│   │       ├── pengiriman/      # Manajemen pengiriman
-│   │       ├── penagihan/       # Manajemen penagihan
-│   │       ├── setoran/         # Manajemen setoran
-│   │       └── laporan/         # Laporan dan rekonsiliasi
-├── components/
-│   ├── ui/                      # Komponen shadcn/ui
-│   └── shared/                  # Komponen custom
-├── lib/
-│   ├── supabase.ts             # Konfigurasi Supabase client
-│   ├── utils.ts                # Utility functions
-│   └── auth-context.tsx        # Context untuk autentikasi
-├── types/
-│   └── database.ts             # TypeScript types untuk database
-└── database-schema.sql          # SQL schema untuk Supabase
-```
-
-## 🔐 Autentikasi
-
-Sistem menggunakan Supabase Auth dengan Row Level Security (RLS):
-
-- Semua tabel memiliki RLS enabled
-- User yang authenticated dapat mengakses semua data
-- Middleware Next.js memproteksi route dashboard
-
-## 📱 Responsive Design
-
-Aplikasi fully responsive dengan:
-- Mobile-first approach
-- Sidebar yang collapse di mobile
-- Tabel yang responsive dengan scroll horizontal
-- Form yang adaptive untuk berbagai ukuran layar
-
-## 🚀 Deployment
-
-### Deploy ke Vercel
-
-1. Push kode ke GitHub repository
-2. Connect repository ke Vercel
-3. Set environment variables di Vercel dashboard
-4. Deploy otomatis akan berjalan
-
-### Deploy ke Platform Lain
-
-Aplikasi ini adalah standard Next.js app yang bisa di-deploy ke:
-- Netlify
-- Railway
-- DigitalOcean App Platform
-- atau hosting Node.js lainnya
-
-## 🔧 Development Commands
+### 1. Clone Repository
 
 ```bash
-# Development server
+git clone <repository-url>
+cd catat_sales
+npm install
+```
+
+### 2. Environment Setup
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` dengan kredensial Supabase Anda:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+### 3. Database Setup
+
+1. Buat project baru di [Supabase](https://supabase.com)
+2. Jalankan SQL schema (database-schema.sql) di SQL Editor
+3. Setup authentication policies
+4. Buat user pertama:
+
+```bash
+curl -X POST http://localhost:3000/api/auth/create-user \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password123"}'
+```
+
+### 4. Development
+
+```bash
+# Start development server
 npm run dev
 
-# Production build
-npm run build
-
-# Start production server
-npm run start
+# Type checking
+npm run type-check
 
 # Linting
 npm run lint
 
-# Type checking
-npm run type-check
+# Production build
+npm run build
 ```
 
-## 📈 Monitoring dan Analytics
+Aplikasi akan tersedia di `http://localhost:3000`
 
-- Dashboard menyediakan statistik real-time
-- Laporan rekonsiliasi untuk tracking setoran
-- Views database yang optimized untuk reporting
+## 📁 Struktur Project
 
-## 🛡️ Security Features
+```
+catat_sales/
+├── app/                          # Next.js App Router
+│   ├── (auth)/                   # Auth pages (login)
+│   ├── dashboard/                # Main application
+│   │   ├── master-data/          # CRUD master data
+│   │   ├── pengiriman/           # Shipment management
+│   │   ├── penagihan/            # Billing management  
+│   │   ├── setoran/              # Cash deposit management
+│   │   └── laporan/              # Reports & analytics
+│   └── api/                      # API routes
+├── components/                   # React components
+│   ├── data-tables/              # Table components (basic, optimized, advanced)
+│   ├── navigation/               # Navigation (sidebars)
+│   ├── search/                   # Search & filter components
+│   ├── charts/                   # Chart components
+│   ├── forms/                    # Form utilities
+│   ├── layout/                   # Layout components
+│   ├── ui/                       # shadcn/ui components
+│   └── providers/                # Context providers
+├── lib/                          # Utilities & configurations
+│   ├── queries/                  # TanStack Query definitions
+│   ├── hooks/                    # Custom React hooks
+│   └── performance/              # Performance optimizations
+└── types/                        # TypeScript type definitions
+```
 
-- Row Level Security (RLS) di Supabase
-- JWT-based authentication
-- Input validation dengan Zod
-- SQL injection protection melalui Supabase client
+## 🗄️ Database Schema
+
+### Master Tables
+- **sales**: Data tenaga penjualan
+- **produk**: Master data produk dengan prioritas
+- **toko**: Database toko dengan mapping ke sales
+
+### Transaction Tables
+- **pengiriman** + **detail_pengiriman**: Header dan detail pengiriman
+- **penagihan** + **detail_penagihan**: Header dan detail penagihan
+- **potongan_penagihan**: Data potongan/diskon
+- **setoran**: Data setoran uang tunai
+
+### Materialized Views (Optimized Reporting)
+- **v_laporan_pengiriman**: Laporan pengiriman dengan join
+- **v_laporan_penagihan**: Laporan penagihan dengan join  
+- **v_rekonsiliasi_setoran**: Laporan rekonsiliasi setoran
+
+## 🔗 API Documentation
+
+### Master Data Endpoints
+```
+GET    /api/sales              # List sales
+POST   /api/sales              # Create sales
+PUT    /api/sales/[id]         # Update sales
+DELETE /api/sales/[id]         # Delete sales
+
+GET    /api/produk             # List products
+POST   /api/produk             # Create product
+PUT    /api/produk/[id]        # Update product
+DELETE /api/produk/[id]        # Delete product
+
+GET    /api/toko               # List stores
+POST   /api/toko               # Create store
+PUT    /api/toko/[id]          # Update store
+DELETE /api/toko/[id]          # Delete store
+```
+
+### Transaction Endpoints
+```
+GET    /api/pengiriman         # List shipments
+POST   /api/pengiriman         # Create shipment
+PUT    /api/pengiriman/[id]    # Update shipment
+
+GET    /api/penagihan          # List billing
+POST   /api/penagihan          # Create billing
+PUT    /api/penagihan/[id]     # Update billing
+
+GET    /api/setoran            # List deposits
+POST   /api/setoran            # Create deposit
+PUT    /api/setoran/[id]       # Update deposit
+```
+
+### Reporting Endpoints
+```
+GET    /api/laporan?type=pengiriman     # Shipment reports
+GET    /api/laporan?type=penagihan      # Billing reports
+GET    /api/laporan?type=rekonsiliasi   # Reconciliation reports
+GET    /api/laporan?type=dashboard-stats # Dashboard statistics
+```
+
+## 🚀 Deployment
+
+### Deploy ke Netlify
+
+1. **Push ke GitHub**:
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Connect to Netlify**:
+   - Login ke [Netlify](https://netlify.com)
+   - Import repository dari GitHub
+   - Build settings sudah dikonfigurasi via `netlify.toml`
+
+3. **Environment Variables**:
+   Set di Netlify dashboard > Site settings > Environment variables:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   ```
+
+4. **Deploy**: 
+   Netlify akan otomatis build dan deploy
+
+### Alternative Platforms
+- **Vercel**: Native Next.js support
+- **Railway**: Full-stack deployment  
+- **DigitalOcean App Platform**: Managed hosting
+
+## 🔧 Development Guidelines
+
+### Code Organization
+- **Components**: Organized by function (data-tables, navigation, search)
+- **API Routes**: RESTful design dengan optimized variants
+- **Queries**: Separated regular dan optimized queries
+- **Types**: Centralized TypeScript definitions
+
+### Performance Best Practices
+- **Query Optimization**: Gunakan materialized views untuk reporting
+- **Caching Strategy**: TanStack Query dengan stale-while-revalidate
+- **Bundle Optimization**: Tree shaking dan code splitting
+- **Virtual Scrolling**: Untuk dataset besar (>1000 items)
+
+### Security Considerations
+- **Row Level Security**: Enforced di Supabase
+- **Input Validation**: Zod schemas untuk semua forms
+- **Authentication**: JWT tokens dengan refresh strategy
+- **Environment Variables**: Sensitive data di environment vars
+
+## 🧪 Testing
+
+```bash
+# Unit tests (jika tersedia)
+npm run test
+
+# Type checking
+npm run type-check
+
+# Linting  
+npm run lint
+
+# Integration testing
+npm run test:integration
+```
+
+## 📊 Monitoring & Analytics
+
+### Performance Monitoring
+- **Core Web Vitals**: FCP, LCP, CLS monitoring
+- **Bundle Analysis**: Webpack bundle analyzer
+- **Database Performance**: Supabase query analytics
+
+### Business Analytics
+- **Sales Performance**: Real-time dashboard metrics
+- **Product Analytics**: Best/worst performing products
+- **Territory Analysis**: Performance per sales area
 
 ## 🤝 Contributing
 
-1. Fork repository
-2. Create feature branch
-3. Commit changes
-4. Push to branch
-5. Create Pull Request
+1. **Fork repository**
+2. **Create feature branch**: `git checkout -b feature/new-feature`
+3. **Make changes** dan test thoroughly
+4. **Commit changes**: `git commit -m 'Add new feature'`
+5. **Push to branch**: `git push origin feature/new-feature`
+6. **Create Pull Request**
+
+### Coding Standards
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Extended dari Next.js config
+- **Prettier**: Code formatting
+- **Conventional Commits**: Commit message format
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Support
+## 🆘 Support & Documentation
 
-Untuk pertanyaan atau bantuan, silakan buat issue di GitHub repository.
+### Documentation
+- **API Docs**: `/docs/api` (jika tersedia)
+- **Component Docs**: Storybook (jika dikonfigurasi)
+- **Database Schema**: ERD diagram di `/docs/database`
+
+### Getting Help
+- **Issues**: [GitHub Issues](link-to-issues)
+- **Discussions**: [GitHub Discussions](link-to-discussions)
+- **Wiki**: [Project Wiki](link-to-wiki)
+
+### Contact
+- **Project Lead**: [Contact Info]
+- **Development Team**: [Team Contact]
+- **Business Questions**: [Business Contact]
+
+---
+
+<div align="center">
+
+**Built with ❤️ for Indonesian SME businesses**
+
+[🚀 Live Demo](your-demo-url) • [📚 Documentation](your-docs-url) • [🐛 Report Bug](your-issues-url)
+
+</div>

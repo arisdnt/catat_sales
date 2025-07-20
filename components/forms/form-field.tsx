@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 interface FormFieldProps {
   label: string
@@ -104,7 +104,7 @@ export function FormField({
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
-              {options.map((option) => (
+              {options.filter(option => option.value !== '').map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -214,7 +214,7 @@ interface FormErrorProps {
 }
 
 export function FormError({ errors }: FormErrorProps) {
-  const errorEntries = Object.entries(errors).filter(([_, error]) => error)
+  const errorEntries = Object.entries(errors).filter(([, error]) => error)
   
   if (errorEntries.length === 0) return null
 

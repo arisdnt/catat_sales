@@ -7,13 +7,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  Users,
-  Phone,
-  Target,
-  TrendingUp,
   CheckCircle,
   XCircle,
-  Clock,
   DollarSign,
   Store,
   Package
@@ -24,8 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
-import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
+import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import {
   useOptimizedSalesState,
   useInvalidateOptimizedSales,
@@ -74,18 +69,6 @@ const statusConfig = {
   }
 }
 
-// Helper function to create status badge
-function createStatusBadge(status: boolean) {
-  const config = statusConfig[status.toString() as keyof typeof statusConfig]
-  const Icon = config.icon
-  
-  return (
-    <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-      <Icon className="w-3 h-3" />
-      {config.label}
-    </Badge>
-  )
-}
 
 // Helper function to format numbers (identical to toko)
 function formatNumber(num: number): string {

@@ -22,8 +22,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
-import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
+import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import {
   useOptimizedSetoranState,
   useInvalidateOptimizedSetoran,

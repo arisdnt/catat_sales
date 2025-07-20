@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,27 +25,21 @@ import {
   usePengirimanAggregatesQuery,
   usePenagihanAggregatesQuery,
 } from '@/lib/queries/materialized-views'
-import { useComprehensivePrefetch, usePrefetchNavigation } from '@/lib/hooks/use-smart-prefetch'
-import { VirtualTableList } from '@/components/shared/virtual-list'
+import { useComprehensivePrefetch } from '@/lib/hooks/use-smart-prefetch'
+import { VirtualTableList } from '@/components/search'
 import { 
   ArrowLeft, 
   Edit, 
   Trash2, 
-  Users, 
   Phone,
-  Calendar,
   Store,
-  BarChart3,
-  TrendingUp,
   Activity,
   Hash,
-  Clock,
   MapPin,
   ShoppingCart,
   Truck,
   DollarSign,
-  AlertCircle,
-  Target
+  AlertCircle
 } from 'lucide-react'
 
 interface SalesDetailPageProps {
@@ -107,7 +101,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Sales not found</h2>
           <p className="text-muted-foreground mb-4">
-            The sales record you're looking for doesn't exist or has been deleted.
+            The sales record you&apos;re looking for doesn&apos;t exist or has been deleted.
           </p>
           <Button onClick={() => router.back()}>Go Back</Button>
         </div>
@@ -115,8 +109,8 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
     )
   }
 
-  const recentShipments = shipmentsData?.slice(0, 5) || []
-  const salesStores = storesData || []
+  const recentShipments = Array.isArray(shipmentsData) ? shipmentsData.slice(0, 5) : []
+  const salesStores = (storesData as any[]) || []
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -133,7 +127,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{salesData.nama_sales}</h1>
+            <h1 className="text-2xl font-bold">{(salesData as any)?.nama_sales || 'Loading...'}</h1>
             <p className="text-muted-foreground">Sales Detail</p>
           </div>
         </div>
@@ -160,7 +154,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete {salesData.nama_sales} and all related data. 
+                  This will permanently delete {(salesData as any)?.nama_sales || 'this sales'} and all related data. 
                   This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
@@ -181,12 +175,12 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
 
       {/* Status Badge */}
       <div className="flex items-center space-x-2">
-        <Badge variant={salesData.status_aktif ? 'default' : 'secondary'}>
-          {salesData.status_aktif ? 'Active' : 'Inactive'}
+        <Badge variant={(salesData as any)?.status_aktif ? 'default' : 'secondary'}>
+          {(salesData as any)?.status_aktif ? 'Active' : 'Inactive'}
         </Badge>
-        {salesData.total_stores > 0 && (
+        {((salesData as any)?.total_stores || 0) > 0 && (
           <Badge variant="outline">
-            {salesData.total_stores} Store{salesData.total_stores > 1 ? 's' : ''}
+            {(salesData as any)?.total_stores || 0} Store{((salesData as any)?.total_stores || 0) > 1 ? 's' : ''}
           </Badge>
         )}
       </div>
@@ -200,7 +194,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {salesData.nomor_telepon || 'No phone'}
+              {(salesData as any)?.nomor_telepon || 'No phone'}
             </div>
             <p className="text-xs text-muted-foreground">
               Phone number
@@ -215,7 +209,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(salesData.total_revenue || 0)}
+              {formatCurrency((salesData as any)?.total_revenue || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               All time revenue
@@ -229,7 +223,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{salesData.total_stores || 0}</div>
+            <div className="text-2xl font-bold">{(salesData as any)?.total_stores || 0}</div>
             <p className="text-xs text-muted-foreground">
               Active stores
             </p>
@@ -243,8 +237,8 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
           </CardHeader>
           <CardContent>
             <div className="text-sm font-bold">
-              {salesData.last_shipment_date ? 
-                new Date(salesData.last_shipment_date).toLocaleDateString('id-ID') : 
+              {(salesData as any)?.last_shipment_date ? 
+                new Date((salesData as any).last_shipment_date).toLocaleDateString('id-ID') : 
                 'No activity'
               }
             </div>
@@ -260,7 +254,7 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
         <CardHeader>
           <CardTitle className="flex items-center">
             <MapPin className="h-5 w-5 mr-2" />
-            Assigned Stores ({salesStores.length})
+            Assigned Stores ({(salesStores as any[])?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -269,10 +263,10 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <span className="ml-2">Loading stores...</span>
             </div>
-          ) : salesStores.length > 0 ? (
+          ) : (salesStores as any[])?.length > 0 ? (
             <VirtualTableList
-              items={salesStores}
-              renderRow={(store, index) => (
+              items={salesStores as any[]}
+              renderRow={(store: any, index: number) => (
                 <div 
                   key={store.id_toko}
                   className="flex items-center justify-between p-3 border-b hover:bg-muted/50 cursor-pointer"
@@ -318,8 +312,8 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
             </div>
           ) : recentShipments.length > 0 ? (
             <VirtualTableList
-              items={recentShipments}
-              renderRow={(shipment, index) => (
+              items={recentShipments as any[]}
+              renderRow={(shipment: any, index: number) => (
                 <div 
                   key={shipment.id_pengiriman}
                   className="flex items-center justify-between p-3 border-b hover:bg-muted/50 cursor-pointer"

@@ -4,13 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   Home, 
-  Package, 
   CreditCard, 
   Banknote, 
-  FileText, 
-  Users, 
   Store, 
-  ShoppingCart,
   LogOut,
   Truck 
 } from 'lucide-react'
@@ -72,7 +68,7 @@ export function Sidebar() {
         title: 'Berhasil',
         description: 'Logout berhasil',
       })
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Gagal logout',

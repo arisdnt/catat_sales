@@ -8,13 +8,9 @@ import {
   Edit,
   Trash2,
   Package,
-  Barcode,
-  DollarSign,
-  TrendingUp,
   Star,
   CheckCircle,
   XCircle,
-  Clock,
   Truck,
   CreditCard,
   Warehouse
@@ -25,8 +21,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
-import { HighPerformanceDataTable as DataTableToko } from '@/components/shared/data-table-toko'
-import { SearchFilterToko } from '@/components/shared/search-filter-toko'
+import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
+import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import {
   useOptimizedProdukState,
   useInvalidateOptimizedProduk,
@@ -89,38 +85,6 @@ const priorityConfig = {
   }
 }
 
-// Helper function to create status badge
-function createStatusBadge(status: boolean) {
-  const config = statusConfig[status.toString() as keyof typeof statusConfig]
-  const Icon = config.icon
-  
-  return (
-    <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-      <Icon className="w-3 h-3" />
-      {config.label}
-    </Badge>
-  )
-}
-
-// Helper function to create priority badge
-function createPriorityBadge(isPriority: boolean, priorityOrder?: number) {
-  const config = priorityConfig[isPriority.toString() as keyof typeof priorityConfig]
-  const Icon = config.icon
-  
-  return (
-    <div className="flex flex-col gap-1">
-      <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-        <Icon className="w-3 h-3" />
-        {config.label}
-      </Badge>
-      {isPriority && priorityOrder && priorityOrder > 0 && (
-        <span className="text-xs text-gray-500">
-          Order: {priorityOrder}
-        </span>
-      )}
-    </div>
-  )
-}
 
 // Helper function to format numbers (identical to toko)
 function formatNumber(num: number): string {
