@@ -7,7 +7,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  output: 'standalone',
+  
   trailingSlash: false,
   webpack: (config, { isServer }) => {
     if (!isServer) {

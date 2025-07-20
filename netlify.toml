@@ -7,6 +7,8 @@
 
 [build.environment]
   NEXT_PRIVATE_TARGET = "server"
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # API routes
 [[redirects]]
@@ -14,11 +16,12 @@
   to = "/.netlify/functions/___netlify-handler"
   status = 200
 
-# Catch-all for client-side routing
+# Catch-all for client-side routing (exclude API routes)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
 [functions]
   node_bundler = "esbuild"
