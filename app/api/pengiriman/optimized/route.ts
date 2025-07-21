@@ -101,13 +101,33 @@ export async function GET(request: NextRequest) {
     const kecamatanFilter = searchParams.get('kecamatan') || ''
     const dateFrom = searchParams.get('date_from')
     const dateTo = searchParams.get('date_to')
-    const sortBy = searchParams.get('sortBy') || 'tanggal_kirim'
+    const sortBy = searchParams.get('sortBy') || 'dibuat_pada'
     const sortOrder = (searchParams.get('sortOrder') || 'desc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
     // Use the optimized search function (with fallback to simple version)
     let searchResults, searchError
     
-    // Try the optimized function first
+    // TEMP: Force use fallback query to bypass materialized view issue
+    console.log('Temporarily bypassing optimized function due to materialized view sync issue')
+    const simpleResult = await supabase
+      .rpc('search_pengiriman_simple', {
+        search_term: search,
+        filter_sales: salesFilter ? parseInt(salesFilter) : null,
+        filter_kabupaten: kabupatenFilter,
+        filter_kecamatan: kecamatanFilter,
+        filter_date_from: dateFrom,
+        filter_date_to: dateTo,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        page_size: limit,
+        page_number: page
+      })
+    
+    searchResults = simpleResult.data
+    searchError = simpleResult.error
+    
+    // Original optimized query (commented out temporarily)
+    /*
     const optimizedResult = await supabase
       .rpc('search_pengiriman_optimized', {
         search_term: search,
@@ -145,6 +165,7 @@ export async function GET(request: NextRequest) {
       searchResults = optimizedResult.data
       searchError = optimizedResult.error
     }
+    */
 
     if (searchError) {
       console.error('Search error:', searchError)
@@ -199,19 +220,27 @@ export async function GET(request: NextRequest) {
       detail_pengiriman: row.detail_pengiriman || []
     }))
 
-    // Calculate summary statistics
+    // Calculate summary statistics from database directly (not just current page)
     const today = new Date().toDateString()
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
+    const todayISO = new Date().toISOString().split('T')[0]
+    const weekAgoISO = weekAgo.toISOString().split('T')[0]
+
+    // Get global counts from database
+    const [totalQuery, todayQuery, weekQuery] = await Promise.all([
+      // Total pengiriman count
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }),
+      // Today's pengiriman count  
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }).eq('tanggal_kirim', todayISO),
+      // This week's pengiriman count
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }).gte('tanggal_kirim', weekAgoISO)
+    ])
 
     const summary = {
-      total_shipments: totalCount,
-      today_shipments: transformedData.filter(p => 
-        new Date(p.tanggal_kirim).toDateString() === today
-      ).length,
-      this_week_shipments: transformedData.filter(p => 
-        new Date(p.tanggal_kirim) >= weekAgo
-      ).length,
+      total_shipments: totalQuery.count || 0, // Global total from database
+      today_shipments: todayQuery.count || 0, // Today's count from database
+      this_week_shipments: weekQuery.count || 0, // This week's count from database
       unique_kabupaten: new Set(transformedData.map(p => p.kabupaten).filter(Boolean)).size,
       unique_kecamatan: new Set(transformedData.map(p => p.kecamatan).filter(Boolean)).size,
       unique_sales: new Set(transformedData.map(p => p.id_sales)).size
@@ -252,7 +281,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
     const kecamatanFilter = searchParams.get('kecamatan') || ''
     const dateFrom = searchParams.get('date_from')
     const dateTo = searchParams.get('date_to')
-    const sortBy = searchParams.get('sortBy') || 'tanggal_kirim'
+    const sortBy = searchParams.get('sortBy') || 'dibuat_pada'
     const sortOrder = (searchParams.get('sortOrder') || 'desc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
     let query = supabase
@@ -413,19 +442,27 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
 
     console.log('Transformed data sample:', transformedData?.[0])
 
-    // Calculate summary statistics
+    // Calculate summary statistics from database directly (not just current page)
     const today = new Date().toDateString()
     const weekAgo = new Date()
     weekAgo.setDate(weekAgo.getDate() - 7)
+    const todayISO = new Date().toISOString().split('T')[0]
+    const weekAgoISO = weekAgo.toISOString().split('T')[0]
+
+    // Get global counts from database
+    const [totalQuery, todayQuery, weekQuery] = await Promise.all([
+      // Total pengiriman count
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }),
+      // Today's pengiriman count  
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }).eq('tanggal_kirim', todayISO),
+      // This week's pengiriman count
+      supabase.from('pengiriman').select('*', { count: 'exact', head: true }).gte('tanggal_kirim', weekAgoISO)
+    ])
 
     const summary = {
-      total_shipments: totalCount || 0,
-      today_shipments: transformedData.filter(p => 
-        new Date(p.tanggal_kirim).toDateString() === today
-      ).length,
-      this_week_shipments: transformedData.filter(p => 
-        new Date(p.tanggal_kirim) >= weekAgo
-      ).length,
+      total_shipments: totalQuery.count || 0, // Global total from database
+      today_shipments: todayQuery.count || 0, // Today's count from database
+      this_week_shipments: weekQuery.count || 0, // This week's count from database
       unique_kabupaten: new Set(transformedData.map(p => p.kabupaten).filter(Boolean)).size,
       unique_kecamatan: new Set(transformedData.map(p => p.kecamatan).filter(Boolean)).size,
       unique_sales: new Set(transformedData.map(p => p.id_sales)).size

@@ -112,7 +112,7 @@ export function useOptimizedPengirimanQuery(params: PengirimanQueryParams = {}) 
     kecamatan = '',
     date_from,
     date_to,
-    sortBy = 'tanggal_kirim',
+    sortBy = 'dibuat_pada',
     sortOrder = 'desc'
   } = params
 
@@ -490,7 +490,8 @@ export function useOptimizedPengirimanState(initialParams: PengirimanQueryParams
         totalPages: 0, 
         hasNextPage: false, 
         hasPrevPage: false 
-      }
+      },
+      summary: query.data?.summary
     },
     // Legacy compatibility
     pagination: query.data?.pagination || { 

@@ -147,8 +147,18 @@ export const formatCurrency = (amount: number): string => {
 }
 
 // Date formatting helper
-export const formatDate = (date: string | Date): string => {
+export const formatDate = (date: string | Date | null | undefined): string => {
+  if (!date) {
+    return '-'
+  }
+  
   const dateObj = typeof date === 'string' ? new Date(date) : date
+  
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return '-'
+  }
+  
   return dateObj.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',

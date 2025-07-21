@@ -2,141 +2,117 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-
-import { formatCurrency } from '@/lib/form-utils'
-import { useSalesDetailQuery, useDeleteSalesMutation, useSalesStatsQuery, type Sales, type SalesStats } from '@/lib/queries/sales'
-import { useTokoQuery } from '@/lib/queries/toko'
-import { usePengirimanQuery } from '@/lib/queries/pengiriman'
-import { usePenagihanQuery } from '@/lib/queries/penagihan'
-import { useSetoranQuery } from '@/lib/queries/setoran'
+import { useToast } from '@/components/ui/use-toast'
+import { formatDate, formatCurrency } from '@/lib/form-utils'
+import { 
+  useSalesDetailQuery, 
+  useDeleteSalesMutation,
+  useSalesDetailStatsQuery,
+  useSalesRecentShipmentsQuery,
+  useSalesRecentPaymentsQuery,
+  useSalesInventoryQuery,
+  useSalesProductSalesQuery,
+  type Sales 
+} from '@/lib/queries/sales'
 import { 
   ArrowLeft, 
   Edit, 
   Trash2, 
   Users, 
-  Phone,
-  Calendar,
-  Store,
-  BarChart3,
-  TrendingUp,
+  Phone, 
+  Calendar, 
   Activity,
-  Hash,
-  Clock,
-  MapPin,
-  ShoppingCart,
-  Truck,
+  Package,
   DollarSign,
-  AlertCircle,
-  Target
+  BarChart3,
+  ShoppingCart,
+  CreditCard,
+  Hash,
+  Store,
+  MapPin,
+  TrendingUp
 } from 'lucide-react'
-
-interface StoreData {
-  id_toko: number
-  nama_toko: string
-  kecamatan: string
-  kabupaten: string
-  status_toko: boolean
-  id_sales: number
-}
-
-interface ShipmentData {
-  id_pengiriman: number
-  id_toko: number
-  tanggal_kirim: string
-}
-
-interface BillingData {
-  id_penagihan: number
-  id_toko: number
-  tanggal_tagih: string
-  total_uang_diterima: number
-}
-
-interface DepositData {
-  id_setoran: number
-  id_sales: number
-  total_setoran: number
-  tanggal_setoran: string
-}
 
 export default function SalesDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [salesId, setSalesId] = useState<number | null>(null)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { toast } = useToast()
 
-  // Initialize sales ID from params
+  // Initialize params
   useState(() => {
     params.then(({ id }) => {
       setSalesId(parseInt(id))
     })
   })
 
-  // Queries
   const { data: salesResponse, isLoading, error, refetch } = useSalesDetailQuery(salesId!)
-  const { data: statsResponse, isLoading: statsLoading, error: statsError } = useSalesStatsQuery()
-  const { data: storeResponse, isLoading: storeLoading } = useTokoQuery()
-  const { data: shipmentResponse, isLoading: shipmentLoading } = usePengirimanQuery()
-  const { data: billingResponse, isLoading: billingLoading } = usePenagihanQuery()
-  const { data: depositResponse, isLoading: depositLoading } = useSetoranQuery()
+  const { data: statsResponse, isLoading: statsLoading } = useSalesDetailStatsQuery(salesId!)
+  const { data: shipmentsResponse, isLoading: shipmentsLoading } = useSalesRecentShipmentsQuery(salesId!, 10)
+  const { data: paymentsResponse, isLoading: paymentsLoading } = useSalesRecentPaymentsQuery(salesId!, 10)
+  const { data: inventoryResponse, isLoading: inventoryLoading } = useSalesInventoryQuery(salesId!)
+  const { data: productSalesResponse, isLoading: productSalesLoading } = useSalesProductSalesQuery(salesId!)
   const deleteSales = useDeleteSalesMutation()
 
   const sales: Sales | undefined = (salesResponse as { data: Sales })?.data
-  const salesStats: SalesStats[] = (statsResponse as { data: SalesStats[] })?.data || []
-  const currentStats = salesStats.find(s => s.id_sales === salesId)
-  
-  // Filter related data
-  const stores = ((storeResponse as { data: StoreData[] })?.data || []).filter((store: StoreData) => store.id_sales === salesId)
-  const shipments = ((shipmentResponse as { data: ShipmentData[] })?.data || []).filter((shipment: ShipmentData) => 
-    stores.some((store: StoreData) => store.id_toko === shipment.id_toko)
-  )
-  const billings = ((billingResponse as { data: BillingData[] })?.data || []).filter((billing: BillingData) => 
-    stores.some((store: StoreData) => store.id_toko === billing.id_toko)
-  )
-  const deposits = ((depositResponse as { data: DepositData[] })?.data || []).filter((deposit: DepositData) => 
-    deposit.id_sales === salesId
-  )
+  const stats = (statsResponse as { data: any })?.data
+  const recentShipments = (shipmentsResponse as { data: any[] })?.data || []
+  const recentPayments = (paymentsResponse as { data: any[] })?.data || []
+  const inventory = (inventoryResponse as { data: any[] })?.data || []
+  const productSales = (productSalesResponse as { data: any[] })?.data || []
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus sales ini?')) {
+      return
+    }
+
     if (salesId) {
       deleteSales.mutate(salesId, {
         onSuccess: () => {
+          toast({
+            title: 'Berhasil',
+            description: 'Sales berhasil dihapus',
+          })
           router.push('/dashboard/master-data/sales')
+        },
+        onError: () => {
+          toast({
+            title: 'Error',
+            description: 'Gagal menghapus sales',
+            variant: 'destructive',
+          })
         }
       })
     }
-    setShowDeleteDialog(false)
   }
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="max-w-6xl mx-auto animate-pulse">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 bg-gray-200 rounded"></div>
+      <div className="min-h-screen bg-white">
+        <div className="w-full max-w-none px-4 sm:px-6">
+          <div className="animate-pulse space-y-6">
+            {/* Header */}
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="h-64 bg-gray-200 rounded-lg"></div>
-              <div className="h-48 bg-gray-200 rounded-lg"></div>
-            </div>
-            <div className="space-y-6">
+            
+            {/* Row 1 - 3 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               <div className="h-32 bg-gray-200 rounded-lg"></div>
-              <div className="h-48 bg-gray-200 rounded-lg"></div>
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-64 bg-gray-200 rounded-lg md:col-span-2 xl:col-span-1"></div>
+            </div>
+            
+            {/* Row 2 - 2 columns */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+            </div>
+            
+            {/* Row 3 - 2 columns */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
             </div>
           </div>
         </div>
@@ -146,453 +122,375 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
 
   if (error || !sales) {
     return (
-      <div className="p-8">
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="text-red-600 mb-4">
-            {error ? "Error loading sales data" : "Data sales tidak ditemukan"}
-          </div>
-          <div className="space-x-4">
-            <Button onClick={() => refetch()} variant="outline">
-              Coba Lagi
-            </Button>
-            <Button onClick={() => router.back()}>
-              Kembali
-            </Button>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Sales tidak ditemukan</h1>
+          <Button onClick={() => router.push('/dashboard/master-data/sales')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Kembali ke Daftar Sales
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="w-full space-y-6">
+    <div className="min-h-screen bg-white">
+      <div className="w-full max-w-none px-4 sm:px-6 pb-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{sales.nama_sales}</h1>
+            <p className="text-gray-600">Detail Informasi Sales</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push('/dashboard/master-data/sales')}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali
             </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{sales.nama_sales}</h1>
-              <p className="text-sm sm:text-base text-gray-600">Detail informasi sales</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
+              size="sm"
               onClick={() => router.push(`/dashboard/master-data/sales/${salesId}/edit`)}
-              className="flex items-center gap-2"
             >
-              <Edit className="w-4 h-4" />
+              <Edit className="w-4 h-4 mr-2" />
               Edit
             </Button>
-            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  Hapus
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Hapus Sales</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus sales &quot;{sales.nama_sales}&quot;? 
-                    Tindakan ini tidak dapat dibatalkan.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={deleteSales.isPending}
-                  >
-                    {deleteSales.isPending ? "Menghapus..." : "Hapus"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteSales.isPending}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Hapus
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Informasi Sales
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                        <Hash className="w-4 h-4" />
-                        ID Sales
-                      </label>
-                      <p className="text-gray-900 font-mono text-lg">#{sales.id_sales}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Nama Sales</label>
-                      <p className="text-gray-900 font-medium text-lg">{sales.nama_sales}</p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        Nomor Telepon
-                      </label>
-                      <p className="text-gray-900">{sales.nomor_telepon || "Tidak tersedia"}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-600">Status</label>
-                      <div className="mt-1">
-                        <Badge 
-                          className={sales.status_aktif ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                        >
-                          {sales.status_aktif ? "Aktif" : "Nonaktif"}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                        <Store className="w-4 h-4" />
-                        Total Toko
-                      </label>
-                      <p className="text-gray-900 font-bold text-2xl">{stores.length}</p>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        Terakhir Diperbarui
-                      </label>
-                      <p className="text-gray-900">
-                        {new Date(sales.diperbarui_pada).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Statistics */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Statistik Penjualan
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {statsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="ml-2 text-gray-600">Memuat statistik...</span>
-                  </div>
-                ) : statsError ? (
-                  <div className="text-center py-8">
-                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                    <div className="text-red-600 font-medium">Gagal memuat statistik</div>
-                    <div className="text-sm text-gray-500 mt-1">Silakan refresh halaman</div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-center w-12 h-12 bg-blue-500 rounded-lg mx-auto mb-3">
-                        <Store className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-blue-600 mb-1">
-                        {currentStats?.total_stores || 0}
-                      </div>
-                      <div className="text-sm font-medium text-blue-700">Total Toko</div>
-                    </div>
-                    
-                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                      <div className="flex items-center justify-center w-12 h-12 bg-green-500 rounded-lg mx-auto mb-3">
-                        <TrendingUp className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-green-600 mb-1">
-                        {currentStats?.total_shipped_items || 0}
-                      </div>
-                      <div className="text-sm font-medium text-green-700">Total Terkirim</div>
-                      <div className="text-xs text-green-600 mt-1">Unit produk</div>
-                    </div>
-                    
-                    <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                      <div className="flex items-center justify-center w-12 h-12 bg-purple-500 rounded-lg mx-auto mb-3">
-                        <DollarSign className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="text-3xl font-bold text-purple-600 mb-1">
-                        {formatCurrency(currentStats?.total_revenue || 0)}
-                      </div>
-                      <div className="text-sm font-medium text-purple-700">Total Pendapatan</div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Store Information */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="w-5 h-5" />
-                  Daftar Toko ({stores.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {storeLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="ml-2 text-gray-600">Memuat toko...</span>
-                  </div>
-                ) : stores.length > 0 ? (
-                  <div className="space-y-3">
-                    {stores.slice(0, 5).map((store: StoreData) => (
-                      <div key={store.id_toko} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="p-2 bg-blue-100 rounded-full">
-                          <Store className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{store.nama_toko}</div>
-                          <div className="text-sm text-gray-600 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {store.kecamatan}, {store.kabupaten}
-                          </div>
-                        </div>
-                        <Badge className={store.status_toko ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                          {store.status_toko ? "Aktif" : "Nonaktif"}
-                        </Badge>
-                      </div>
-                    ))}
-                    {stores.length > 5 && (
-                      <div className="text-center py-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => router.push(`/dashboard/master-data/toko?sales=${salesId}`)}
-                        >
-                          Lihat Semua ({stores.length}) Toko
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Store className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <div className="text-gray-500 font-medium">Belum ada toko</div>
-                    <div className="text-sm text-gray-400 mt-1">Toko yang dikelola sales ini akan muncul di sini</div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Aktivitas Terbaru
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Recent Shipments */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Pengiriman Terbaru</h4>
-                    {shipmentLoading ? (
-                      <div className="text-sm text-gray-500">Memuat pengiriman...</div>
-                    ) : shipments.length > 0 ? (
-                      <div className="space-y-2">
-                        {shipments.slice(0, 3).map((shipment: ShipmentData) => (
-                          <div key={shipment.id_pengiriman} className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                            <Truck className="w-4 h-4 text-blue-600" />
-                            <div className="flex-1">
-                              <div className="text-sm font-medium text-gray-900">
-                                Pengiriman ke {stores.find((s: StoreData) => s.id_toko === shipment.id_toko)?.nama_toko}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                {new Date(shipment.tanggal_kirim).toLocaleDateString("id-ID")}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500">Belum ada pengiriman</div>
-                    )}
-                  </div>
-
-                  {/* Recent Billings */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Penagihan Terbaru</h4>
-                    {billingLoading ? (
-                      <div className="text-sm text-gray-500">Memuat penagihan...</div>
-                    ) : billings.length > 0 ? (
-                      <div className="space-y-2">
-                        {billings.slice(0, 3).map((billing: BillingData) => (
-                          <div key={billing.id_penagihan} className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
-                            <ShoppingCart className="w-4 h-4 text-green-600" />
-                            <div className="flex-1">
-                              <div className="text-sm font-medium text-gray-900">
-                                Penagihan {stores.find((s: StoreData) => s.id_toko === billing.id_toko)?.nama_toko}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                {new Date(billing.tanggal_tagih).toLocaleDateString("id-ID")} - {formatCurrency(billing.total_uang_diterima)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500">Belum ada penagihan</div>
-                    )}
-                  </div>
-
-                  {/* Recent Deposits */}
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Setoran Terbaru</h4>
-                    {depositLoading ? (
-                      <div className="text-sm text-gray-500">Memuat setoran...</div>
-                    ) : deposits.length > 0 ? (
-                      <div className="space-y-2">
-                        {deposits.slice(0, 3).map((deposit: DepositData) => (
-                          <div key={deposit.id_setoran} className="flex items-center gap-3 p-2 bg-purple-50 rounded-lg">
-                            <DollarSign className="w-4 h-4 text-purple-600" />
-                            <div className="flex-1">
-                              <div className="text-sm font-medium text-gray-900">
-                                Setoran {formatCurrency(deposit.total_setoran)}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                {new Date(deposit.tanggal_setoran).toLocaleDateString("id-ID")}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-gray-500">Belum ada setoran</div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Row 1: 3 Columns - Ringkasan Statistik (2 cols) | Informasi Sales (1 col) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+          {/* Summary Statistics - Column 1 */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Store className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Total Toko</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-blue-600">{stats?.total_stores || 0}</p>
+                <p className="text-sm text-gray-500">Toko yang dikelola</p>
+              </div>
+            )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Aksi Cepat
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push(`/dashboard/master-data/sales/${salesId}/edit`)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Sales
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push(`/dashboard/master-data/toko?sales=${salesId}`)}
-                >
-                  <Store className="w-4 h-4 mr-2" />
-                  Lihat Toko
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push(`/dashboard/pengiriman?sales=${salesId}`)}
-                >
-                  <Truck className="w-4 h-4 mr-2" />
-                  Lihat Pengiriman
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push(`/dashboard/penagihan?sales=${salesId}`)}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Lihat Penagihan
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push("/dashboard/master-data/sales")}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Lihat Semua Sales
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Summary Statistics - Column 2 */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Total Pendapatan</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-green-600">{formatCurrency(stats?.total_revenue || 0)}</p>
+                <p className="text-sm text-gray-500">Pendapatan keseluruhan</p>
+              </div>
+            )}
+          </div>
 
-            {/* Metadata */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Informasi Sistem
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {/* Sales Information - Column 3 */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 md:col-span-2 xl:col-span-1">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-indigo-50 rounded-lg">
+                <Users className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Informasi Sales</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <Hash className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Dibuat Pada</label>
-                  <p className="text-gray-900 text-sm">
-                    {new Date(sales.dibuat_pada).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">ID Sales</p>
+                  <p className="text-sm text-gray-600">#{sales.id_sales}</p>
                 </div>
-                
+              </div>
+              <div className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Terakhir Diperbarui</label>
-                  <p className="text-gray-900 text-sm">
-                    {new Date(sales.diperbarui_pada).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">Telepon</p>
+                  <p className="text-sm text-gray-600">{sales.nomor_telepon || 'Tidak tersedia'}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-start gap-3">
+                <Activity className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Status</p>
+                  <Badge 
+                    className={sales.status_aktif ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-700 border-gray-200"}
+                  >
+                    {sales.status_aktif ? 'Aktif' : 'Nonaktif'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Bergabung</p>
+                  <p className="text-sm text-gray-600">{formatDate(sales.dibuat_pada)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: 2 Columns - Ringkasan Stok | Statistik Penjualan Produk */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-6">
+          {/* Inventory Summary */}
+          <div className="bg-white border border-gray-100 rounded-xl">
+            <div className="p-4 sm:p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-50 rounded-lg">
+                  <ShoppingCart className="w-5 h-5 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Ringkasan Stok</h3>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6">
+              {inventoryLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : inventory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Belum ada data stok</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[400px]">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Produk</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Harga</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Total Stok</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inventory.map((item: any, index: number) => (
+                          <tr key={item.id_produk} className={index !== inventory.length - 1 ? 'border-b border-gray-50' : ''}>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">{item.nama_produk}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 text-right px-1">{formatCurrency(item.harga_satuan)}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-indigo-600 text-right font-bold px-1">{item.total_quantity} unit</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Product Sales Statistics */}
+          <div className="bg-white border border-gray-100 rounded-xl">
+            <div className="p-4 sm:p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-50 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Performa Produk</h3>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6">
+              {productSalesLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : productSales.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Belum ada data penjualan</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[500px]">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Produk</th>
+                          <th className="text-center text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Transaksi</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Unit Terjual</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Total Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productSales.map((item: any, index: number) => (
+                          <tr key={item.id_produk} className={index !== productSales.length - 1 ? 'border-b border-gray-50' : ''}>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">{item.nama_produk}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 text-center px-1">{item.total_transactions}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-900 text-right px-1">{item.total_quantity_sold}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-emerald-600 text-right font-bold px-1">{formatCurrency(item.total_revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Row 3: 2 Columns - Data Pengiriman Terakhir | Data Pembayaran Terakhir */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+          {/* Recent Shipments */}
+          <div className="bg-white border border-gray-100 rounded-xl">
+            <div className="p-4 sm:p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Package className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Data Pengiriman Terakhir</h2>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6">
+              {shipmentsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : recentShipments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Belum ada data pengiriman</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[500px]">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">ID</th>
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Toko</th>
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Tanggal</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Qty</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Nilai</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentShipments.map((shipment, index) => (
+                          <tr key={shipment.id_pengiriman} className={index !== recentShipments.length - 1 ? 'border-b border-gray-50' : ''}>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">#{shipment.id_pengiriman}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 px-1">{shipment.toko?.nama_toko}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 px-1">{formatDate(shipment.tanggal_kirim)}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-900 text-right px-1">{shipment.total_quantity}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-900 text-right font-medium px-1">{formatCurrency(shipment.total_value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Payments */}
+          <div className="bg-white border border-gray-100 rounded-xl">
+            <div className="p-4 sm:p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Data Pembayaran Terakhir</h2>
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6">
+              {paymentsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : recentPayments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>Belum ada data pembayaran</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[500px]">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">ID</th>
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Toko</th>
+                          <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Tanggal</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Qty</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Jumlah</th>
+                          <th className="text-center text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Metode</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentPayments.map((payment, index) => (
+                          <tr key={payment.id_penagihan} className={index !== recentPayments.length - 1 ? 'border-b border-gray-50' : ''}>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">#{payment.id_penagihan}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 px-1">{payment.toko?.nama_toko}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 px-1">{formatDate(payment.dibuat_pada)}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-900 text-right px-1">{payment.total_quantity}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-900 text-right font-medium px-1">{formatCurrency(payment.total_uang_diterima)}</td>
+                            <td className="py-2 sm:py-3 text-center px-1">
+                              <Badge 
+                                variant={payment.metode_pembayaran === 'Cash' ? 'default' : 'secondary'}
+                                className={`text-xs ${payment.metode_pembayaran === 'Cash' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
+                              >
+                                {payment.metode_pembayaran}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

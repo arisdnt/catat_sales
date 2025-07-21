@@ -286,8 +286,19 @@ async function getDashboardStats(timeFilter?: string | null) {
       }
     }
     
+    // Try to use new materialized views first, fallback to direct queries
+    let realtimeStats = null
+    try {
+      const { data: statsData } = await supabaseAdmin
+        .from('mv_dashboard_realtime_stats')
+        .select('*')
+        .single()
+      realtimeStats = statsData
+    } catch (error) {
+      console.log('Materialized view not available, using direct queries')
+    }
     
-    // Basic counts
+    // Basic counts - use materialized view data if available, otherwise direct queries
     const [
       { count: pengirimanCount },
       { count: penagihanCount },
@@ -296,7 +307,15 @@ async function getDashboardStats(timeFilter?: string | null) {
       { count: produkCount },
       { count: salesCount },
       { data: pendapatanData }
-    ] = await Promise.all([
+    ] = realtimeStats ? [
+      { count: realtimeStats.total_pengiriman },
+      { count: realtimeStats.total_penagihan },
+      { count: realtimeStats.total_setoran },
+      { count: realtimeStats.total_toko },
+      { count: realtimeStats.total_produk },
+      { count: realtimeStats.total_sales },
+      { data: [{ total_uang_diterima: realtimeStats.pendapatan_harian }] }
+    ] : await Promise.all([
       supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('penagihan').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('setoran').select('*', { count: 'exact', head: true }),
@@ -332,6 +351,25 @@ async function getDashboardStats(timeFilter?: string | null) {
       // Sales query error - continue with empty data
     }
     
+    // Try to use new materialized views for enhanced data
+    let enhancedSalesPerformance = null
+    let enhancedAssetDistribution = null
+    let enhancedReceivables = null
+    
+    try {
+      const [salesPerfData, assetDistData, receivablesData] = await Promise.all([
+        supabaseAdmin.from('mv_sales_performance_real').select('*'),
+        supabaseAdmin.from('mv_asset_distribution_real').select('*'),
+        supabaseAdmin.from('mv_receivables_aging_real').select('*')
+      ])
+      
+      enhancedSalesPerformance = salesPerfData.data
+      enhancedAssetDistribution = assetDistData.data
+      enhancedReceivables = receivablesData.data
+    } catch (error) {
+      console.log('Enhanced materialized views not available, using fallback queries')
+    }
+
     const [
       { data: topProductsData },
       { data: topStoresData },
@@ -339,30 +377,68 @@ async function getDashboardStats(timeFilter?: string | null) {
       { data: cashInHandData }
     ] = await Promise.all([
       
-      // Top products (from penagihan view)
-      (() => {
-        let query = supabaseAdmin
-          .from('v_laporan_penagihan')
-          .select('nama_produk, jumlah_terjual, nilai_terjual')
-        if (useTimeFilter) {
-          query = query
-            .gte('tanggal_tagih', currentMonth + '-01')
-            .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
+      // Top products (from v_laporan_penagihan or fallback)
+      (async () => {
+        try {
+          let query = supabaseAdmin
+            .from('v_laporan_penagihan')
+            .select('nama_produk, jumlah_terjual, nilai_terjual')
+          if (useTimeFilter) {
+            query = query
+              .gte('tanggal_tagih', currentMonth + '-01')
+              .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
+          }
+          return await query
+        } catch (error) {
+          // Fallback to direct query
+          let query = supabaseAdmin
+            .from('penagihan')
+            .select(`
+              total_uang_diterima,
+              detail_penagihan!inner(
+                jumlah_terjual,
+                produk!inner(nama_produk, harga_satuan)
+              )
+            `)
+          if (useTimeFilter) {
+            query = query
+              .gte('dibuat_pada', currentMonth + '-01T00:00:00')
+              .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
+          }
+          return await query
         }
-        return query
       })(),
       
-      // Top stores (from penagihan view)
-      (() => {
-        let query = supabaseAdmin
-          .from('v_laporan_penagihan')
-          .select('nama_toko, nama_sales, total_uang_diterima')
-        if (useTimeFilter) {
-          query = query
-            .gte('tanggal_tagih', currentMonth + '-01')
-            .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
+      // Top stores (from v_laporan_penagihan or fallback)
+      (async () => {
+        try {
+          let query = supabaseAdmin
+            .from('v_laporan_penagihan')
+            .select('nama_toko, nama_sales, total_uang_diterima')
+          if (useTimeFilter) {
+            query = query
+              .gte('tanggal_tagih', currentMonth + '-01')
+              .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
+          }
+          return await query
+        } catch (error) {
+          // Fallback to direct query
+          let query = supabaseAdmin
+            .from('penagihan')
+            .select(`
+              total_uang_diterima,
+              toko!inner(
+                nama_toko,
+                sales!inner(nama_sales)
+              )
+            `)
+          if (useTimeFilter) {
+            query = query
+              .gte('dibuat_pada', currentMonth + '-01T00:00:00')
+              .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
+          }
+          return await query
         }
-        return query
       })(),
       
       // Monthly trends (last 3 months) - get both penagihan and setoran data
@@ -380,24 +456,53 @@ async function getDashboardStats(timeFilter?: string | null) {
         setoran: setoranResult.data || []
       })),
       
-      // Cash in hand (Cash payments without setoran)
-      supabaseAdmin
-        .from('penagihan')
-        .select('total_uang_diterima, dibuat_pada, toko!inner(sales!inner(nama_sales))')
-        .eq('metode_pembayaran', 'Cash')
-        .gte('dibuat_pada', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      // Real cash in hand calculation
+      (async () => {
+        if (enhancedSalesPerformance) {
+          return { data: enhancedSalesPerformance.filter(s => s.kas_di_tangan > 0) }
+        } else {
+          // Fallback: Cash payments minus deposits per sales
+          return supabaseAdmin
+            .from('penagihan')
+            .select(`
+              total_uang_diterima, 
+              dibuat_pada, 
+              toko!inner(
+                sales!inner(nama_sales)
+              )
+            `)
+            .eq('metode_pembayaran', 'Cash')
+            .gte('dibuat_pada', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        }
+      })()
     ])
 
     
-    // Process the data
-    const processedSalesPerformance = processSalesPerformance(salesData || [])
+    // Process the data - use enhanced data when available
+    const processedSalesPerformance = enhancedSalesPerformance || processSalesPerformance(salesData || [])
     
-    const processedTopProducts = processTopProducts(topProductsData || [])
-    const processedTopStores = processTopStores(topStoresData || [])
+    const processedTopProducts = processTopProducts(
+      Array.isArray(topProductsData) && topProductsData.length > 0 && 'nama_produk' in topProductsData[0] 
+        ? topProductsData as ProductData[]
+        : []
+    )
+    const processedTopStores = processTopStores(
+      Array.isArray(topStoresData) && topStoresData.length > 0 && 'nama_toko' in topStoresData[0]
+        ? topStoresData as StoreData[]
+        : []
+    )
     const processedMonthlyTrends = processMonthlyTrends(monthlyTrendsData || [])
-    const processedCashInHand = processCashInHand(cashInHandData || [])
-    const processedAssetDistribution = generateAssetDistribution(pendapatanHarian, pengirimanCount || 0, produkCount || 0)
-    const processedReceivables = generateReceivablesAging(pendapatanHarian)
+    const processedCashInHand = enhancedSalesPerformance ? 
+      enhancedSalesPerformance.filter(s => s.kas_di_tangan > 0).map(s => ({
+        nama_sales: s.nama_sales,
+        kas_di_tangan: s.kas_di_tangan
+      })) : processCashInHand(cashInHandData || [])
+    
+    const processedAssetDistribution = enhancedAssetDistribution || 
+      generateAssetDistribution(pendapatanHarian, pengirimanCount || 0, produkCount || 0)
+    
+    const processedReceivables = enhancedReceivables || 
+      generateReceivablesAging(pendapatanHarian)
 
     const stats = {
       totalPengiriman: pengirimanCount || 0,
@@ -420,7 +525,35 @@ async function getDashboardStats(timeFilter?: string | null) {
     return createSuccessResponse(stats)
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return createErrorResponse(`Failed to fetch dashboard stats: ${errorMessage}`)
+    console.error('Dashboard stats error:', error)
+    
+    // Return fallback stats in case of error
+    const fallbackStats = {
+      totalPengiriman: 0,
+      totalPenagihan: 0,
+      totalSetoran: 0,
+      totalToko: 0,
+      totalProduk: 0,
+      totalSales: 0,
+      pendapatanHarian: 0,
+      salesStats: [],
+      topProducts: [],
+      topStores: [],
+      assetDistribution: [
+        { category: 'Stok Gudang', amount: 0 },
+        { category: 'Barang di Jalan', amount: 0 },
+        { category: 'Piutang Beredar', amount: 0 },
+        { category: 'Kas di Tangan Sales', amount: 0 }
+      ],
+      salesPerformance: [],
+      monthlyTrends: [],
+      cashInHand: [],
+      receivables: [],
+      error: true,
+      errorMessage: `Dashboard temporarily unavailable: ${errorMessage}`
+    }
+    
+    return createSuccessResponse(fallbackStats)
   }
 }
 

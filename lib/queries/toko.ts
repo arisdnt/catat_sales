@@ -3,6 +3,17 @@ import { apiClient } from '@/lib/api-client'
 import { useToast } from '@/components/ui/use-toast'
 import { Sales } from '@/lib/queries/sales'
 
+export interface TokoActivity {
+  id: string
+  type: 'pengiriman' | 'penagihan' | 'setoran'
+  title: string
+  description: string
+  amount?: number
+  date: string
+  status?: string
+  details?: any
+}
+
 export interface ApiResponse<T> {
   success: boolean
   data: T
@@ -177,6 +188,94 @@ export function useTokoDetailQuery(id: number) {
     queryKey: tokoKeys.detail(id),
     queryFn: () => apiClient.getStoreById(id) as Promise<ApiResponse<Toko>>,
     enabled: !!id,
+  })
+}
+
+export function useTokoActivitiesQuery(id: number) {
+  return useQuery({
+    queryKey: [...tokoKeys.detail(id), 'activities'],
+    queryFn: () => apiClient.get(`/toko/${id}/activities`) as Promise<ApiResponse<TokoActivity[]>>,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+// New query for toko statistics
+export function useTokoStatsQuery(id: number) {
+  return useQuery({
+    queryKey: [...tokoKeys.detail(id), 'stats'],
+    queryFn: () => apiClient.get(`/toko/${id}/stats`) as Promise<ApiResponse<{
+      total_pengiriman: number
+      total_penagihan: number
+      total_nilai_pengiriman: number
+      total_nilai_penagihan: number
+      pengiriman_bulan_ini: number
+      penagihan_bulan_ini: number
+      rata_rata_pengiriman: number
+      last_activity: string
+    }>>,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+// New query for recent shipments
+export function useTokoRecentShipmentsQuery(id: number, limit: number = 10) {
+  return useQuery({
+    queryKey: [...tokoKeys.detail(id), 'recent-shipments', limit],
+    queryFn: () => apiClient.get(`/toko/${id}/recent-shipments?limit=${limit}`) as Promise<ApiResponse<Array<{
+      id_pengiriman: number
+      tanggal_kirim: string
+      total_quantity: number
+      total_value: number
+      is_autorestock: boolean
+      status: string
+    }>>>,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+// New query for recent payments
+export function useTokoRecentPaymentsQuery(id: number, limit: number = 10) {
+  return useQuery({
+    queryKey: [...tokoKeys.detail(id), 'recent-payments', limit],
+    queryFn: () => apiClient.get(`/toko/${id}/recent-payments?limit=${limit}`) as Promise<ApiResponse<Array<{
+      id_penagihan: number
+      tanggal_tagih: string
+      total_uang_diterima: number
+      metode_pembayaran: string
+      total_quantity: number
+      status: string
+    }>>>,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+export function useTokoInventoryQuery(id: number) {
+  return useQuery({
+    queryKey: ['toko', id, 'inventory'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/toko/${id}/inventory`) as ApiResponse<any[]>
+      return response.data
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  })
+}
+
+export function useTokoProductSalesQuery(id: number) {
+  return useQuery({
+    queryKey: ['toko', id, 'product-sales'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/toko/${id}/product-sales`) as ApiResponse<any[]>
+      return response.data
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   })
 }
 

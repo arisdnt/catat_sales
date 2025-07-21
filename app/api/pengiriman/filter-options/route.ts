@@ -124,19 +124,22 @@ export async function GET(request: NextRequest) {
         })
       }
       
-      // Calculate summary statistics
-      const totalShipments = summaryResult.data?.length || 0
-      const today = new Date().toDateString()
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
+      // Calculate summary statistics from database directly
+      const todayISO = new Date().toISOString().split('T')[0]
+      const weekAgoDate = new Date()
+      weekAgoDate.setDate(weekAgoDate.getDate() - 7)
+      const weekAgoISO = weekAgoDate.toISOString().split('T')[0]
       
-      const todayShipments = summaryResult.data?.filter((item: any) => 
-        new Date(item.tanggal_kirim).toDateString() === today
-      ).length || 0
+      // Get accurate counts from database
+      const [totalCount, todayCount, weekCount] = await Promise.all([
+        supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }).eq('tanggal_kirim', todayISO),
+        supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }).gte('tanggal_kirim', weekAgoISO)
+      ])
       
-      const thisWeekShipments = summaryResult.data?.filter((item: any) => 
-        new Date(item.tanggal_kirim) >= weekAgo
-      ).length || 0
+      const totalShipments = totalCount.count || 0
+      const todayShipments = todayCount.count || 0
+      const thisWeekShipments = weekCount.count || 0
       
       const uniqueTokoCount = summaryResult.data ? 
         new Set(summaryResult.data.map((item: any) => item.toko.id_toko)).size : 0

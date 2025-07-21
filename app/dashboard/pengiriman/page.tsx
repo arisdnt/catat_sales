@@ -400,7 +400,7 @@ export default function ShippingPage() {
     page: 1,
     limit: 20,
     search: '',
-    sortBy: 'tanggal_kirim',
+    sortBy: 'dibuat_pada',
     sortOrder: 'desc'
   })
 
@@ -527,8 +527,8 @@ export default function ShippingPage() {
     })
   }, [params, data, isLoading, error])
 
-  // Summary statistics with safe defaults
-  const summary = filterOptions?.summary
+  // Summary statistics with safe defaults - use data from main query for consistency
+  const summary = data?.summary || filterOptions?.summary
 
   return (
     <TooltipProvider>

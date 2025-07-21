@@ -41,6 +41,12 @@ export const salesKeys = {
   details: () => [...salesKeys.all, 'detail'] as const,
   detail: (id: number) => [...salesKeys.details(), id] as const,
   stats: () => [...salesKeys.all, 'stats'] as const,
+  activities: (id: number) => [...salesKeys.detail(id), 'activities'] as const,
+  recentShipments: (id: number, limit?: number) => [...salesKeys.detail(id), 'recent-shipments', { limit }] as const,
+  recentPayments: (id: number, limit?: number) => [...salesKeys.detail(id), 'recent-payments', { limit }] as const,
+  inventory: (id: number) => [...salesKeys.detail(id), 'inventory'] as const,
+  productSales: (id: number) => [...salesKeys.detail(id), 'product-sales'] as const,
+  detailStats: (id: number) => [...salesKeys.detail(id), 'stats'] as const,
 }
 
 // Queries
@@ -64,6 +70,98 @@ export function useSalesStatsQuery() {
   return useQuery({
     queryKey: salesKeys.stats(),
     queryFn: () => apiClient.getSalesStats() as Promise<ApiResponse<SalesStats[]>>,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export function useSalesDetailStatsQuery(id: number) {
+  return useQuery({
+    queryKey: salesKeys.detailStats(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/sales/${id}/stats`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales stats')
+      }
+      return response.json()
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export function useSalesActivitiesQuery(id: number) {
+  return useQuery({
+    queryKey: salesKeys.activities(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/sales/${id}/activities`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales activities')
+      }
+      return response.json()
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+export function useSalesRecentShipmentsQuery(id: number, limit?: number) {
+  return useQuery({
+    queryKey: salesKeys.recentShipments(id, limit),
+    queryFn: async () => {
+      const params = limit ? `?limit=${limit}` : ''
+      const response = await fetch(`/api/sales/${id}/recent-shipments${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent shipments')
+      }
+      return response.json()
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+export function useSalesRecentPaymentsQuery(id: number, limit?: number) {
+  return useQuery({
+    queryKey: salesKeys.recentPayments(id, limit),
+    queryFn: async () => {
+      const params = limit ? `?limit=${limit}` : ''
+      const response = await fetch(`/api/sales/${id}/recent-payments${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent payments')
+      }
+      return response.json()
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+export function useSalesInventoryQuery(id: number) {
+  return useQuery({
+    queryKey: salesKeys.inventory(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/sales/${id}/inventory`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales inventory')
+      }
+      return response.json()
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+}
+
+export function useSalesProductSalesQuery(id: number) {
+  return useQuery({
+    queryKey: salesKeys.productSales(id),
+    queryFn: async () => {
+      const response = await fetch(`/api/sales/${id}/product-sales`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch product sales data')
+      }
+      return response.json()
+    },
+    enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
