@@ -224,8 +224,8 @@ class ApiClient {
     })
   }
 
-  // Bulk Shipment API
-  async createBulkShipment(data: {
+  // Batch Shipment API (replaces bulk shipment)
+  async createBatchShipment(data: {
     id_sales: number
     tanggal_kirim: string
     stores: Array<{
@@ -237,18 +237,19 @@ class ApiClient {
     }>
     keterangan?: string
   }) {
-    return this.request('/pengiriman/bulk', {
+    return this.request('/pengiriman/batch', {
       method: 'POST',
       body: JSON.stringify(data)
     })
   }
 
-  async getBulkShipments(id_sales?: number, limit?: number) {
+  async getBatchShipments(id_sales?: number, tanggal_kirim?: string, limit?: number) {
     const params = new URLSearchParams()
     if (id_sales) params.append('id_sales', id_sales.toString())
+    if (tanggal_kirim) params.append('tanggal_kirim', tanggal_kirim)
     if (limit) params.append('limit', limit.toString())
     const queryString = params.toString()
-    return this.request(`/pengiriman/bulk${queryString ? `?${queryString}` : ''}`)
+    return this.request(`/pengiriman/batch${queryString ? `?${queryString}` : ''}`)
   }
 
   // Priority Products API

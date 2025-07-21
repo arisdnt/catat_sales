@@ -171,12 +171,12 @@ export default function ShippingPage() {
         emptyStateIcon={Truck}
         customActions={[
           <Button
-            key="bulk-add"
-            onClick={() => navigate('/dashboard/pengiriman/bulk')}
+            key="batch-add"
+            onClick={() => navigate('/dashboard/pengiriman/batch')}
             className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
           >
             <Truck className="w-4 h-4 mr-2" />
-            Input Bulk
+            Input Batch
           </Button>
         ]}
         actions={[

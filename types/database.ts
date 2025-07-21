@@ -99,7 +99,7 @@ export interface Database {
           id_pengiriman: number
           id_toko: number
           tanggal_kirim: string
-          id_bulk_pengiriman: number | null
+          is_autorestock: boolean | null
           dibuat_pada: string
           diperbarui_pada: string
         }
@@ -107,7 +107,7 @@ export interface Database {
           id_pengiriman?: number
           id_toko: number
           tanggal_kirim: string
-          id_bulk_pengiriman?: number | null
+          is_autorestock?: boolean | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }
@@ -115,39 +115,7 @@ export interface Database {
           id_pengiriman?: number
           id_toko?: number
           tanggal_kirim?: string
-          id_bulk_pengiriman?: number | null
-          dibuat_pada?: string
-          diperbarui_pada?: string
-        }
-      }
-      bulk_pengiriman: {
-        Row: {
-          id_bulk_pengiriman: number
-          id_sales: number
-          tanggal_kirim: string
-          total_toko: number
-          total_item: number
-          keterangan: string | null
-          dibuat_pada: string
-          diperbarui_pada: string
-        }
-        Insert: {
-          id_bulk_pengiriman?: number
-          id_sales: number
-          tanggal_kirim: string
-          total_toko: number
-          total_item: number
-          keterangan?: string | null
-          dibuat_pada?: string
-          diperbarui_pada?: string
-        }
-        Update: {
-          id_bulk_pengiriman?: number
-          id_sales?: number
-          tanggal_kirim?: string
-          total_toko?: number
-          total_item?: number
-          keterangan?: string | null
+          is_autorestock?: boolean | null
           dibuat_pada?: string
           diperbarui_pada?: string
         }

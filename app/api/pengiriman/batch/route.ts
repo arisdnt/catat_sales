@@ -1,26 +1,26 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
-interface BulkShipmentDetail {
+interface BatchShipmentDetail {
   id_produk: number
   jumlah_kirim: number
 }
 
-interface BulkShipmentStore {
+interface BatchShipmentStore {
   id_toko: number
-  details: BulkShipmentDetail[]
+  details: BatchShipmentDetail[]
 }
 
-interface BulkShipmentRequest {
+interface BatchShipmentRequest {
   id_sales: number
   tanggal_kirim: string
-  stores: BulkShipmentStore[]
+  stores: BatchShipmentStore[]
   keterangan?: string
 }
 
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
-    const body: BulkShipmentRequest = await request.json()
+    const body: BatchShipmentRequest = await request.json()
     const { id_sales, tanggal_kirim, stores, keterangan } = body
 
     // Validation
@@ -81,41 +81,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate totals
-    const totalStores = stores.length
-    const totalItems = stores.reduce((sum, store) => 
-      sum + store.details.reduce((storeSum, detail) => storeSum + detail.jumlah_kirim, 0), 0
-    )
-
-    // Start transaction by creating bulk_pengiriman record
-    const { data: bulkData, error: bulkError } = await supabaseAdmin
-      .from('bulk_pengiriman')
-      .insert([{
-        id_sales,
-        tanggal_kirim,
-        total_toko: totalStores,
-        total_item: totalItems,
-        keterangan: keterangan || null
-      }])
-      .select()
-      .single()
-
-    if (bulkError) {
-      return createErrorResponse(bulkError.message)
-    }
-
     const createdShipments = []
     
     try {
-      // Process each store
+      // Process each store individually (no bulk_pengiriman needed)
       for (const store of stores) {
-        // Create pengiriman record
+        // Create pengiriman record directly
         const { data: pengirimanData, error: pengirimanError } = await supabaseAdmin
           .from('pengiriman')
           .insert([{
             id_toko: store.id_toko,
             tanggal_kirim,
-            id_bulk_pengiriman: bulkData.id_bulk_pengiriman
+            is_autorestock: false // This is manual batch input
           }])
           .select()
           .single()
@@ -142,98 +119,83 @@ export async function POST(request: NextRequest) {
         createdShipments.push({
           id_pengiriman: pengirimanData.id_pengiriman,
           id_toko: store.id_toko,
-          detail_count: store.details.length
+          detail_count: store.details.length,
+          total_items: store.details.reduce((sum, detail) => sum + detail.jumlah_kirim, 0)
         })
       }
 
-      // Fetch complete data with relationships
-      const { data: completeData, error: fetchError } = await supabaseAdmin
-        .from('bulk_pengiriman')
-        .select(`
-          id_bulk_pengiriman,
-          tanggal_kirim,
-          total_toko,
-          total_item,
-          keterangan,
-          dibuat_pada,
-          sales!inner(
-            id_sales,
-            nama_sales,
-            nomor_telepon
-          ),
-          pengiriman!inner(
-            id_pengiriman,
-            toko!inner(
-              id_toko,
-              nama_toko,
-              kecamatan,
-              kabupaten
-            ),
-            detail_pengiriman!inner(
-              id_detail_kirim,
-              jumlah_kirim,
-              produk!inner(
-                id_produk,
-                nama_produk,
-                harga_satuan
-              )
-            )
-          )
-        `)
-        .eq('id_bulk_pengiriman', bulkData.id_bulk_pengiriman)
-        .single()
+      // Calculate totals
+      const totalStores = stores.length
+      const totalItems = createdShipments.reduce((sum, shipment) => sum + shipment.total_items, 0)
 
-      if (fetchError) {
-        // Don't fail the operation, just return basic data
-        return createSuccessResponse({
-          id_bulk_pengiriman: bulkData.id_bulk_pengiriman,
-          message: 'Bulk shipment created successfully',
-          created_shipments: createdShipments,
+      const response = {
+        message: `Batch shipment created successfully for ${totalStores} stores`,
+        created_shipments: createdShipments,
+        summary: {
           total_stores: totalStores,
-          total_items: totalItems
-        }, 201)
+          total_items: totalItems,
+          tanggal_kirim,
+          keterangan: keterangan || null,
+          sales_id: id_sales
+        }
       }
 
-      return createSuccessResponse(completeData, 201)
+      return createSuccessResponse(response, 201)
 
     } catch (error) {
-      // Rollback: delete the bulk_pengiriman record (cascade will handle the rest)
-      await supabaseAdmin
-        .from('bulk_pengiriman')
-        .delete()
-        .eq('id_bulk_pengiriman', bulkData.id_bulk_pengiriman)
-
-      return createErrorResponse(error instanceof Error ? error.message : 'Failed to create bulk shipment')
+      // If any error occurs, the individual pengiriman records that were created will remain
+      // This is acceptable as each pengiriman is independent
+      return createErrorResponse(error instanceof Error ? error.message : 'Failed to create batch shipment')
     }
   })
 }
 
+// Get batch shipments (now just regular pengiriman records)
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const { searchParams } = new URL(request.url)
     const id_sales = searchParams.get('id_sales')
-    const limit = searchParams.get('limit') || '10'
+    const tanggal_kirim = searchParams.get('tanggal_kirim')
+    const limit = parseInt(searchParams.get('limit') || '20')
     
     let query = supabaseAdmin
-      .from('bulk_pengiriman')
+      .from('pengiriman')
       .select(`
-        id_bulk_pengiriman,
+        id_pengiriman,
         tanggal_kirim,
-        total_toko,
-        total_item,
-        keterangan,
         dibuat_pada,
-        sales!inner(
-          id_sales,
-          nama_sales,
-          nomor_telepon
+        is_autorestock,
+        toko!inner(
+          id_toko,
+          nama_toko,
+          kecamatan,
+          kabupaten,
+          sales!inner(
+            id_sales,
+            nama_sales,
+            nomor_telepon
+          )
+        ),
+        detail_pengiriman(
+          id_detail_kirim,
+          jumlah_kirim,
+          produk(
+            id_produk,
+            nama_produk,
+            harga_satuan
+          )
         )
       `)
       .order('tanggal_kirim', { ascending: false })
-      .limit(parseInt(limit))
+      .order('dibuat_pada', { ascending: false })
+      .limit(limit)
 
     if (id_sales) {
-      query = query.eq('id_sales', parseInt(id_sales))
+      query = query.eq('toko.sales.id_sales', parseInt(id_sales))
+    }
+
+    if (tanggal_kirim) {
+      query = query.eq('tanggal_kirim', tanggal_kirim)
     }
 
     const { data, error } = await query
@@ -242,6 +204,29 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(error.message)
     }
 
-    return createSuccessResponse(data)
+    // Group by date and sales for better organization
+    const grouped = data?.reduce((acc, shipment: any) => {
+      const salesInfo = shipment.toko?.sales
+      if (!salesInfo) return acc
+      
+      const key = `${shipment.tanggal_kirim}_${salesInfo.id_sales}`
+      if (!acc[key]) {
+        acc[key] = {
+          tanggal_kirim: shipment.tanggal_kirim,
+          sales: salesInfo,
+          shipments: [],
+          total_stores: 0,
+          total_items: 0
+        }
+      }
+      acc[key].shipments.push(shipment)
+      acc[key].total_stores += 1
+      acc[key].total_items += shipment.detail_pengiriman?.reduce((sum: number, detail: any) => 
+        sum + (detail.jumlah_kirim || 0), 0) || 0
+      
+      return acc
+    }, {} as any)
+
+    return createSuccessResponse(Object.values(grouped || {}))
   })
 }

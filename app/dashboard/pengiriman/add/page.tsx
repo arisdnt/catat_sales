@@ -373,7 +373,7 @@ export default function AddPengirimanPage() {
         }
       }).filter(store => store.details.length > 0)
 
-      const response = await apiClient.createBulkShipment({
+      const response = await apiClient.createBatchShipment({
         id_sales: formData.selectedSales!,
         tanggal_kirim: formData.tanggalKirim,
         stores,
