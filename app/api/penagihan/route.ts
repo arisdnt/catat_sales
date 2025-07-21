@@ -207,7 +207,8 @@ export async function POST(request: NextRequest) {
             .from('pengiriman')
             .insert([{
               id_toko: parseInt(id_toko),
-              tanggal_kirim: today
+              tanggal_kirim: today,
+              is_autorestock: true
             }])
             .select()
             .single()

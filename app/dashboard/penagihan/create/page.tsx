@@ -72,6 +72,7 @@ interface StoreRow {
 
 interface FormData {
   selectedSales: number | null
+  autoRestock: boolean
 }
 
 export default function CreatePenagihanPage() {
@@ -87,7 +88,8 @@ export default function CreatePenagihanPage() {
   
   // Form data
   const [formData, setFormData] = useState<FormData>({
-    selectedSales: null
+    selectedSales: null,
+    autoRestock: true // Default to active
   })
   
   // Product and store data
@@ -538,7 +540,7 @@ export default function CreatePenagihanPage() {
             jumlah_potongan: row.jumlah_potongan,
             alasan: row.alasan_potongan || undefined
           } : undefined,
-          auto_restock: true, // Always enabled for bulk penagihan
+          auto_restock: formData.autoRestock,
           additional_shipment: row.additional_shipment.enabled ? {
             enabled: true,
             details: [
@@ -564,7 +566,7 @@ export default function CreatePenagihanPage() {
           const responseData = (result as any).data
           let successMessage = `Penagihan berhasil disimpan untuk toko ${row.nama_toko}`
           
-          if (responseData.auto_restock_shipment) {
+          if (formData.autoRestock && responseData.auto_restock_shipment) {
             successMessage += ` dengan auto-restock pengiriman`
           }
           
@@ -581,7 +583,7 @@ export default function CreatePenagihanPage() {
       
       toast({
         title: 'Berhasil',
-        description: `Penagihan berhasil disimpan untuk ${storeRows.length} toko`,
+        description: `Penagihan berhasil disimpan untuk ${storeRows.length} toko${formData.autoRestock ? ' dengan auto-restock' : ''}`,
       })
 
       // Invalidate penagihan queries to refresh data
@@ -594,7 +596,8 @@ export default function CreatePenagihanPage() {
       
       // Reset form after successful submission
       setFormData({ 
-        selectedSales: null
+        selectedSales: null,
+        autoRestock: true
       })
       setStoreRows([])
       setSearchQuery('')
@@ -790,15 +793,6 @@ export default function CreatePenagihanPage() {
             >
               <ArrowLeft className="w-4 h-4" />
               Batal
-            </Button>
-            <Button
-              type="submit"
-              form="penagihan-form"
-              disabled={isSubmitting || !formData.selectedSales || storeRows.length === 0}
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </div>
         </div>
@@ -1160,6 +1154,37 @@ export default function CreatePenagihanPage() {
             </div>
           )}
 
+          {/* Auto-restock Setting */}
+          {formData.selectedSales && (
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Receipt className="w-5 h-5 text-green-600" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900">Pengaturan Auto-restock</h4>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={formData.autoRestock}
+                  onCheckedChange={(checked) => updateFormData({ autoRestock: checked as boolean })}
+                  id="auto-restock"
+                />
+                <Label htmlFor="auto-restock" className="text-sm font-medium text-gray-700">
+                  Aktifkan auto-restock (otomatis kirim ulang barang yang terjual)
+                </Label>
+              </div>
+              
+              {formData.autoRestock && (
+                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm text-green-700">
+                    ✓ Sistem akan otomatis membuat pengiriman baru dengan jumlah sama dengan barang yang terjual
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Status Information & Total Transaction */}
           {storeRows.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -1175,9 +1200,11 @@ export default function CreatePenagihanPage() {
                         </div>
                         
                         <div className="flex flex-wrap gap-2">
-                          <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                            Auto-restock aktif
-                          </span>
+                          {formData.autoRestock && (
+                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                              Auto-restock aktif
+                            </span>
+                          )}
                           {(() => {
                             const additionalShipmentCount = storeRows.reduce((count, row) => {
                               if (!row.additional_shipment.enabled) return count
@@ -1248,7 +1275,7 @@ export default function CreatePenagihanPage() {
               className="flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <Save className="w-4 h-4" />
-              {isSubmitting ? 'Menyimpan...' : 'Simpan Penagihan'}
+              {isSubmitting ? 'Menyimpan...' : `Simpan Penagihan${formData.autoRestock ? ' + Auto-restock' : ''}`}
             </Button>
           </div>
         </form>

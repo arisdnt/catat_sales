@@ -108,7 +108,14 @@ function PengirimanDataTable({
         const pengiriman = row.original
         return (
           <div className="text-left">
-            <div className="font-mono text-sm font-medium text-gray-900">#{pengiriman.id_pengiriman}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-mono text-sm font-medium text-gray-900">#{pengiriman.id_pengiriman}</div>
+              {pengiriman.is_autorestock && (
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                  Auto-restock
+                </Badge>
+              )}
+            </div>
             <div className="text-xs text-gray-500">
               {new Date(pengiriman.tanggal_kirim).toLocaleDateString('id-ID', { 
                 day: '2-digit', 

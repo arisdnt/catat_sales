@@ -18,6 +18,7 @@ export interface PengirimanWithDetails {
   nama_sales: string
   nomor_telepon?: string
   total_quantity: number
+  is_autorestock?: boolean
   detail_pengiriman: Array<{
     id_detail_kirim: number
     id_produk: number

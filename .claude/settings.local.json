@@ -30,7 +30,8 @@
       "Bash(pkill:*)",
       "Bash(npx eslint:*)",
       "Bash(timeout:*)",
-      "Bash(npx next build:*)"
+      "Bash(npx next build:*)",
+      "WebFetch(domain:deksultan.netlify.app)"
     ],
     "deny": []
   }

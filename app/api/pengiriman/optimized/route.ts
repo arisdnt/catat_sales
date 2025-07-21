@@ -16,6 +16,7 @@ interface PengirimanWithDetails {
   nama_sales: string
   nomor_telepon?: string
   total_quantity: number
+  is_autorestock?: boolean
   detail_pengiriman: Array<{
     id_detail_kirim: number
     id_produk: number
@@ -194,6 +195,7 @@ export async function GET(request: NextRequest) {
       nama_sales: row.nama_sales,
       nomor_telepon: row.nomor_telepon,
       total_quantity: parseInt(row.total_quantity || '0'),
+      is_autorestock: row.is_autorestock || false,
       detail_pengiriman: row.detail_pengiriman || []
     }))
 
@@ -260,6 +262,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
         tanggal_kirim,
         dibuat_pada,
         diperbarui_pada,
+        is_autorestock,
         toko!inner(
           id_toko,
           nama_toko,
@@ -286,7 +289,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
     console.log('Query parameters:', { search, salesFilter, kabupatenFilter, kecamatanFilter, dateFrom, dateTo })
 
     // Build search conditions
-    let searchConditions = []
+    const searchConditions = []
     if (search) {
       // Try to parse as number for ID search
       const searchAsNumber = parseInt(search)
@@ -397,6 +400,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
         nama_sales: row.toko.sales.nama_sales,
         nomor_telepon: row.toko.sales.nomor_telepon,
         total_quantity: totalQuantity,
+        is_autorestock: row.is_autorestock || false,
         detail_pengiriman: row.detail_pengiriman?.map((detail: any) => ({
           id_detail_kirim: detail.id_detail_kirim,
           id_produk: detail.produk.id_produk,
