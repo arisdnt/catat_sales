@@ -211,6 +211,32 @@ function SalesDataTable({
       meta: { priority: 'medium', columnType: 'stats' },
     },
     {
+      accessorKey: 'total_stock',
+      header: 'Stok Tersisa',
+      cell: ({ row }) => {
+        const sales = row.original
+        const stats = sales.stats || { total_stock: 0, total_shipped_items: 0 }
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <Package className="h-4 w-4 text-orange-500" />
+            <div>
+              <div className="text-sm font-medium text-orange-600">
+                {formatNumber(stats.total_stock)}
+              </div>
+              <div className="text-xs text-gray-500">
+                dari {formatNumber(stats.total_shipped_items)} terkirim
+              </div>
+            </div>
+          </div>
+        )
+      },
+      size: 160,
+      minSize: 140,
+      maxSize: 180,
+      meta: { priority: 'high', columnType: 'stats' },
+    },
+    {
       accessorKey: 'total_revenue',
       header: 'Total Revenue',
       cell: ({ row }) => {

@@ -212,12 +212,23 @@ export async function GET(request: NextRequest) {
             const salesBillings = billingStats?.filter((b: any) => b.toko?.id_sales === sales.id_sales) || []
             const totalRevenue = salesBillings.reduce((sum: number, billing: any) => sum + (billing.total_uang_diterima || 0), 0)
             
+            // Calculate total sold items
+            const totalSoldItems = salesBillings.reduce((sum: number, billing: any) => {
+              const details = Array.isArray(billing.detail_penagihan) ? billing.detail_penagihan : []
+              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_terjual || 0), 0)
+            }, 0)
+            
+            // Calculate remaining stock (shipped - sold)
+            const totalStock = Math.max(0, totalShippedItems - totalSoldItems)
+            
             return {
               ...sales,
               stats: {
                 total_stores: storeCount,
                 total_shipped_items: totalShippedItems,
-                total_revenue: totalRevenue
+                total_revenue: totalRevenue,
+                total_stock: totalStock,
+                total_sold_items: totalSoldItems
               }
             }
           })

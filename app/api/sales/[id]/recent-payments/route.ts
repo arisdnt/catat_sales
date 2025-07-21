@@ -15,22 +15,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const supabase = createClient()
     
-    // Get recent payments from stores managed by this sales person
+    // First get stores for this sales person
+    const { data: stores, error: storesError } = await supabase
+      .from('toko')
+      .select('id_toko, nama_toko, kecamatan, kabupaten')
+      .eq('id_sales', salesId)
+
+    if (storesError) {
+      console.error('Error fetching stores:', storesError)
+      return NextResponse.json({ error: 'Failed to fetch stores' }, { status: 500 })
+    }
+
+    const storeIds = stores?.map(store => store.id_toko) || []
+    const storeMap = new Map(stores?.map(store => [store.id_toko, store]) || [])
+
+    if (storeIds.length === 0) {
+      return NextResponse.json({ data: [] })
+    }
+
+    // Get recent payments for these stores
     const { data: payments, error } = await supabase
       .from('penagihan')
       .select(`
         id_penagihan,
+        id_toko,
         total_uang_diterima,
         metode_pembayaran,
         ada_potongan,
         dibuat_pada,
-        toko:id_toko (
-          id_toko,
-          nama_toko,
-          kecamatan,
-          kabupaten,
-          id_sales
-        ),
         detail_penagihan (
           jumlah_terjual,
           jumlah_kembali,
@@ -40,7 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           )
         )
       `)
-      .eq('toko.id_sales', salesId)
+      .in('id_toko', storeIds)
       .order('dibuat_pada', { ascending: false })
       .limit(limit)
 
@@ -49,14 +61,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Failed to fetch payments' }, { status: 500 })
     }
 
-    // Transform the data to include calculated totals
+    // Transform the data to include calculated totals and store info
     const transformedPayments = payments?.map(payment => {
       const totalQuantity = payment.detail_penagihan?.reduce((sum, detail) => 
         sum + (detail.jumlah_terjual || 0) + (detail.jumlah_kembali || 0), 0) || 0
 
+      const store = storeMap.get(payment.id_toko)
+
       return {
         ...payment,
-        total_quantity: totalQuantity
+        total_quantity: totalQuantity,
+        toko: store ? {
+          id_toko: store.id_toko,
+          nama_toko: store.nama_toko,
+          kecamatan: store.kecamatan,
+          kabupaten: store.kabupaten
+        } : null
       }
     }) || []
 

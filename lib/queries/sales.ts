@@ -31,6 +31,7 @@ export interface SalesStats {
   total_stores: number
   total_shipped_items: number
   total_revenue: number
+  total_stock?: number
 }
 
 // Query Keys

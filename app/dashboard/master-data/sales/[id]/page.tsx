@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
@@ -31,9 +31,7 @@ import {
   ShoppingCart,
   CreditCard,
   Hash,
-  Store,
-  MapPin,
-  TrendingUp
+  Store
 } from 'lucide-react'
 
 export default function SalesDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,11 +40,11 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
   const { toast } = useToast()
 
   // Initialize params
-  useState(() => {
+  useEffect(() => {
     params.then(({ id }) => {
       setSalesId(parseInt(id))
     })
-  })
+  }, [params])
 
   const { data: salesResponse, isLoading, error, refetch } = useSalesDetailQuery(salesId!)
   const { data: statsResponse, isLoading: statsLoading } = useSalesDetailStatsQuery(salesId!)
@@ -172,8 +170,8 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Row 1: 3 Columns - Ringkasan Statistik (2 cols) | Informasi Sales (1 col) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
+        {/* Row 1: 4 Columns - Ringkasan Statistik (3 cols) | Informasi Sales (1 col) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6">
           {/* Summary Statistics - Column 1 */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -198,6 +196,27 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
           {/* Summary Statistics - Column 2 */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Package className="w-5 h-5 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Total Stok</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-purple-600">{stats?.total_stock || 0}</p>
+                <p className="text-sm text-gray-500">Total stok produk</p>
+              </div>
+            )}
+          </div>
+
+          {/* Summary Statistics - Column 3 */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-50 rounded-lg">
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
@@ -216,7 +235,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
 
-          {/* Sales Information - Column 3 */}
+          {/* Sales Information - Column 4 */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 md:col-span-2 xl:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-indigo-50 rounded-lg">
@@ -224,7 +243,8 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Informasi Sales</h3>
             </div>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Row 1 - Column 1: ID Sales */}
               <div className="flex items-start gap-3">
                 <Hash className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div>
@@ -232,13 +252,8 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                   <p className="text-sm text-gray-600">#{sales.id_sales}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Telepon</p>
-                  <p className="text-sm text-gray-600">{sales.nomor_telepon || 'Tidak tersedia'}</p>
-                </div>
-              </div>
+              
+              {/* Row 1 - Column 2: Status */}
               <div className="flex items-start gap-3">
                 <Activity className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div>
@@ -250,6 +265,17 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                   </Badge>
                 </div>
               </div>
+              
+              {/* Row 2 - Column 1: Telepon */}
+              <div className="flex items-start gap-3">
+                <Phone className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Telepon</p>
+                  <p className="text-sm text-gray-600">{sales.nomor_telepon || 'Tidak tersedia'}</p>
+                </div>
+              </div>
+              
+              {/* Row 2 - Column 2: Bergabung */}
               <div className="flex items-start gap-3">
                 <Calendar className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
                 <div>
@@ -290,13 +316,14 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <div className="min-w-[400px]">
+                  <div className="min-w-[500px]">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-100">
                           <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Produk</th>
                           <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Harga</th>
-                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Total Stok</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Terkirim</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Sisa Stok</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -304,7 +331,12 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                           <tr key={item.id_produk} className={index !== inventory.length - 1 ? 'border-b border-gray-50' : ''}>
                             <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">{item.nama_produk}</td>
                             <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 text-right px-1">{formatCurrency(item.harga_satuan)}</td>
-                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-indigo-600 text-right font-bold px-1">{item.total_quantity} unit</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-blue-600 text-right px-1">{item.shipped_quantity || item.total_quantity} unit</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-right px-1">
+                              <span className={`font-bold ${item.total_quantity > 0 ? 'text-green-600' : item.total_quantity === 0 ? 'text-gray-500' : 'text-red-500'}`}>
+                                {item.total_quantity} unit
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

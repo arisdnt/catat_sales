@@ -24,6 +24,7 @@ export interface FilterOptions {
     total_revenue: number
     total_items_sold: number
     total_items_returned: number
+    total_remaining_stock: number
     avg_stores_per_sales: number
     avg_revenue_per_sales: number
     avg_items_per_sales: number
@@ -77,6 +78,8 @@ export interface SalesWithStats {
     total_stores: number
     total_shipped_items: number
     total_revenue: number
+    total_stock: number
+    total_sold_items: number
   }
 }
 

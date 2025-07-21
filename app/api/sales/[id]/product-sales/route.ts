@@ -12,25 +12,40 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const supabase = createClient()
     
-    // Get product sales statistics across all stores managed by this sales person manually
+    // First get stores for this sales person
+    const { data: stores, error: storesError } = await supabase
+      .from('toko')
+      .select('id_toko, nama_toko')
+      .eq('id_sales', salesId)
+
+    if (storesError) {
+      console.error('Error fetching stores:', storesError)
+      return NextResponse.json({ error: 'Failed to fetch stores' }, { status: 500 })
+    }
+
+    const storeIds = stores?.map(store => store.id_toko) || []
+
+    if (storeIds.length === 0) {
+      return NextResponse.json({ data: [] })
+    }
+
+    // Get product sales statistics across all stores managed by this sales person
     const { data: productSales, error } = await supabase
       .from('detail_penagihan')
       .select(`
         jumlah_terjual,
+        jumlah_kembali,
         produk:id_produk (
           id_produk,
           nama_produk,
           harga_satuan
         ),
         penagihan:id_penagihan (
-          total_uang_diterima,
-          toko:id_toko (
-            id_sales,
-            nama_toko
-          )
+          id_toko,
+          total_uang_diterima
         )
       `)
-      .eq('penagihan.toko.id_sales', salesId)
+      .in('penagihan.id_toko', storeIds)
 
     if (error) {
       console.error('Error fetching product sales:', error)
@@ -41,7 +56,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const productMap = new Map()
     
     productSales?.forEach((item: any) => {
-      if (!item.produk || !item.penagihan?.toko) return
+      if (!item.produk || !item.penagihan) return
       
       const productId = item.produk.id_produk
       const existing = productMap.get(productId)

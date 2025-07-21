@@ -177,6 +177,9 @@ export async function GET(request: NextRequest) {
       const avgRevenuePerSales = activeSales > 0 ? Math.round((totalRevenue / activeSales) * 100) / 100 : 0
       const avgItemsPerSales = activeSales > 0 ? Math.round((totalShippedItems / activeSales) * 100) / 100 : 0
       
+      // Calculate total remaining stock
+      const totalRemainingStock = Math.max(0, totalShippedItems - totalItemsSold - totalItemsReturned)
+      
       const summary = {
         total_sales: totalSales,
         active_sales: activeSales,
@@ -191,6 +194,7 @@ export async function GET(request: NextRequest) {
         total_revenue: Math.round(totalRevenue),
         total_items_sold: totalItemsSold,
         total_items_returned: totalItemsReturned,
+        total_remaining_stock: totalRemainingStock,
         avg_stores_per_sales: avgStoresPerSales,
         avg_revenue_per_sales: Math.round(avgRevenuePerSales),
         avg_items_per_sales: avgItemsPerSales
@@ -237,6 +241,7 @@ export async function GET(request: NextRequest) {
           total_revenue: 0,
           total_items_sold: 0,
           total_items_returned: 0,
+          total_remaining_stock: 0,
           avg_stores_per_sales: 0,
           avg_revenue_per_sales: 0,
           avg_items_per_sales: 0
