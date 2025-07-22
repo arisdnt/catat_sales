@@ -74,6 +74,13 @@ export interface SalesWithStats {
   status_aktif: boolean
   dibuat_pada: string
   diperbarui_pada: string
+  total_stores: number
+  total_shipped_items: number
+  total_revenue: number
+  total_items_sold: number
+  total_items_returned: number
+  total_billings: number
+  total_shipments: number
   stats?: {
     total_stores: number
     total_shipped_items: number

@@ -12,10 +12,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const supabase = createClient()
     
-    // First get stores for this sales person
+    // First get stores for this sales person (including inactive stores to match materialized view logic)
     const { data: stores, error: storesError } = await supabase
       .from('toko')
-      .select('id_toko, nama_toko, kecamatan, kabupaten')
+      .select('id_toko, nama_toko, kecamatan, kabupaten, status_toko')
       .eq('id_sales', salesId)
 
     if (storesError) {
@@ -24,28 +24,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const storeIds = stores?.map(store => store.id_toko) || []
-    console.log(`Sales ${salesId} - Found ${storeIds.length} stores:`, storeIds)
+    const activeStores = stores?.filter(store => store.status_toko).length || 0
+    const inactiveStores = stores?.filter(store => !store.status_toko).length || 0
+    console.log(`Sales ${salesId} - Found ${storeIds.length} total stores (${activeStores} active, ${inactiveStores} inactive)`)
 
     if (storeIds.length === 0) {
       return NextResponse.json({ data: [] })
     }
 
     // Get comprehensive inventory calculation: shipments - sales - returns
-    // Get all shipments for these stores
+    // Get all shipments for these stores using a more reliable query
     const { data: shipments, error: shipmentsError } = await supabase
-      .from('detail_pengiriman')
+      .from('pengiriman')
       .select(`
-        jumlah_kirim,
-        produk:id_produk (
-          id_produk,
-          nama_produk,
-          harga_satuan
-        ),
-        pengiriman:id_pengiriman (
-          id_toko
+        id_toko,
+        detail_pengiriman (
+          jumlah_kirim,
+          produk:id_produk (
+            id_produk,
+            nama_produk,
+            harga_satuan
+          )
         )
       `)
-      .in('pengiriman.id_toko', storeIds)
+      .in('id_toko', storeIds)
 
     if (shipmentsError) {
       console.error('Error fetching shipments:', shipmentsError)
@@ -55,22 +57,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     console.log(`Sales ${salesId} - Found ${shipments?.length || 0} shipment records`)
     console.log('Sample shipment data:', shipments?.slice(0, 2))
 
-    // Get all sales and returns for these stores
+    // Get all sales and returns for these stores using a more reliable query
     const { data: sales, error: salesError } = await supabase
-      .from('detail_penagihan')
+      .from('penagihan')
       .select(`
-        jumlah_terjual,
-        jumlah_kembali,
-        produk:id_produk (
-          id_produk,
-          nama_produk,
-          harga_satuan
-        ),
-        penagihan:id_penagihan (
-          id_toko
+        id_toko,
+        detail_penagihan (
+          jumlah_terjual,
+          jumlah_kembali,
+          produk:id_produk (
+            id_produk,
+            nama_produk,
+            harga_satuan
+          )
         )
       `)
-      .in('penagihan.id_toko', storeIds)
+      .in('id_toko', storeIds)
 
     if (salesError) {
       console.error('Error fetching sales:', salesError)
@@ -89,36 +91,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     let validShipmentCount = 0
     let invalidShipmentCount = 0
     
-    shipments?.forEach((item: any) => {
-      if (!item.produk || !item.pengiriman) {
-        invalidShipmentCount++
-        if (invalidShipmentCount <= 3) { // Only log first 3 invalid items to avoid spam
-          console.log('Invalid shipment item:', { 
-            has_produk: !!item.produk, 
-            has_pengiriman: !!item.pengiriman,
-            sample_item: JSON.stringify(item).substring(0, 200)
+    shipments?.forEach((shipment: any) => {
+      const shipmentDetails = shipment.detail_pengiriman || []
+      
+      shipmentDetails.forEach((detail: any) => {
+        if (!detail.produk) {
+          invalidShipmentCount++
+          if (invalidShipmentCount <= 3) { // Only log first 3 invalid items to avoid spam
+            console.log('Invalid shipment detail:', { 
+              has_produk: !!detail.produk,
+              sample_detail: JSON.stringify(detail).substring(0, 200)
+            })
+          }
+          return
+        }
+        validShipmentCount++
+        
+        const productId = detail.produk.id_produk
+        const existing = inventoryMap.get(productId)
+        
+        if (existing) {
+          existing.shipped_quantity += detail.jumlah_kirim || 0
+        } else {
+          inventoryMap.set(productId, {
+            id_produk: productId,
+            nama_produk: detail.produk.nama_produk,
+            harga_satuan: detail.produk.harga_satuan,
+            shipped_quantity: detail.jumlah_kirim || 0,
+            sold_quantity: 0,
+            returned_quantity: 0,
+            total_quantity: 0
           })
         }
-        return
-      }
-      validShipmentCount++
-      
-      const productId = item.produk.id_produk
-      const existing = inventoryMap.get(productId)
-      
-      if (existing) {
-        existing.shipped_quantity += item.jumlah_kirim || 0
-      } else {
-        inventoryMap.set(productId, {
-          id_produk: productId,
-          nama_produk: item.produk.nama_produk,
-          harga_satuan: item.produk.harga_satuan,
-          shipped_quantity: item.jumlah_kirim || 0,
-          sold_quantity: 0,
-          returned_quantity: 0,
-          total_quantity: 0
-        })
-      }
+      })
     })
     
     console.log(`Processed shipments: ${validShipmentCount} valid, ${invalidShipmentCount} invalid`)
@@ -126,27 +131,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Subtract sold and returned quantities (only if sales data exists)
     if (sales && !salesError) {
-      sales.forEach((item: any) => {
-        if (!item.produk || !item.penagihan) return
+      sales.forEach((billing: any) => {
+        const billingDetails = billing.detail_penagihan || []
         
-        const productId = item.produk.id_produk
-        const existing = inventoryMap.get(productId)
-        
-        if (existing) {
-          existing.sold_quantity += item.jumlah_terjual || 0
-          existing.returned_quantity += item.jumlah_kembali || 0
-        } else {
-          // Product was sold but never shipped (data inconsistency)
-          inventoryMap.set(productId, {
-            id_produk: productId,
-            nama_produk: item.produk.nama_produk,
-            harga_satuan: item.produk.harga_satuan,
-            shipped_quantity: 0,
-            sold_quantity: item.jumlah_terjual || 0,
-            returned_quantity: item.jumlah_kembali || 0,
-            total_quantity: 0
-          })
-        }
+        billingDetails.forEach((detail: any) => {
+          if (!detail.produk) return
+          
+          const productId = detail.produk.id_produk
+          const existing = inventoryMap.get(productId)
+          
+          if (existing) {
+            existing.sold_quantity += detail.jumlah_terjual || 0
+            existing.returned_quantity += detail.jumlah_kembali || 0
+          } else {
+            // Product was sold but never shipped (data inconsistency)
+            inventoryMap.set(productId, {
+              id_produk: productId,
+              nama_produk: detail.produk.nama_produk,
+              harga_satuan: detail.produk.harga_satuan,
+              shipped_quantity: 0,
+              sold_quantity: detail.jumlah_terjual || 0,
+              returned_quantity: detail.jumlah_kembali || 0,
+              total_quantity: 0
+            })
+          }
+        })
       })
     }
 

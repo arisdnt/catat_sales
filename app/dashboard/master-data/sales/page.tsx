@@ -187,20 +187,73 @@ function SalesDataTable({
       meta: { priority: 'medium', columnType: 'stats' },
     },
     {
-      accessorKey: 'total_items',
-      header: 'Total Items',
+      accessorKey: 'barang_terkirim',
+      header: 'Barang Terkirim',
       cell: ({ row }) => {
         const sales = row.original
-        const stats = sales.stats || { total_shipped_items: 0 }
+        const shipped = sales.total_shipped_items || 0
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <Package className="h-4 w-4 text-blue-500" />
+            <div>
+              <div className="text-sm font-medium text-blue-600">
+                {formatNumber(shipped)}
+              </div>
+              <div className="text-xs text-gray-500">terkirim</div>
+            </div>
+          </div>
+        )
+      },
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      meta: { priority: 'high', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'barang_terjual',
+      header: 'Barang Terjual',
+      cell: ({ row }) => {
+        const sales = row.original
+        const sold = sales.total_items_sold || 0
         
         return (
           <div className="text-left flex items-center gap-2">
             <Package className="h-4 w-4 text-green-500" />
             <div>
               <div className="text-sm font-medium text-green-600">
-                {formatNumber(stats.total_shipped_items)}
+                {formatNumber(sold)}
               </div>
-              <div className="text-xs text-gray-500">items</div>
+              <div className="text-xs text-gray-500">terjual</div>
+            </div>
+          </div>
+        )
+      },
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      meta: { priority: 'high', columnType: 'stats' },
+    },
+    {
+      accessorKey: 'sisa_stok',
+      header: 'Sisa Stok',
+      cell: ({ row }) => {
+        const sales = row.original
+        const shipped = sales.total_shipped_items || 0
+        const sold = sales.total_items_sold || 0
+        const returned = sales.total_items_returned || 0
+        const remainingStock = shipped - sold - returned
+        
+        return (
+          <div className="text-left flex items-center gap-2">
+            <Package className="h-4 w-4 text-orange-500" />
+            <div>
+              <div className="text-sm font-medium text-orange-600">
+                {formatNumber(remainingStock)}
+              </div>
+              <div className="text-xs text-gray-500">
+                sisa stok
+              </div>
             </div>
           </div>
         )
@@ -208,32 +261,6 @@ function SalesDataTable({
       size: 120,
       minSize: 100,
       maxSize: 140,
-      meta: { priority: 'medium', columnType: 'stats' },
-    },
-    {
-      accessorKey: 'total_stock',
-      header: 'Stok Tersisa',
-      cell: ({ row }) => {
-        const sales = row.original
-        const stats = sales.stats || { total_stock: 0, total_shipped_items: 0 }
-        
-        return (
-          <div className="text-left flex items-center gap-2">
-            <Package className="h-4 w-4 text-orange-500" />
-            <div>
-              <div className="text-sm font-medium text-orange-600">
-                {formatNumber(stats.total_stock)}
-              </div>
-              <div className="text-xs text-gray-500">
-                dari {formatNumber(stats.total_shipped_items)} terkirim
-              </div>
-            </div>
-          </div>
-        )
-      },
-      size: 160,
-      minSize: 140,
-      maxSize: 180,
       meta: { priority: 'high', columnType: 'stats' },
     },
     {
@@ -498,7 +525,7 @@ export default function SalesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Daftar Sales</h1>
           <p className="text-gray-600 mt-2">
             {summary ? 
-              `${formatNumber(summary.total_sales)} sales dengan ${formatNumber(summary.active_sales)} aktif dan total revenue ${formatCurrency(summary.total_revenue)}` :
+              `${formatNumber(summary.total_sales)} sales dengan ${formatNumber(summary.active_sales)} aktif, ${formatNumber(summary.total_shipped_items)} barang terkirim, ${formatNumber(summary.total_items_sold)} terjual, dan sisa stok ${formatNumber(summary.total_remaining_stock)}` :
               "Memuat data sales..."
             }
           </p>

@@ -170,8 +170,8 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Row 1: 4 Columns - Ringkasan Statistik (3 cols) | Informasi Sales (1 col) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6">
+        {/* Row 1: 6 Columns - Ringkasan Statistik (5 cols) | Informasi Sales (1 col) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6">
           {/* Summary Statistics - Column 1 */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -199,7 +199,7 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
               <div className="p-2 bg-purple-50 rounded-lg">
                 <Package className="w-5 h-5 text-purple-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Total Stok</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Sisa Stok Toko</h3>
             </div>
             {statsLoading ? (
               <div className="animate-pulse">
@@ -209,18 +209,23 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             ) : (
               <div>
                 <p className="text-3xl font-bold text-purple-600">{stats?.total_stock || 0}</p>
-                <p className="text-sm text-gray-500">Total stok produk</p>
+                <p className="text-sm text-gray-500">Terkirim - Retur - Terjual</p>
+                {stats?.calculation_breakdown && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {stats.calculation_breakdown.shipped} - {stats.calculation_breakdown.returned} - {stats.calculation_breakdown.sold} = {stats.calculation_breakdown.result}
+                  </p>
+                )}
               </div>
             )}
           </div>
 
-          {/* Summary Statistics - Column 3 */}
+          {/* Summary Statistics - Column 3: Barang Terkirim */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <DollarSign className="w-5 h-5 text-green-600" />
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Package className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Total Pendapatan</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Barang Terkirim</h3>
             </div>
             {statsLoading ? (
               <div className="animate-pulse">
@@ -229,14 +234,56 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             ) : (
               <div>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(stats?.total_revenue || 0)}</p>
-                <p className="text-sm text-gray-500">Pendapatan keseluruhan</p>
+                <p className="text-3xl font-bold text-blue-600">{stats?.total_shipped_items || 0}</p>
+                <p className="text-sm text-gray-500">Unit terkirim</p>
               </div>
             )}
           </div>
 
-          {/* Sales Information - Column 4 */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 md:col-span-2 xl:col-span-1">
+          {/* Summary Statistics - Column 4: Barang Terjual */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-50 rounded-lg">
+                <ShoppingCart className="w-5 h-5 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Barang Terjual</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-green-600">{stats?.total_sold_items || 0}</p>
+                <p className="text-sm text-gray-500">Unit terjual</p>
+              </div>
+            )}
+          </div>
+
+          {/* Summary Statistics - Column 5: Barang Retur */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-50 rounded-lg">
+                <CreditCard className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Barang Retur</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-red-600">{stats?.total_returned_items || 0}</p>
+                <p className="text-sm text-gray-500">Unit retur</p>
+              </div>
+            )}
+          </div>
+
+          {/* Sales Information - Column 6 */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 md:col-span-2 lg:col-span-3 xl:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-indigo-50 rounded-lg">
                 <Users className="w-5 h-5 text-indigo-600" />
@@ -287,6 +334,33 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        {/* Row 1.5: Additional Metrics - 1 Column for Revenue */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6">
+          {/* Total Revenue */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 xl:col-span-2">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-emerald-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Total Pendapatan</h3>
+            </div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(stats?.total_revenue || 0)}</p>
+                <p className="text-sm text-gray-500">Total pendapatan keseluruhan</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Empty columns for spacing */}
+          <div className="xl:col-span-4"></div>
+        </div>
+
         {/* Row 2: 2 Columns - Ringkasan Stok | Statistik Penjualan Produk */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-6">
           {/* Inventory Summary */}
@@ -316,13 +390,15 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <div className="min-w-[500px]">
+                  <div className="min-w-[700px]">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-gray-100">
                           <th className="text-left text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Produk</th>
                           <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Harga</th>
                           <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Terkirim</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Terjual</th>
+                          <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Retur</th>
                           <th className="text-right text-xs sm:text-sm font-medium text-gray-500 pb-2 sm:pb-3 px-1">Sisa Stok</th>
                         </tr>
                       </thead>
@@ -331,10 +407,12 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
                           <tr key={item.id_produk} className={index !== inventory.length - 1 ? 'border-b border-gray-50' : ''}>
                             <td className="py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900 px-1">{item.nama_produk}</td>
                             <td className="py-2 sm:py-3 text-xs sm:text-sm text-gray-600 text-right px-1">{formatCurrency(item.harga_satuan)}</td>
-                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-blue-600 text-right px-1">{item.shipped_quantity || item.total_quantity} unit</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-blue-600 text-right px-1">{item.shipped_quantity || 0}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-green-600 text-right px-1">{item.sold_quantity || 0}</td>
+                            <td className="py-2 sm:py-3 text-xs sm:text-sm text-red-600 text-right px-1">{item.returned_quantity || 0}</td>
                             <td className="py-2 sm:py-3 text-xs sm:text-sm text-right px-1">
-                              <span className={`font-bold ${item.total_quantity > 0 ? 'text-green-600' : item.total_quantity === 0 ? 'text-gray-500' : 'text-red-500'}`}>
-                                {item.total_quantity} unit
+                              <span className={`font-bold ${item.total_quantity > 0 ? 'text-purple-600' : item.total_quantity === 0 ? 'text-gray-500' : 'text-red-500'}`}>
+                                {item.total_quantity}
                               </span>
                             </td>
                           </tr>

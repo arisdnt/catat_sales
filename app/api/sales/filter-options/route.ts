@@ -24,15 +24,20 @@ export async function GET(request: NextRequest) {
           .select('nomor_telepon')
           .order('nomor_telepon'),
           
-        // Summary statistics with sales performance data
+        // Summary statistics with sales performance data from materialized view
         supabaseAdmin
-          .from('sales')
+          .from('mv_sales_aggregates')
           .select(`
             id_sales,
             nama_sales,
             nomor_telepon,
             status_aktif,
-            dibuat_pada
+            dibuat_pada,
+            total_stores,
+            total_shipped_items,
+            total_revenue,
+            total_items_sold,
+            total_items_returned
           `)
       ])
       
@@ -76,69 +81,8 @@ export async function GET(request: NextRequest) {
         }
       ]
       
-      // Get sales performance statistics (stores, shipments, revenue)
-      let salesStats = []
-      if (summaryResult.data && summaryResult.data.length > 0) {
-        try {
-          const salesIds = summaryResult.data.map((s: any) => s.id_sales)
-          
-          // Get store data for each sales
-          const { data: storeData } = await supabaseAdmin
-            .from('toko')
-            .select('id_sales')
-            .in('id_sales', salesIds)
-          
-          // Get shipment data (join through toko)
-          const { data: shipmentData } = await supabaseAdmin
-            .from('pengiriman')
-            .select('toko(id_sales), detail_pengiriman(jumlah_kirim)')
-            .in('toko.id_sales', salesIds)
-          
-          // Get billing/revenue data (join through toko)
-          const { data: billingData } = await supabaseAdmin
-            .from('penagihan')
-            .select('toko(id_sales), total_uang_diterima, detail_penagihan(jumlah_terjual, jumlah_kembali)')
-            .in('toko.id_sales', salesIds)
-          
-          // Calculate stats for each sales
-          salesStats = summaryResult.data.map((sales: any) => {
-            const stores = storeData?.filter((s: any) => s.id_sales === sales.id_sales) || []
-            const shipments = shipmentData?.filter((s: any) => s.toko?.id_sales === sales.id_sales) || []
-            const billings = billingData?.filter((b: any) => b.toko?.id_sales === sales.id_sales) || []
-            
-            const total_stores = stores.length
-            
-            const total_shipped_items = shipments.reduce((sum: number, shipment: any) => {
-              const details = Array.isArray(shipment.detail_pengiriman) ? shipment.detail_pengiriman : []
-              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_kirim || 0), 0)
-            }, 0)
-            
-            const total_revenue = billings.reduce((sum: number, billing: any) => sum + (billing.total_uang_diterima || 0), 0)
-            
-            const total_items_sold = billings.reduce((sum: number, billing: any) => {
-              const details = Array.isArray(billing.detail_penagihan) ? billing.detail_penagihan : []
-              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_terjual || 0), 0)
-            }, 0)
-            
-            const total_items_returned = billings.reduce((sum: number, billing: any) => {
-              const details = Array.isArray(billing.detail_penagihan) ? billing.detail_penagihan : []
-              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_kembali || 0), 0)
-            }, 0)
-            
-            return {
-              ...sales,
-              total_stores,
-              total_shipped_items,
-              total_revenue,
-              total_items_sold,
-              total_items_returned
-            }
-          })
-        } catch (error) {
-          console.warn('Failed to fetch sales performance stats:', error)
-          salesStats = summaryResult.data || []
-        }
-      }
+      // Since we're using mv_sales_aggregates, the data already includes all statistics
+      const salesStats = summaryResult.data || []
       
       // Calculate summary statistics
       const totalSales = summaryResult.data?.length || 0
@@ -165,12 +109,12 @@ export async function GET(request: NextRequest) {
         new Date(s.dibuat_pada) >= monthAgo
       ).length || 0
       
-      // Calculate performance statistics
-      const totalStores = salesStats.reduce((sum: number, s: any) => sum + (s.total_stores || 0), 0)
-      const totalShippedItems = salesStats.reduce((sum: number, s: any) => sum + (s.total_shipped_items || 0), 0)
-      const totalRevenue = salesStats.reduce((sum: number, s: any) => sum + (s.total_revenue || 0), 0)
-      const totalItemsSold = salesStats.reduce((sum: number, s: any) => sum + (s.total_items_sold || 0), 0)
-      const totalItemsReturned = salesStats.reduce((sum: number, s: any) => sum + (s.total_items_returned || 0), 0)
+      // Calculate performance statistics using materialized view fields
+      const totalStores = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_stores || 0), 0)
+      const totalShippedItems = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_shipped_items || 0), 0)
+      const totalRevenue = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_revenue || 0), 0)
+      const totalItemsSold = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_items_sold || 0), 0)
+      const totalItemsReturned = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_items_returned || 0), 0)
       
       // Calculate averages
       const avgStoresPerSales = activeSales > 0 ? Math.round((totalStores / activeSales) * 100) / 100 : 0

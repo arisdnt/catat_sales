@@ -28,21 +28,28 @@ export async function GET(request: NextRequest) {
       
       const offset = (page - 1) * limit
       
-      // Build the base query
+      // Build the base query using materialized view for better performance
       let query = supabaseAdmin
-        .from('sales')
+        .from('mv_sales_aggregates')
         .select(`
           id_sales,
           nama_sales,
           nomor_telepon,
           status_aktif,
           dibuat_pada,
-          diperbarui_pada
+          diperbarui_pada,
+          total_stores,
+          total_shipped_items,
+          total_revenue,
+          total_items_sold,
+          total_items_returned,
+          total_billings,
+          total_shipments
         `)
       
       // Build count query for pagination
       let countQuery = supabaseAdmin
-        .from('sales')
+        .from('mv_sales_aggregates')
         .select('*', { count: 'exact', head: true })
       
       // Apply search filter
@@ -175,68 +182,8 @@ export async function GET(request: NextRequest) {
       const total = countResult.count || 0
       const totalPages = Math.ceil(total / limit)
       
-      // Get sales statistics for each sales person
-      let salesWithStats = salesData
-      if (salesData.length > 0) {
-        try {
-          const salesIds = salesData.map((s: any) => s.id_sales)
-          
-          // Get store counts for each sales
-          const { data: storeStats } = await supabaseAdmin
-            .from('toko')
-            .select('id_sales')
-            .in('id_sales', salesIds)
-          
-          // Get shipment statistics (join through toko)
-          const { data: shipmentStats } = await supabaseAdmin
-            .from('pengiriman')
-            .select('toko(id_sales), detail_pengiriman(jumlah_kirim)')
-            .in('toko.id_sales', salesIds)
-          
-          // Get billing statistics (join through toko)
-          const { data: billingStats } = await supabaseAdmin
-            .from('penagihan')
-            .select('toko(id_sales), detail_penagihan(jumlah_terjual, jumlah_kembali), total_uang_diterima')
-            .in('toko.id_sales', salesIds)
-          
-          // Aggregate statistics
-          salesWithStats = salesData.map((sales: any) => {
-            const storeCount = storeStats?.filter((s: any) => s.id_sales === sales.id_sales).length || 0
-            
-            const salesShipments = shipmentStats?.filter((s: any) => s.toko?.id_sales === sales.id_sales) || []
-            const totalShippedItems = salesShipments.reduce((sum: number, shipment: any) => {
-              const details = Array.isArray(shipment.detail_pengiriman) ? shipment.detail_pengiriman : []
-              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_kirim || 0), 0)
-            }, 0)
-            
-            const salesBillings = billingStats?.filter((b: any) => b.toko?.id_sales === sales.id_sales) || []
-            const totalRevenue = salesBillings.reduce((sum: number, billing: any) => sum + (billing.total_uang_diterima || 0), 0)
-            
-            // Calculate total sold items
-            const totalSoldItems = salesBillings.reduce((sum: number, billing: any) => {
-              const details = Array.isArray(billing.detail_penagihan) ? billing.detail_penagihan : []
-              return sum + details.reduce((detailSum: number, detail: any) => detailSum + (detail.jumlah_terjual || 0), 0)
-            }, 0)
-            
-            // Calculate remaining stock (shipped - sold)
-            const totalStock = Math.max(0, totalShippedItems - totalSoldItems)
-            
-            return {
-              ...sales,
-              stats: {
-                total_stores: storeCount,
-                total_shipped_items: totalShippedItems,
-                total_revenue: totalRevenue,
-                total_stock: totalStock,
-                total_sold_items: totalSoldItems
-              }
-            }
-          })
-        } catch (statsError) {
-          console.warn('Failed to fetch sales statistics:', statsError)
-          salesWithStats = salesData
-        }
-      }
+      // Since we're using mv_sales_aggregates, the data already includes statistics
+      const salesWithStats = salesData
       
       console.log('Sales optimized response:', {
         dataCount: salesWithStats.length,
