@@ -3,13 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from '@tanstack/react-form'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-
-
 import { FormField } from '@/components/forms/form-field'
 import { useSalesDetailQuery, useUpdateSalesMutation } from '@/lib/queries/sales'
-import { ArrowLeft, Save, Users } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 
 interface SalesData {
   nama_sales: string
@@ -92,108 +89,102 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="w-full space-y-6">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Edit Sales</h1>
-            <p className="text-sm sm:text-base text-gray-600">Edit informasi sales: {sales.nama_sales}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Edit Sales</h1>
+            <p className="text-gray-600">Edit informasi sales: {sales.nama_sales}</p>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 bg-white hover:bg-gray-50 border-gray-300"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </Button>
           </div>
         </div>
 
         {/* Form */}
-        <Card className="w-full border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Informasi Sales
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                form.handleSubmit()
-              }}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field name="nama_sales">
-                  {(field) => (
-                    <FormField
-                      label="Nama Sales"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      placeholder="Masukkan nama sales"
-                      required
-                    />
-                  )}
-                </form.Field>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 sm:p-8">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
+            }}
+            className="space-y-6"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <form.Field name="nama_sales">
+                {(field) => (
+                  <FormField
+                    label="Nama Sales"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    onBlur={field.handleBlur}
+                    placeholder="Masukkan nama sales"
+                    required
+                  />
+                )}
+              </form.Field>
 
-                <form.Field name="nomor_telepon">
-                  {(field) => (
-                    <FormField
-                      label="Nomor Telepon"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      type="tel"
-                      placeholder="Contoh: 08123456789"
-                    />
-                  )}
-                </form.Field>
-              </div>
+              <form.Field name="nomor_telepon">
+                {(field) => (
+                  <FormField
+                    label="Nomor Telepon"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    onBlur={field.handleBlur}
+                    type="tel"
+                    placeholder="Contoh: 08123456789"
+                  />
+                )}
+              </form.Field>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <form.Field name="status_aktif">
-                  {(field) => (
-                    <FormField
-                      label="Status Sales Aktif"
-                      name={field.name}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      type="checkbox"
-                    />
-                  )}
-                </form.Field>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <form.Field name="status_aktif">
+                {(field) => (
+                  <FormField
+                    label="Status Sales Aktif"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    onBlur={field.handleBlur}
+                    type="checkbox"
+                  />
+                )}
+              </form.Field>
+            </div>
 
-              <div className="flex items-center justify-end gap-4 pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={updateSales.isPending}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={updateSales.isPending || !form.state.isValid}
-                  className="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {updateSales.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-8 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={updateSales.isPending}
+                className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-300"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateSales.isPending || !form.state.isValid}
+                className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {updateSales.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

@@ -167,14 +167,14 @@ function SalesDataTable({
       header: 'Total Toko',
       cell: ({ row }) => {
         const sales = row.original
-        const stats = sales.stats || { total_stores: 0 }
+        const totalStores = sales.total_stores || 0
         
         return (
           <div className="text-left flex items-center gap-2">
             <Store className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-sm font-medium text-blue-600">
-                {formatNumber(stats.total_stores)}
+                {formatNumber(totalStores)}
               </div>
               <div className="text-xs text-gray-500">toko</div>
             </div>
@@ -268,14 +268,14 @@ function SalesDataTable({
       header: 'Total Revenue',
       cell: ({ row }) => {
         const sales = row.original
-        const stats = sales.stats || { total_revenue: 0 }
+        const totalRevenue = sales.total_revenue || 0
         
         return (
           <div className="text-left flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-purple-500" />
             <div>
               <div className="text-sm font-medium text-purple-600">
-                {formatCurrency(stats.total_revenue)}
+                {formatCurrency(totalRevenue)}
               </div>
               <div className="text-xs text-gray-500">revenue</div>
             </div>

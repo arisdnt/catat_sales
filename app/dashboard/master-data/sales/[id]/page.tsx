@@ -94,11 +94,13 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             {/* Header */}
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
             
-            {/* Row 1 - 3 columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            {/* Statistics Cards - 5 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
               <div className="h-32 bg-gray-200 rounded-lg"></div>
               <div className="h-32 bg-gray-200 rounded-lg"></div>
-              <div className="h-64 bg-gray-200 rounded-lg md:col-span-2 xl:col-span-1"></div>
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
             </div>
             
             {/* Row 2 - 2 columns */}
@@ -136,10 +138,30 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
     <div className="min-h-screen bg-white">
       <div className="w-full max-w-none px-4 sm:px-6 pb-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{sales.nama_sales}</h1>
-            <p className="text-gray-600">Detail Informasi Sales</p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{sales.nama_sales}</h1>
+            <div className="flex flex-wrap items-center gap-4 text-gray-600">
+              <div className="flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                <span>ID Sales #{sales.id_sales}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                <span>{sales.nomor_telepon || 'No telepon belum tersedia'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge 
+                  className={sales.status_aktif ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-700 border-gray-200"}
+                >
+                  {sales.status_aktif ? 'Aktif' : 'Nonaktif'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                <span>Bergabung {formatDate(sales.dibuat_pada)}</span>
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -170,9 +192,9 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        {/* Row 1: 6 Columns - Ringkasan Statistik (5 cols) | Informasi Sales (1 col) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6">
-          {/* Summary Statistics - Column 1 */}
+        {/* Statistics Cards - 5 columns in 1 row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6">
+          {/* Total Toko */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -193,37 +215,11 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
 
-          {/* Summary Statistics - Column 2 */}
+          {/* Barang Terkirim */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Package className="w-5 h-5 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Sisa Stok Toko</h3>
-            </div>
-            {statsLoading ? (
-              <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-3xl font-bold text-purple-600">{stats?.total_stock || 0}</p>
-                <p className="text-sm text-gray-500">Terkirim - Retur - Terjual</p>
-                {stats?.calculation_breakdown && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    {stats.calculation_breakdown.shipped} - {stats.calculation_breakdown.returned} - {stats.calculation_breakdown.sold} = {stats.calculation_breakdown.result}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Summary Statistics - Column 3: Barang Terkirim */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Package className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-orange-50 rounded-lg">
+                <Package className="w-5 h-5 text-orange-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Barang Terkirim</h3>
             </div>
@@ -234,13 +230,13 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             ) : (
               <div>
-                <p className="text-3xl font-bold text-blue-600">{stats?.total_shipped_items || 0}</p>
+                <p className="text-3xl font-bold text-orange-600">{stats?.total_shipped_items || 0}</p>
                 <p className="text-sm text-gray-500">Unit terkirim</p>
               </div>
             )}
           </div>
 
-          {/* Summary Statistics - Column 4: Barang Terjual */}
+          {/* Barang Terjual */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-50 rounded-lg">
@@ -261,13 +257,13 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
 
-          {/* Summary Statistics - Column 5: Barang Retur */}
+          {/* Stok Toko */}
           <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <CreditCard className="w-5 h-5 text-red-600" />
+              <div className="p-2 bg-purple-50 rounded-lg">
+                <Package className="w-5 h-5 text-purple-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Barang Retur</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Stok Toko</h3>
             </div>
             {statsLoading ? (
               <div className="animate-pulse">
@@ -276,68 +272,14 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
               </div>
             ) : (
               <div>
-                <p className="text-3xl font-bold text-red-600">{stats?.total_returned_items || 0}</p>
-                <p className="text-sm text-gray-500">Unit retur</p>
+                <p className="text-3xl font-bold text-purple-600">{stats?.total_stock || 0}</p>
+                <p className="text-sm text-gray-500">Sisa stok</p>
               </div>
             )}
           </div>
 
-          {/* Sales Information - Column 6 */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 md:col-span-2 lg:col-span-3 xl:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-indigo-50 rounded-lg">
-                <Users className="w-5 h-5 text-indigo-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Informasi Sales</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Row 1 - Column 1: ID Sales */}
-              <div className="flex items-start gap-3">
-                <Hash className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">ID Sales</p>
-                  <p className="text-sm text-gray-600">#{sales.id_sales}</p>
-                </div>
-              </div>
-              
-              {/* Row 1 - Column 2: Status */}
-              <div className="flex items-start gap-3">
-                <Activity className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Status</p>
-                  <Badge 
-                    className={sales.status_aktif ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-50 text-gray-700 border-gray-200"}
-                  >
-                    {sales.status_aktif ? 'Aktif' : 'Nonaktif'}
-                  </Badge>
-                </div>
-              </div>
-              
-              {/* Row 2 - Column 1: Telepon */}
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Telepon</p>
-                  <p className="text-sm text-gray-600">{sales.nomor_telepon || 'Tidak tersedia'}</p>
-                </div>
-              </div>
-              
-              {/* Row 2 - Column 2: Bergabung */}
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Bergabung</p>
-                  <p className="text-sm text-gray-600">{formatDate(sales.dibuat_pada)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 1.5: Additional Metrics - 1 Column for Revenue */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 mb-6">
-          {/* Total Revenue */}
-          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 xl:col-span-2">
+          {/* Total Pendapatan */}
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-emerald-50 rounded-lg">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
@@ -352,13 +294,10 @@ export default function SalesDetailPage({ params }: { params: Promise<{ id: stri
             ) : (
               <div>
                 <p className="text-3xl font-bold text-emerald-600">{formatCurrency(stats?.total_revenue || 0)}</p>
-                <p className="text-sm text-gray-500">Total pendapatan keseluruhan</p>
+                <p className="text-sm text-gray-500">Total pendapatan</p>
               </div>
             )}
           </div>
-          
-          {/* Empty columns for spacing */}
-          <div className="xl:col-span-4"></div>
         </div>
 
         {/* Row 2: 2 Columns - Ringkasan Stok | Statistik Penjualan Produk */}

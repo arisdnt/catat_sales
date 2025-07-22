@@ -28,28 +28,21 @@ export async function GET(request: NextRequest) {
       
       const offset = (page - 1) * limit
       
-      // Build the base query using materialized view for better performance
+      // Build the base query - fallback to sales table if materialized view doesn't exist
       let query = supabaseAdmin
-        .from('mv_sales_aggregates')
+        .from('sales')
         .select(`
           id_sales,
           nama_sales,
           nomor_telepon,
           status_aktif,
           dibuat_pada,
-          diperbarui_pada,
-          total_stores,
-          total_shipped_items,
-          total_revenue,
-          total_items_sold,
-          total_items_returned,
-          total_billings,
-          total_shipments
+          diperbarui_pada
         `)
       
       // Build count query for pagination
       let countQuery = supabaseAdmin
-        .from('mv_sales_aggregates')
+        .from('sales')
         .select('*', { count: 'exact', head: true })
       
       // Apply search filter
@@ -182,15 +175,105 @@ export async function GET(request: NextRequest) {
       const total = countResult.count || 0
       const totalPages = Math.ceil(total / limit)
       
-      // Since we're using mv_sales_aggregates, the data already includes statistics
-      const salesWithStats = salesData
+      // Fetch stats for each sales person to show accurate data
+      const salesWithStats = await Promise.all(
+        salesData.map(async (sale) => {
+          try {
+            // Get all stores for this sales person (match DETAIL API logic)
+            const { data: stores } = await supabaseAdmin
+              .from('toko')
+              .select('id_toko')
+              .eq('id_sales', sale.id_sales)
+
+            const storeIds = stores?.map(store => store.id_toko) || []
+            
+            // Use same method as DETAIL API for consistency
+            // Get shipped items through pengiriman -> detail_pengiriman
+            const { data: shipmentData } = storeIds.length > 0 ? await supabaseAdmin
+              .from('pengiriman')
+              .select(`
+                id_pengiriman,
+                detail_pengiriman (
+                  jumlah_kirim
+                )
+              `)
+              .in('id_toko', storeIds) : { data: null }
+
+            // Get sold items and returned items through penagihan -> detail_penagihan
+            const { data: billingData } = storeIds.length > 0 ? await supabaseAdmin
+              .from('penagihan')
+              .select(`
+                id_penagihan,
+                detail_penagihan (
+                  jumlah_terjual,
+                  jumlah_kembali
+                )
+              `)
+              .in('id_toko', storeIds) : { data: null }
+
+            const storeCount = stores?.length || 0
+
+            // Calculate totals using same logic as DETAIL API
+            let totalShipped = 0
+            let totalSold = 0
+            let totalReturned = 0
+
+            if (shipmentData) {
+              totalShipped = shipmentData.reduce((sum, shipment) => {
+                const details = shipment.detail_pengiriman || []
+                return sum + details.reduce((detailSum, detail) => detailSum + (detail.jumlah_kirim || 0), 0)
+              }, 0)
+            }
+
+            if (billingData) {
+              billingData.forEach(billing => {
+                const details = billing.detail_penagihan || []
+                details.forEach(detail => {
+                  totalSold += detail.jumlah_terjual || 0
+                  totalReturned += detail.jumlah_kembali || 0
+                })
+              })
+            }
+
+            return {
+              ...sale,
+              total_stores: storeCount,
+              total_shipped_items: totalShipped,
+              total_revenue: 0, // Can be calculated later if needed
+              total_items_sold: totalSold,
+              total_items_returned: totalReturned,
+              total_billings: billingData?.length || 0,
+              total_shipments: shipmentData?.length || 0
+            }
+          } catch (error) {
+            console.error(`Error fetching stats for sales ${sale.id_sales}:`, error)
+            return {
+              ...sale,
+              total_stores: 0,
+              total_shipped_items: 0,
+              total_revenue: 0,
+              total_items_sold: 0,
+              total_items_returned: 0,
+              total_billings: 0,
+              total_shipments: 0
+            }
+          }
+        })
+      )
       
       console.log('Sales optimized response:', {
         dataCount: salesWithStats.length,
         total,
         totalPages,
         page,
-        hasData: salesWithStats.length > 0
+        hasData: salesWithStats.length > 0,
+        sampleData: salesWithStats.slice(0, 2).map(s => ({
+          nama_sales: s.nama_sales,
+          total_stores: s.total_stores,
+          total_shipped_items: s.total_shipped_items,
+          total_items_sold: s.total_items_sold,
+          total_items_returned: s.total_items_returned
+        }))
       })
       
       return createSuccessResponse({
