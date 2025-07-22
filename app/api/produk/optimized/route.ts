@@ -163,7 +163,6 @@ export async function GET(request: NextRequest) {
         
         // Calculate real statistics for each product from transaction tables
         const productIds = (fallbackData || []).map((p: any) => p.id_produk)
-        console.log('Product IDs to calculate stats for:', productIds)
         
         // Get shipment statistics
         const { data: shipmentStats, error: shipmentError } = await supabaseAdmin
@@ -171,7 +170,6 @@ export async function GET(request: NextRequest) {
           .select('id_produk, jumlah_kirim')
           .in('id_produk', productIds)
         
-        console.log('Shipment stats raw data:', shipmentStats)
         if (shipmentError) console.error('Shipment query error:', shipmentError)
         
         // Get billing statistics  
@@ -180,7 +178,6 @@ export async function GET(request: NextRequest) {
           .select('id_produk, jumlah_terjual, jumlah_kembali')
           .in('id_produk', productIds)
           
-        console.log('Billing stats raw data:', billingStats)
         if (billingError) console.error('Billing query error:', billingError)
         
         // Aggregate statistics by product
@@ -219,15 +216,11 @@ export async function GET(request: NextRequest) {
           stats.total_terbayar = stats.total_terjual - stats.total_kembali
           stats.sisa_stok = stats.total_terkirim - stats.total_terjual
           
-          console.log(`Product ${product.id_produk} (${product.nama_produk}) stats:`, stats)
-          
           return {
             ...product,
             stats
           }
         })
-        
-        console.log('Final statsMap contents:', Array.from(statsMap.entries()))
         
         result = {
           data: productsWithStats,
