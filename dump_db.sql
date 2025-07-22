@@ -5,7 +5,7 @@
 -- Dumped from database version 17.4
 -- Dumped by pg_dump version 17.0
 
--- Started on 2025-07-21 19:27:46
+-- Started on 2025-07-22 17:03:19
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -30,7 +30,7 @@ CREATE SCHEMA public;
 ALTER SCHEMA public OWNER TO pg_database_owner;
 
 --
--- TOC entry 4028 (class 0 OID 0)
+-- TOC entry 3939 (class 0 OID 0)
 -- Dependencies: 13
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
 --
@@ -39,7 +39,7 @@ COMMENT ON SCHEMA public IS 'standard public schema';
 
 
 --
--- TOC entry 485 (class 1255 OID 17985)
+-- TOC entry 484 (class 1255 OID 17985)
 -- Name: count_sales_optimized(text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -106,7 +106,7 @@ $$;
 ALTER FUNCTION public.count_sales_optimized(search_term text, filter_status text, filter_telepon_exists text, filter_date_from text, filter_date_to text) OWNER TO postgres;
 
 --
--- TOC entry 488 (class 1255 OID 18163)
+-- TOC entry 486 (class 1255 OID 18163)
 -- Name: get_setoran_filter_options(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -168,7 +168,7 @@ $$;
 ALTER FUNCTION public.get_setoran_filter_options() OWNER TO postgres;
 
 --
--- TOC entry 472 (class 1255 OID 17584)
+-- TOC entry 476 (class 1255 OID 17584)
 -- Name: get_toko_filter_options_simple(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -237,7 +237,7 @@ $$;
 ALTER FUNCTION public.get_toko_filter_options_simple() OWNER TO postgres;
 
 --
--- TOC entry 471 (class 1255 OID 17583)
+-- TOC entry 475 (class 1255 OID 17583)
 -- Name: get_toko_search_suggestions_simple(text, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -310,232 +310,7 @@ $$;
 ALTER FUNCTION public.get_toko_search_suggestions_simple(search_term text, max_results integer) OWNER TO postgres;
 
 --
--- TOC entry 483 (class 1255 OID 17910)
--- Name: manual_refresh_produk_views(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.manual_refresh_produk_views() RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    result_text text := '';
-BEGIN
-    -- Refresh views manually
-    PERFORM refresh_produk_materialized_views();
-    
-    -- Get statistics
-    SELECT INTO result_text
-        format('Produk views refreshed successfully at %s. Total products: %s, Total value: %s',
-               NOW(),
-               total_products,
-               total_value)
-    FROM mv_produk_aggregates;
-    
-    RETURN result_text;
-END;
-$$;
-
-
-ALTER FUNCTION public.manual_refresh_produk_views() OWNER TO postgres;
-
---
--- TOC entry 489 (class 1255 OID 21099)
--- Name: refresh_dashboard_materialized_views(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_dashboard_materialized_views() RETURNS text
-    LANGUAGE plpgsql
-    AS $$
-DECLARE
-    result_text TEXT;
-BEGIN
-    -- Refresh dashboard realtime stats
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_realtime_stats;
-        RAISE NOTICE 'Successfully refreshed mv_dashboard_realtime_stats concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        REFRESH MATERIALIZED VIEW mv_dashboard_realtime_stats;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_dashboard_realtime_stats: % at %', SQLERRM, NOW();
-    END;
-    
-    -- Refresh sales performance  
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sales_performance_real;
-        RAISE NOTICE 'Successfully refreshed mv_sales_performance_real concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        REFRESH MATERIALIZED VIEW mv_sales_performance_real;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_sales_performance_real: % at %', SQLERRM, NOW();
-    END;
-    
-    -- Refresh asset distribution
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_asset_distribution_real;
-        RAISE NOTICE 'Successfully refreshed mv_asset_distribution_real concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        REFRESH MATERIALIZED VIEW mv_asset_distribution_real;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_asset_distribution_real: % at %', SQLERRM, NOW();
-    END;
-    
-    -- Refresh receivables aging
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_receivables_aging_real;
-        RAISE NOTICE 'Successfully refreshed mv_receivables_aging_real concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        REFRESH MATERIALIZED VIEW mv_receivables_aging_real;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_receivables_aging_real: % at %', SQLERRM, NOW();
-    END;
-    
-    -- Return success message
-    SELECT INTO result_text
-        format('Dashboard materialized views refreshed successfully at %s', NOW());
-    
-    RETURN result_text;
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_dashboard_materialized_views() OWNER TO postgres;
-
---
--- TOC entry 4035 (class 0 OID 0)
--- Dependencies: 489
--- Name: FUNCTION refresh_dashboard_materialized_views(); Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON FUNCTION public.refresh_dashboard_materialized_views() IS 'Refresh all dashboard materialized views with concurrent fallback';
-
-
---
--- TOC entry 478 (class 1255 OID 17809)
--- Name: refresh_penagihan_materialized_views(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_penagihan_materialized_views() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- Refresh penagihan aggregates view
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_penagihan_aggregates;
-    EXCEPTION WHEN OTHERS THEN
-        -- Fall back to non-concurrent refresh if concurrent fails
-        REFRESH MATERIALIZED VIEW mv_penagihan_aggregates;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_penagihan_aggregates: %', SQLERRM;
-    END;
-    
-    -- Refresh penagihan with totals view
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_penagihan_with_totals;
-    EXCEPTION WHEN OTHERS THEN
-        -- Fall back to non-concurrent refresh if concurrent fails
-        REFRESH MATERIALIZED VIEW mv_penagihan_with_totals;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_penagihan_with_totals: %', SQLERRM;
-    END;
-    
-    -- Log refresh
-    RAISE NOTICE 'Penagihan materialized views refreshed at %', NOW();
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_penagihan_materialized_views() OWNER TO postgres;
-
---
--- TOC entry 475 (class 1255 OID 17638)
--- Name: refresh_pengiriman_aggregates(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_pengiriman_aggregates() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY mv_pengiriman_aggregates;
-    
-    -- Log refresh time
-    INSERT INTO system_logs (log_type, message, created_at)
-    VALUES ('mv_refresh', 'Pengiriman aggregates materialized view refreshed', NOW())
-    ON CONFLICT DO NOTHING;
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_pengiriman_aggregates() OWNER TO postgres;
-
---
--- TOC entry 481 (class 1255 OID 17908)
--- Name: refresh_produk_materialized_views(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_produk_materialized_views() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- Refresh produk aggregates view
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_produk_aggregates;
-        RAISE NOTICE 'Successfully refreshed mv_produk_aggregates concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        -- Fall back to non-concurrent refresh
-        REFRESH MATERIALIZED VIEW mv_produk_aggregates;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_produk_aggregates: % at %', SQLERRM, NOW();
-    END;
-    
-    -- Refresh produk with stats view
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_produk_with_stats;
-        RAISE NOTICE 'Successfully refreshed mv_produk_with_stats concurrently at %', NOW();
-    EXCEPTION WHEN OTHERS THEN
-        -- Fall back to non-concurrent refresh
-        REFRESH MATERIALIZED VIEW mv_produk_with_stats;
-        RAISE NOTICE 'Fell back to non-concurrent refresh for mv_produk_with_stats: % at %', SQLERRM, NOW();
-    END;
-    
-    RAISE NOTICE 'Produk materialized views refresh completed at %', NOW();
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_produk_materialized_views() OWNER TO postgres;
-
---
--- TOC entry 486 (class 1255 OID 17986)
--- Name: refresh_sales_aggregates(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_sales_aggregates() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-    -- Try concurrent refresh first, fall back to full refresh if it fails
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_sales_aggregates;
-    EXCEPTION WHEN OTHERS THEN
-        REFRESH MATERIALIZED VIEW mv_sales_aggregates;
-    END;
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_sales_aggregates() OWNER TO postgres;
-
---
--- TOC entry 468 (class 1255 OID 17480)
--- Name: refresh_toko_aggregates(); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.refresh_toko_aggregates() RETURNS void
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY mv_toko_aggregates;
-END;
-$$;
-
-
-ALTER FUNCTION public.refresh_toko_aggregates() OWNER TO postgres;
-
---
--- TOC entry 477 (class 1255 OID 17807)
+-- TOC entry 480 (class 1255 OID 17807)
 -- Name: search_penagihan_optimized(text, integer, integer, text, text, text, text, text, text, boolean, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -708,7 +483,7 @@ $_$;
 ALTER FUNCTION public.search_penagihan_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, sales_filter text, kabupaten_filter text, kecamatan_filter text, metode_pembayaran_filter text, ada_potongan_filter boolean, date_from_filter text, date_to_filter text) OWNER TO postgres;
 
 --
--- TOC entry 473 (class 1255 OID 17634)
+-- TOC entry 477 (class 1255 OID 17634)
 -- Name: search_pengiriman_optimized(text, integer, text, text, date, date, text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -814,7 +589,7 @@ $_$;
 ALTER FUNCTION public.search_pengiriman_optimized(search_term text, filter_sales integer, filter_kabupaten text, filter_kecamatan text, filter_date_from date, filter_date_to date, sort_by text, sort_order text, page_size integer, page_number integer) OWNER TO postgres;
 
 --
--- TOC entry 474 (class 1255 OID 17636)
+-- TOC entry 478 (class 1255 OID 17636)
 -- Name: search_pengiriman_simple(text, integer, text, text, date, date, text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -936,152 +711,7 @@ $_$;
 ALTER FUNCTION public.search_pengiriman_simple(search_term text, filter_sales integer, filter_kabupaten text, filter_kecamatan text, filter_date_from date, filter_date_to date, sort_by text, sort_order text, page_size integer, page_number integer) OWNER TO postgres;
 
 --
--- TOC entry 480 (class 1255 OID 17906)
--- Name: search_produk_optimized(text, integer, integer, text, text, boolean, boolean, numeric, numeric, text, text); Type: FUNCTION; Schema: public; Owner: postgres
---
-
-CREATE FUNCTION public.search_produk_optimized(search_query text DEFAULT ''::text, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, sort_column text DEFAULT 'nama_produk'::text, sort_direction text DEFAULT 'asc'::text, status_filter boolean DEFAULT NULL::boolean, priority_filter boolean DEFAULT NULL::boolean, price_from_filter numeric DEFAULT NULL::numeric, price_to_filter numeric DEFAULT NULL::numeric, date_from_filter text DEFAULT NULL::text, date_to_filter text DEFAULT NULL::text) RETURNS TABLE(id_produk integer, nama_produk character varying, harga_satuan numeric, status_produk boolean, is_priority boolean, priority_order integer, dibuat_pada timestamp with time zone, diperbarui_pada timestamp with time zone, stats json, total_count bigint)
-    LANGUAGE plpgsql
-    AS $_$
-DECLARE
-    query_text text;
-    sort_clause text;
-    where_conditions text[];
-    final_query text;
-BEGIN
-    -- Build WHERE conditions
-    where_conditions := ARRAY['p.id_produk IS NOT NULL'];
-    
-    -- Search condition
-    IF search_query IS NOT NULL AND LENGTH(TRIM(search_query)) > 0 THEN
-        IF search_query ~ '^\d+$' THEN
-            -- Numeric search - search by product ID
-            where_conditions := where_conditions || ARRAY[format('p.id_produk = %s', search_query)];
-        ELSE
-            -- Text search - use both ILIKE and full-text search
-            where_conditions := where_conditions || ARRAY[format(
-                '(p.nama_produk ILIKE ''%%%s%%'' OR to_tsvector(''indonesian'', p.nama_produk) @@ plainto_tsquery(''indonesian'', ''%s''))', 
-                search_query, search_query
-            )];
-        END IF;
-    END IF;
-    
-    -- Status filter
-    IF status_filter IS NOT NULL THEN
-        where_conditions := where_conditions || ARRAY[format('p.status_produk = %s', status_filter)];
-    END IF;
-    
-    -- Priority filter
-    IF priority_filter IS NOT NULL THEN
-        where_conditions := where_conditions || ARRAY[format('p.is_priority = %s', priority_filter)];
-    END IF;
-    
-    -- Price from filter
-    IF price_from_filter IS NOT NULL THEN
-        where_conditions := where_conditions || ARRAY[format('p.harga_satuan >= %s', price_from_filter)];
-    END IF;
-    
-    -- Price to filter
-    IF price_to_filter IS NOT NULL THEN
-        where_conditions := where_conditions || ARRAY[format('p.harga_satuan <= %s', price_to_filter)];
-    END IF;
-    
-    -- Date from filter
-    IF date_from_filter IS NOT NULL AND LENGTH(TRIM(date_from_filter)) > 0 THEN
-        where_conditions := where_conditions || ARRAY[format('p.dibuat_pada >= ''%s''::timestamp', date_from_filter)];
-    END IF;
-    
-    -- Date to filter
-    IF date_to_filter IS NOT NULL AND LENGTH(TRIM(date_to_filter)) > 0 THEN
-        where_conditions := where_conditions || ARRAY[format('p.dibuat_pada <= ''%s 23:59:59''::timestamp', date_to_filter)];
-    END IF;
-    
-    -- Build sort clause
-    IF sort_column = 'harga_satuan' THEN
-        sort_clause := 'p.harga_satuan';
-    ELSIF sort_column = 'dibuat_pada' THEN
-        sort_clause := 'p.dibuat_pada';
-    ELSIF sort_column = 'total_terkirim' THEN
-        sort_clause := 'stats.total_terkirim';
-    ELSIF sort_column = 'total_terbayar' THEN
-        sort_clause := 'stats.total_terbayar';
-    ELSIF sort_column = 'sisa_stok' THEN
-        sort_clause := 'stats.sisa_stok';
-    ELSE
-        sort_clause := 'p.' || sort_column;
-    END IF;
-    
-    IF sort_direction = 'desc' THEN
-        sort_clause := sort_clause || ' DESC';
-    ELSE
-        sort_clause := sort_clause || ' ASC';
-    END IF;
-    
-    -- Build final query using materialized view for better performance
-    final_query := format('
-        WITH filtered_data AS (
-            SELECT 
-                p.id_produk,
-                p.nama_produk,
-                p.harga_satuan,
-                p.status_produk,
-                p.is_priority,
-                p.priority_order,
-                p.dibuat_pada,
-                p.diperbarui_pada,
-                COALESCE(
-                    json_build_object(
-                        ''total_terkirim'', stats.total_terkirim,
-                        ''total_terjual'', stats.total_terjual,
-                        ''total_kembali'', stats.total_kembali,
-                        ''total_terbayar'', stats.total_terbayar,
-                        ''sisa_stok'', stats.sisa_stok
-                    ),
-                    json_build_object(
-                        ''total_terkirim'', 0,
-                        ''total_terjual'', 0,
-                        ''total_kembali'', 0,
-                        ''total_terbayar'', 0,
-                        ''sisa_stok'', 0
-                    )
-                ) as stats,
-                COUNT(*) OVER() as total_count
-            FROM produk p
-            LEFT JOIN mv_produk_with_stats stats ON p.id_produk = stats.id_produk
-            WHERE %s
-            ORDER BY %s
-            LIMIT %s OFFSET %s
-        )
-        SELECT 
-            fd.id_produk,
-            fd.nama_produk,
-            fd.harga_satuan,
-            fd.status_produk,
-            fd.is_priority,
-            fd.priority_order,
-            fd.dibuat_pada,
-            fd.diperbarui_pada,
-            fd.stats,
-            fd.total_count
-        FROM filtered_data fd
-        ORDER BY %s',
-        array_to_string(where_conditions, ' AND '),
-        sort_clause,
-        p_limit,
-        p_offset,
-        sort_clause
-    );
-    
-    -- Execute and return results
-    RETURN QUERY EXECUTE final_query;
-END;
-$_$;
-
-
-ALTER FUNCTION public.search_produk_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, status_filter boolean, priority_filter boolean, price_from_filter numeric, price_to_filter numeric, date_from_filter text, date_to_filter text) OWNER TO postgres;
-
---
--- TOC entry 484 (class 1255 OID 17984)
+-- TOC entry 483 (class 1255 OID 17984)
 -- Name: search_sales_optimized(text, integer, integer, text, text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1177,7 +807,7 @@ $$;
 ALTER FUNCTION public.search_sales_optimized(search_term text, page_offset integer, page_limit integer, sort_column text, sort_direction text, filter_status text, filter_telepon_exists text, filter_date_from text, filter_date_to text) OWNER TO postgres;
 
 --
--- TOC entry 470 (class 1255 OID 17582)
+-- TOC entry 474 (class 1255 OID 17582)
 -- Name: search_toko_simple(text, boolean, integer, text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1271,7 +901,7 @@ $$;
 ALTER FUNCTION public.search_toko_simple(search_term text, filter_status boolean, filter_sales integer, filter_kabupaten text, filter_kecamatan text, page_size integer, page_number integer) OWNER TO postgres;
 
 --
--- TOC entry 479 (class 1255 OID 17810)
+-- TOC entry 481 (class 1255 OID 17810)
 -- Name: trigger_refresh_penagihan_views(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1289,7 +919,7 @@ $$;
 ALTER FUNCTION public.trigger_refresh_penagihan_views() OWNER TO postgres;
 
 --
--- TOC entry 476 (class 1255 OID 17639)
+-- TOC entry 479 (class 1255 OID 17639)
 -- Name: trigger_refresh_pengiriman_mv(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1325,7 +955,7 @@ $$;
 ALTER FUNCTION public.trigger_refresh_produk_views() OWNER TO postgres;
 
 --
--- TOC entry 487 (class 1255 OID 17987)
+-- TOC entry 485 (class 1255 OID 17987)
 -- Name: trigger_refresh_sales_aggregates(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1343,7 +973,7 @@ $$;
 ALTER FUNCTION public.trigger_refresh_sales_aggregates() OWNER TO postgres;
 
 --
--- TOC entry 469 (class 1255 OID 17481)
+-- TOC entry 473 (class 1255 OID 17481)
 -- Name: trigger_refresh_toko_aggregates(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -1365,7 +995,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 338 (class 1259 OID 17330)
+-- TOC entry 354 (class 1259 OID 17330)
 -- Name: detail_penagihan; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1385,7 +1015,7 @@ CREATE TABLE public.detail_penagihan (
 ALTER TABLE public.detail_penagihan OWNER TO postgres;
 
 --
--- TOC entry 339 (class 1259 OID 17337)
+-- TOC entry 355 (class 1259 OID 17337)
 -- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1401,8 +1031,8 @@ CREATE SEQUENCE public.detail_penagihan_id_detail_tagih_seq
 ALTER SEQUENCE public.detail_penagihan_id_detail_tagih_seq OWNER TO postgres;
 
 --
--- TOC entry 4054 (class 0 OID 0)
--- Dependencies: 339
+-- TOC entry 3956 (class 0 OID 0)
+-- Dependencies: 355
 -- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1410,7 +1040,7 @@ ALTER SEQUENCE public.detail_penagihan_id_detail_tagih_seq OWNED BY public.detai
 
 
 --
--- TOC entry 334 (class 1259 OID 17312)
+-- TOC entry 350 (class 1259 OID 17312)
 -- Name: detail_pengiriman; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1428,7 +1058,7 @@ CREATE TABLE public.detail_pengiriman (
 ALTER TABLE public.detail_pengiriman OWNER TO postgres;
 
 --
--- TOC entry 335 (class 1259 OID 17318)
+-- TOC entry 351 (class 1259 OID 17318)
 -- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -1444,8 +1074,8 @@ CREATE SEQUENCE public.detail_pengiriman_id_detail_kirim_seq
 ALTER SEQUENCE public.detail_pengiriman_id_detail_kirim_seq OWNER TO postgres;
 
 --
--- TOC entry 4057 (class 0 OID 0)
--- Dependencies: 335
+-- TOC entry 3959 (class 0 OID 0)
+-- Dependencies: 351
 -- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -1453,7 +1083,7 @@ ALTER SEQUENCE public.detail_pengiriman_id_detail_kirim_seq OWNED BY public.deta
 
 
 --
--- TOC entry 336 (class 1259 OID 17320)
+-- TOC entry 352 (class 1259 OID 17320)
 -- Name: penagihan; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1473,7 +1103,32 @@ CREATE TABLE public.penagihan (
 ALTER TABLE public.penagihan OWNER TO postgres;
 
 --
--- TOC entry 332 (class 1259 OID 17305)
+-- TOC entry 353 (class 1259 OID 17328)
+-- Name: penagihan_id_penagihan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.penagihan_id_penagihan_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNER TO postgres;
+
+--
+-- TOC entry 3962 (class 0 OID 0)
+-- Dependencies: 353
+-- Name: penagihan_id_penagihan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNED BY public.penagihan.id_penagihan;
+
+
+--
+-- TOC entry 348 (class 1259 OID 17305)
 -- Name: pengiriman; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1490,8 +1145,8 @@ CREATE TABLE public.pengiriman (
 ALTER TABLE public.pengiriman OWNER TO postgres;
 
 --
--- TOC entry 4060 (class 0 OID 0)
--- Dependencies: 332
+-- TOC entry 3964 (class 0 OID 0)
+-- Dependencies: 348
 -- Name: TABLE pengiriman; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1499,8 +1154,8 @@ COMMENT ON TABLE public.pengiriman IS 'Individual shipments table - no longer de
 
 
 --
--- TOC entry 4061 (class 0 OID 0)
--- Dependencies: 332
+-- TOC entry 3965 (class 0 OID 0)
+-- Dependencies: 348
 -- Name: COLUMN pengiriman.is_autorestock; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -1508,7 +1163,75 @@ COMMENT ON COLUMN public.pengiriman.is_autorestock IS 'Identifies if this shipme
 
 
 --
--- TOC entry 328 (class 1259 OID 17276)
+-- TOC entry 349 (class 1259 OID 17310)
+-- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.pengiriman_id_pengiriman_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNER TO postgres;
+
+--
+-- TOC entry 3967 (class 0 OID 0)
+-- Dependencies: 349
+-- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNED BY public.pengiriman.id_pengiriman;
+
+
+--
+-- TOC entry 356 (class 1259 OID 17339)
+-- Name: potongan_penagihan; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.potongan_penagihan (
+    id_potongan integer NOT NULL,
+    id_penagihan integer NOT NULL,
+    jumlah_potongan numeric(12,2) NOT NULL,
+    alasan text,
+    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT potongan_penagihan_jumlah_potongan_check CHECK ((jumlah_potongan >= (0)::numeric))
+);
+
+
+ALTER TABLE public.potongan_penagihan OWNER TO postgres;
+
+--
+-- TOC entry 357 (class 1259 OID 17347)
+-- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.potongan_penagihan_id_potongan_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNER TO postgres;
+
+--
+-- TOC entry 3970 (class 0 OID 0)
+-- Dependencies: 357
+-- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNED BY public.potongan_penagihan.id_potongan;
+
+
+--
+-- TOC entry 344 (class 1259 OID 17276)
 -- Name: produk; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1527,7 +1250,32 @@ CREATE TABLE public.produk (
 ALTER TABLE public.produk OWNER TO postgres;
 
 --
--- TOC entry 326 (class 1259 OID 17268)
+-- TOC entry 345 (class 1259 OID 17284)
+-- Name: produk_id_produk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.produk_id_produk_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.produk_id_produk_seq OWNER TO postgres;
+
+--
+-- TOC entry 3973 (class 0 OID 0)
+-- Dependencies: 345
+-- Name: produk_id_produk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.produk_id_produk_seq OWNED BY public.produk.id_produk;
+
+
+--
+-- TOC entry 342 (class 1259 OID 17268)
 -- Name: sales; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1544,7 +1292,32 @@ CREATE TABLE public.sales (
 ALTER TABLE public.sales OWNER TO postgres;
 
 --
--- TOC entry 342 (class 1259 OID 17349)
+-- TOC entry 343 (class 1259 OID 17274)
+-- Name: sales_id_sales_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.sales_id_sales_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.sales_id_sales_seq OWNER TO postgres;
+
+--
+-- TOC entry 3976 (class 0 OID 0)
+-- Dependencies: 343
+-- Name: sales_id_sales_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.sales_id_sales_seq OWNED BY public.sales.id_sales;
+
+
+--
+-- TOC entry 358 (class 1259 OID 17349)
 -- Name: setoran; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1561,7 +1334,72 @@ CREATE TABLE public.setoran (
 ALTER TABLE public.setoran OWNER TO postgres;
 
 --
--- TOC entry 330 (class 1259 OID 17286)
+-- TOC entry 359 (class 1259 OID 17355)
+-- Name: setoran_id_setoran_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.setoran_id_setoran_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.setoran_id_setoran_seq OWNER TO postgres;
+
+--
+-- TOC entry 3979 (class 0 OID 0)
+-- Dependencies: 359
+-- Name: setoran_id_setoran_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.setoran_id_setoran_seq OWNED BY public.setoran.id_setoran;
+
+
+--
+-- TOC entry 364 (class 1259 OID 17645)
+-- Name: system_logs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.system_logs (
+    id integer NOT NULL,
+    log_type character varying(50) NOT NULL,
+    message text NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.system_logs OWNER TO postgres;
+
+--
+-- TOC entry 363 (class 1259 OID 17644)
+-- Name: system_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.system_logs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.system_logs_id_seq OWNER TO postgres;
+
+--
+-- TOC entry 3982 (class 0 OID 0)
+-- Dependencies: 363
+-- Name: system_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.system_logs_id_seq OWNED BY public.system_logs.id;
+
+
+--
+-- TOC entry 346 (class 1259 OID 17286)
 -- Name: toko; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -1582,766 +1420,7 @@ CREATE TABLE public.toko (
 ALTER TABLE public.toko OWNER TO postgres;
 
 --
--- TOC entry 361 (class 1259 OID 21085)
--- Name: mv_asset_distribution_real; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_asset_distribution_real AS
- SELECT 'Stok Gudang'::text AS category,
-    COALESCE(sum(pr.harga_satuan), (0)::numeric) AS amount,
-    count(*) AS count_items,
-    'IDR'::text AS currency
-   FROM public.produk pr
-  WHERE (pr.status_produk = true)
-UNION ALL
- SELECT 'Barang di Jalan'::text AS category,
-    COALESCE(sum(((dp.jumlah_kirim)::numeric * pr.harga_satuan)), (0)::numeric) AS amount,
-    count(DISTINCT p.id_pengiriman) AS count_items,
-    'IDR'::text AS currency
-   FROM (((public.pengiriman p
-     JOIN public.detail_pengiriman dp ON ((p.id_pengiriman = dp.id_pengiriman)))
-     JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)))
-     LEFT JOIN public.penagihan pen ON (((p.id_toko = pen.id_toko) AND (p.tanggal_kirim <= date(pen.dibuat_pada)))))
-  WHERE (pen.id_penagihan IS NULL)
-UNION ALL
- SELECT 'Piutang Beredar'::text AS category,
-    COALESCE(sum(pen.total_uang_diterima), (0)::numeric) AS amount,
-    count(*) AS count_items,
-    'IDR'::text AS currency
-   FROM public.penagihan pen
-  WHERE ((pen.metode_pembayaran)::text = 'Transfer'::text)
-UNION ALL
- SELECT 'Kas di Tangan Sales'::text AS category,
-    COALESCE(sum(cash_balance.balance), (0)::numeric) AS amount,
-    count(*) AS count_items,
-    'IDR'::text AS currency
-   FROM ( SELECT s.id_sales,
-            s.nama_sales,
-            (COALESCE(sum(
-                CASE
-                    WHEN ((pen.metode_pembayaran)::text = 'Cash'::text) THEN pen.total_uang_diterima
-                    ELSE (0)::numeric
-                END), (0)::numeric) - COALESCE(( SELECT sum(set.total_setoran) AS sum
-                   FROM public.setoran set
-                  WHERE ((set.penerima_setoran)::text = (s.nama_sales)::text)), (0)::numeric)) AS balance
-           FROM ((public.sales s
-             LEFT JOIN public.toko t ON ((s.id_sales = t.id_sales)))
-             LEFT JOIN public.penagihan pen ON ((t.id_toko = pen.id_toko)))
-          WHERE (s.status_aktif = true)
-          GROUP BY s.id_sales, s.nama_sales
-         HAVING ((COALESCE(sum(
-                CASE
-                    WHEN ((pen.metode_pembayaran)::text = 'Cash'::text) THEN pen.total_uang_diterima
-                    ELSE (0)::numeric
-                END), (0)::numeric) - COALESCE(( SELECT sum(set.total_setoran) AS sum
-                   FROM public.setoran set
-                  WHERE ((set.penerima_setoran)::text = (s.nama_sales)::text)), (0)::numeric)) > (0)::numeric)) cash_balance
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_asset_distribution_real OWNER TO postgres;
-
---
--- TOC entry 4067 (class 0 OID 0)
--- Dependencies: 361
--- Name: MATERIALIZED VIEW mv_asset_distribution_real; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON MATERIALIZED VIEW public.mv_asset_distribution_real IS 'Real asset distribution based on actual data';
-
-
---
--- TOC entry 359 (class 1259 OID 21069)
--- Name: mv_dashboard_realtime_stats; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_dashboard_realtime_stats AS
- SELECT 1 AS id,
-    ( SELECT count(*) AS count
-           FROM public.pengiriman) AS total_pengiriman,
-    ( SELECT count(*) AS count
-           FROM public.penagihan) AS total_penagihan,
-    ( SELECT count(*) AS count
-           FROM public.setoran) AS total_setoran,
-    ( SELECT count(*) AS count
-           FROM public.toko
-          WHERE (toko.status_toko = true)) AS total_toko,
-    ( SELECT count(*) AS count
-           FROM public.produk
-          WHERE (produk.status_produk = true)) AS total_produk,
-    ( SELECT count(*) AS count
-           FROM public.sales
-          WHERE (sales.status_aktif = true)) AS total_sales,
-    ( SELECT COALESCE(sum(penagihan.total_uang_diterima), (0)::numeric) AS "coalesce"
-           FROM public.penagihan
-          WHERE (date(penagihan.dibuat_pada) = CURRENT_DATE)) AS pendapatan_harian,
-    ( SELECT COALESCE(sum(penagihan.total_uang_diterima), (0)::numeric) AS "coalesce"
-           FROM public.penagihan
-          WHERE (date(penagihan.dibuat_pada) >= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS pendapatan_bulan_ini,
-    ( SELECT COALESCE(sum(penagihan.total_uang_diterima), (0)::numeric) AS "coalesce"
-           FROM public.penagihan) AS total_pendapatan,
-    ( SELECT (COALESCE(sum(pen.total_uang_diterima), (0)::numeric) - COALESCE(sum(set.total_setoran), (0)::numeric))
-           FROM (public.penagihan pen
-             FULL JOIN public.setoran set ON ((date(pen.dibuat_pada) = date(set.dibuat_pada))))
-          WHERE (((pen.metode_pembayaran)::text = 'Cash'::text) OR (pen.metode_pembayaran IS NULL))) AS kas_belum_disetor,
-    ( SELECT COALESCE(sum(penagihan.total_uang_diterima), (0)::numeric) AS "coalesce"
-           FROM public.penagihan
-          WHERE ((penagihan.metode_pembayaran)::text = 'Transfer'::text)) AS piutang_beredar,
-    ( SELECT COALESCE(sum(produk.harga_satuan), (0)::numeric) AS "coalesce"
-           FROM public.produk
-          WHERE (produk.status_produk = true)) AS nilai_stok_produk,
-    ( SELECT COALESCE(count(DISTINCT p.id_pengiriman), (0)::bigint) AS "coalesce"
-           FROM (public.pengiriman p
-             LEFT JOIN public.penagihan pen ON (((p.id_toko = pen.id_toko) AND (p.tanggal_kirim = date(pen.dibuat_pada)))))
-          WHERE (pen.id_penagihan IS NULL)) AS barang_dalam_perjalanan,
-    now() AS last_updated
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_dashboard_realtime_stats OWNER TO postgres;
-
---
--- TOC entry 4069 (class 0 OID 0)
--- Dependencies: 359
--- Name: MATERIALIZED VIEW mv_dashboard_realtime_stats; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON MATERIALIZED VIEW public.mv_dashboard_realtime_stats IS 'Real-time dashboard statistics with accurate business calculations';
-
-
---
--- TOC entry 351 (class 1259 OID 17779)
--- Name: mv_penagihan_aggregates; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_penagihan_aggregates AS
- SELECT 1 AS id,
-    count(*) AS total_billings,
-    count(
-        CASE
-            WHEN (date(dibuat_pada) = CURRENT_DATE) THEN 1
-            ELSE NULL::integer
-        END) AS today_billings,
-    count(
-        CASE
-            WHEN (dibuat_pada >= (CURRENT_DATE - '7 days'::interval)) THEN 1
-            ELSE NULL::integer
-        END) AS this_week_billings,
-    count(DISTINCT id_toko) AS unique_toko,
-    count(
-        CASE
-            WHEN ((metode_pembayaran)::text = 'Cash'::text) THEN 1
-            ELSE NULL::integer
-        END) AS cash_payments,
-    count(
-        CASE
-            WHEN ((metode_pembayaran)::text = 'Transfer'::text) THEN 1
-            ELSE NULL::integer
-        END) AS transfer_payments,
-    count(
-        CASE
-            WHEN (ada_potongan = true) THEN 1
-            ELSE NULL::integer
-        END) AS with_deductions,
-    sum(total_uang_diterima) AS total_revenue,
-    avg(total_uang_diterima) AS avg_amount,
-    min(dibuat_pada) AS first_billing_date,
-    max(dibuat_pada) AS last_billing_date
-   FROM public.penagihan
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_penagihan_aggregates OWNER TO postgres;
-
---
--- TOC entry 340 (class 1259 OID 17339)
--- Name: potongan_penagihan; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.potongan_penagihan (
-    id_potongan integer NOT NULL,
-    id_penagihan integer NOT NULL,
-    jumlah_potongan numeric(12,2) NOT NULL,
-    alasan text,
-    dibuat_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    diperbarui_pada timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT potongan_penagihan_jumlah_potongan_check CHECK ((jumlah_potongan >= (0)::numeric))
-);
-
-
-ALTER TABLE public.potongan_penagihan OWNER TO postgres;
-
---
--- TOC entry 352 (class 1259 OID 17792)
--- Name: mv_penagihan_with_totals; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_penagihan_with_totals AS
- SELECT p.id_penagihan,
-    p.id_toko,
-    p.total_uang_diterima,
-    p.metode_pembayaran,
-    p.ada_potongan,
-    p.dibuat_pada,
-    p.diperbarui_pada,
-    COALESCE(sum(dp.jumlah_terjual), (0)::bigint) AS total_quantity_sold,
-    COALESCE(sum(dp.jumlah_kembali), (0)::bigint) AS total_quantity_returned,
-    COALESCE(count(dp.id_detail_tagih), (0)::bigint) AS detail_count,
-    COALESCE(sum(pot.jumlah_potongan), (0)::numeric) AS total_deductions
-   FROM ((public.penagihan p
-     LEFT JOIN public.detail_penagihan dp ON ((p.id_penagihan = dp.id_penagihan)))
-     LEFT JOIN public.potongan_penagihan pot ON ((p.id_penagihan = pot.id_penagihan)))
-  GROUP BY p.id_penagihan, p.id_toko, p.total_uang_diterima, p.metode_pembayaran, p.ada_potongan, p.dibuat_pada, p.diperbarui_pada
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_penagihan_with_totals OWNER TO postgres;
-
---
--- TOC entry 348 (class 1259 OID 17615)
--- Name: mv_pengiriman_aggregates; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_pengiriman_aggregates AS
- SELECT p.id_pengiriman,
-    p.tanggal_kirim,
-    p.dibuat_pada,
-    p.diperbarui_pada,
-    t.id_toko,
-    t.nama_toko,
-    t.kecamatan,
-    t.kabupaten,
-    t.link_gmaps,
-    s.id_sales,
-    s.nama_sales,
-    s.nomor_telepon,
-    COALESCE(agg.total_quantity, (0)::bigint) AS total_quantity,
-    COALESCE(agg.total_products, (0)::bigint) AS total_products,
-    COALESCE(agg.detail_pengiriman, '[]'::json) AS detail_pengiriman,
-    to_tsvector('indonesian'::regconfig, (((((((COALESCE(t.nama_toko, ''::character varying))::text || ' '::text) || (COALESCE(s.nama_sales, ''::character varying))::text) || ' '::text) || (COALESCE(t.kecamatan, ''::character varying))::text) || ' '::text) || (COALESCE(t.kabupaten, ''::character varying))::text)) AS search_vector,
-    p.tanggal_kirim AS tanggal_kirim_date,
-    EXTRACT(year FROM p.tanggal_kirim) AS tahun,
-    EXTRACT(month FROM p.tanggal_kirim) AS bulan,
-    EXTRACT(week FROM p.tanggal_kirim) AS minggu
-   FROM (((public.pengiriman p
-     JOIN public.toko t ON ((p.id_toko = t.id_toko)))
-     JOIN public.sales s ON ((t.id_sales = s.id_sales)))
-     LEFT JOIN ( SELECT dp.id_pengiriman,
-            sum(dp.jumlah_kirim) AS total_quantity,
-            count(DISTINCT dp.id_produk) AS total_products,
-            json_agg(json_build_object('id_detail_kirim', dp.id_detail_kirim, 'id_produk', dp.id_produk, 'nama_produk', pr.nama_produk, 'jumlah_kirim', dp.jumlah_kirim, 'harga_satuan', pr.harga_satuan) ORDER BY pr.nama_produk) AS detail_pengiriman
-           FROM (public.detail_pengiriman dp
-             JOIN public.produk pr ON ((dp.id_produk = pr.id_produk)))
-          GROUP BY dp.id_pengiriman) agg ON ((p.id_pengiriman = agg.id_pengiriman)))
-  WHERE ((t.status_toko = true) AND (s.status_aktif = true))
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_pengiriman_aggregates OWNER TO postgres;
-
---
--- TOC entry 353 (class 1259 OID 17875)
--- Name: mv_produk_aggregates; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_produk_aggregates AS
- SELECT 1 AS id,
-    count(*) AS total_products,
-    count(
-        CASE
-            WHEN (status_produk = true) THEN 1
-            ELSE NULL::integer
-        END) AS active_products,
-    count(
-        CASE
-            WHEN (status_produk = false) THEN 1
-            ELSE NULL::integer
-        END) AS inactive_products,
-    count(
-        CASE
-            WHEN (is_priority = true) THEN 1
-            ELSE NULL::integer
-        END) AS priority_products,
-    count(
-        CASE
-            WHEN (is_priority = false) THEN 1
-            ELSE NULL::integer
-        END) AS standard_products,
-    count(
-        CASE
-            WHEN (date(dibuat_pada) = CURRENT_DATE) THEN 1
-            ELSE NULL::integer
-        END) AS today_products,
-    count(
-        CASE
-            WHEN (dibuat_pada >= (CURRENT_DATE - '7 days'::interval)) THEN 1
-            ELSE NULL::integer
-        END) AS this_week_products,
-    min(harga_satuan) AS min_price,
-    max(harga_satuan) AS max_price,
-    avg(harga_satuan) AS avg_price,
-    sum(harga_satuan) AS total_value,
-    min(dibuat_pada) AS first_product_date,
-    max(dibuat_pada) AS last_product_date
-   FROM public.produk
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_produk_aggregates OWNER TO postgres;
-
---
--- TOC entry 354 (class 1259 OID 17888)
--- Name: mv_produk_with_stats; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_produk_with_stats AS
- SELECT p.id_produk,
-    p.nama_produk,
-    p.harga_satuan,
-    p.status_produk,
-    p.is_priority,
-    p.priority_order,
-    p.dibuat_pada,
-    p.diperbarui_pada,
-    COALESCE(ship_stats.total_terkirim, (0)::bigint) AS total_terkirim,
-    COALESCE(bill_stats.total_terjual, (0)::bigint) AS total_terjual,
-    COALESCE(bill_stats.total_kembali, (0)::bigint) AS total_kembali,
-    (COALESCE(bill_stats.total_terjual, (0)::bigint) - COALESCE(bill_stats.total_kembali, (0)::bigint)) AS total_terbayar,
-    (COALESCE(ship_stats.total_terkirim, (0)::bigint) - COALESCE(bill_stats.total_terjual, (0)::bigint)) AS sisa_stok,
-    COALESCE(ship_stats.shipment_count, (0)::bigint) AS shipment_count,
-    COALESCE(bill_stats.billing_count, (0)::bigint) AS billing_count,
-    (((COALESCE(bill_stats.total_terjual, (0)::bigint) - COALESCE(bill_stats.total_kembali, (0)::bigint)))::numeric * p.harga_satuan) AS total_revenue
-   FROM ((public.produk p
-     LEFT JOIN ( SELECT dp.id_produk,
-            sum(dp.jumlah_kirim) AS total_terkirim,
-            count(DISTINCT dp.id_pengiriman) AS shipment_count
-           FROM public.detail_pengiriman dp
-          GROUP BY dp.id_produk) ship_stats ON ((p.id_produk = ship_stats.id_produk)))
-     LEFT JOIN ( SELECT dp.id_produk,
-            sum(dp.jumlah_terjual) AS total_terjual,
-            sum(dp.jumlah_kembali) AS total_kembali,
-            count(DISTINCT dp.id_penagihan) AS billing_count
-           FROM public.detail_penagihan dp
-          GROUP BY dp.id_produk) bill_stats ON ((p.id_produk = bill_stats.id_produk)))
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_produk_with_stats OWNER TO postgres;
-
---
--- TOC entry 362 (class 1259 OID 21092)
--- Name: mv_receivables_aging_real; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_receivables_aging_real AS
- SELECT
-        CASE
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 30) THEN '0-30 hari'::text
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 60) THEN '31-60 hari'::text
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 90) THEN '61-90 hari'::text
-            ELSE '90+ hari'::text
-        END AS aging_category,
-    count(*) AS count_items,
-    COALESCE(sum(total_uang_diterima), (0)::numeric) AS total_amount,
-    round(avg((CURRENT_DATE - date(dibuat_pada))), 0) AS avg_days,
-    max((CURRENT_DATE - date(dibuat_pada))) AS max_days
-   FROM public.penagihan pen
-  WHERE ((metode_pembayaran)::text = 'Transfer'::text)
-  GROUP BY
-        CASE
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 30) THEN '0-30 hari'::text
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 60) THEN '31-60 hari'::text
-            WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 90) THEN '61-90 hari'::text
-            ELSE '90+ hari'::text
-        END
-  ORDER BY
-        CASE
-            WHEN (
-            CASE
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 30) THEN '0-30 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 60) THEN '31-60 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 90) THEN '61-90 hari'::text
-                ELSE '90+ hari'::text
-            END = '0-30 hari'::text) THEN 1
-            WHEN (
-            CASE
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 30) THEN '0-30 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 60) THEN '31-60 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 90) THEN '61-90 hari'::text
-                ELSE '90+ hari'::text
-            END = '31-60 hari'::text) THEN 2
-            WHEN (
-            CASE
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 30) THEN '0-30 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 60) THEN '31-60 hari'::text
-                WHEN ((CURRENT_DATE - date(dibuat_pada)) <= 90) THEN '61-90 hari'::text
-                ELSE '90+ hari'::text
-            END = '61-90 hari'::text) THEN 3
-            ELSE 4
-        END
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_receivables_aging_real OWNER TO postgres;
-
---
--- TOC entry 4077 (class 0 OID 0)
--- Dependencies: 362
--- Name: MATERIALIZED VIEW mv_receivables_aging_real; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON MATERIALIZED VIEW public.mv_receivables_aging_real IS 'Real receivables aging analysis for transfer payments';
-
-
---
--- TOC entry 355 (class 1259 OID 17966)
--- Name: mv_sales_aggregates; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_sales_aggregates AS
- SELECT s.id_sales,
-    s.nama_sales,
-    s.nomor_telepon,
-    s.status_aktif,
-    s.dibuat_pada,
-    s.diperbarui_pada,
-    COALESCE(store_stats.total_stores, (0)::bigint) AS total_stores,
-    COALESCE(store_stats.active_stores, (0)::bigint) AS active_stores,
-    COALESCE(store_stats.inactive_stores, (0)::bigint) AS inactive_stores,
-    COALESCE(shipment_stats.total_shipments, (0)::bigint) AS total_shipments,
-    COALESCE(shipment_stats.total_shipped_items, (0)::bigint) AS total_shipped_items,
-    COALESCE(shipment_stats.last_shipment_date, NULL::date) AS last_shipment_date,
-    COALESCE(billing_stats.total_billings, (0)::bigint) AS total_billings,
-    COALESCE(billing_stats.total_revenue, (0)::numeric) AS total_revenue,
-    COALESCE(billing_stats.total_items_sold, (0)::bigint) AS total_items_sold,
-    COALESCE(billing_stats.total_items_returned, (0)::bigint) AS total_items_returned,
-    COALESCE(billing_stats.last_billing_date, NULL::timestamp without time zone) AS last_billing_date,
-        CASE
-            WHEN (COALESCE(shipment_stats.total_shipped_items, (0)::bigint) > 0) THEN round((((COALESCE(billing_stats.total_items_sold, (0)::bigint))::numeric / (shipment_stats.total_shipped_items)::numeric) * (100)::numeric), 2)
-            ELSE (0)::numeric
-        END AS sales_efficiency_percentage,
-        CASE
-            WHEN (COALESCE(store_stats.total_stores, (0)::bigint) > 0) THEN round((COALESCE(billing_stats.total_revenue, (0)::numeric) / (store_stats.total_stores)::numeric), 2)
-            ELSE (0)::numeric
-        END AS avg_revenue_per_store,
-    EXTRACT(year FROM s.dibuat_pada) AS created_year,
-    EXTRACT(month FROM s.dibuat_pada) AS created_month,
-    date_trunc('month'::text, s.dibuat_pada) AS created_month_date
-   FROM (((public.sales s
-     LEFT JOIN ( SELECT toko.id_sales,
-            count(*) AS total_stores,
-            count(*) FILTER (WHERE (toko.status_toko = true)) AS active_stores,
-            count(*) FILTER (WHERE (toko.status_toko = false)) AS inactive_stores
-           FROM public.toko
-          GROUP BY toko.id_sales) store_stats ON ((s.id_sales = store_stats.id_sales)))
-     LEFT JOIN ( SELECT t.id_sales,
-            count(DISTINCT p.id_pengiriman) AS total_shipments,
-            COALESCE(sum(dp.jumlah_kirim), (0)::bigint) AS total_shipped_items,
-            max(p.tanggal_kirim) AS last_shipment_date
-           FROM ((public.pengiriman p
-             JOIN public.toko t ON ((p.id_toko = t.id_toko)))
-             LEFT JOIN public.detail_pengiriman dp ON ((p.id_pengiriman = dp.id_pengiriman)))
-          GROUP BY t.id_sales) shipment_stats ON ((s.id_sales = shipment_stats.id_sales)))
-     LEFT JOIN ( SELECT t.id_sales,
-            count(DISTINCT pen.id_penagihan) AS total_billings,
-            COALESCE(sum(pen.total_uang_diterima), (0)::numeric) AS total_revenue,
-            COALESCE(sum(dp.jumlah_terjual), (0)::bigint) AS total_items_sold,
-            COALESCE(sum(dp.jumlah_kembali), (0)::bigint) AS total_items_returned,
-            max(pen.dibuat_pada) AS last_billing_date
-           FROM ((public.penagihan pen
-             JOIN public.toko t ON ((pen.id_toko = t.id_toko)))
-             LEFT JOIN public.detail_penagihan dp ON ((pen.id_penagihan = dp.id_penagihan)))
-          GROUP BY t.id_sales) billing_stats ON ((s.id_sales = billing_stats.id_sales)))
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_sales_aggregates OWNER TO postgres;
-
---
--- TOC entry 360 (class 1259 OID 21077)
--- Name: mv_sales_performance_real; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_sales_performance_real AS
- SELECT s.id_sales,
-    s.nama_sales,
-    COALESCE(sum(pen.total_uang_diterima), (0)::numeric) AS total_penjualan,
-    COALESCE(sum(
-        CASE
-            WHEN ((pen.metode_pembayaran)::text = 'Cash'::text) THEN pen.total_uang_diterima
-            ELSE (0)::numeric
-        END), (0)::numeric) AS total_setoran_cash,
-    COALESCE(sum(
-        CASE
-            WHEN ((pen.metode_pembayaran)::text = 'Transfer'::text) THEN pen.total_uang_diterima
-            ELSE (0)::numeric
-        END), (0)::numeric) AS piutang_transfer,
-    (COALESCE(sum(
-        CASE
-            WHEN ((pen.metode_pembayaran)::text = 'Cash'::text) THEN pen.total_uang_diterima
-            ELSE (0)::numeric
-        END), (0)::numeric) - COALESCE(( SELECT sum(set.total_setoran) AS sum
-           FROM public.setoran set
-          WHERE ((set.penerima_setoran)::text = (s.nama_sales)::text)), (0)::numeric)) AS kas_di_tangan,
-    count(DISTINCT pen.id_penagihan) AS total_transaksi,
-    count(DISTINCT t.id_toko) AS toko_aktif,
-        CASE
-            WHEN (COALESCE(sum(pen.total_uang_diterima), (0)::numeric) > (0)::numeric) THEN round(((COALESCE(sum(
-            CASE
-                WHEN ((pen.metode_pembayaran)::text = 'Cash'::text) THEN pen.total_uang_diterima
-                ELSE (0)::numeric
-            END), (0)::numeric) / COALESCE(sum(pen.total_uang_diterima), (0)::numeric)) * (100)::numeric), 2)
-            ELSE (0)::numeric
-        END AS efektivitas_persen,
-    max(pen.dibuat_pada) AS aktivitas_terakhir
-   FROM ((public.sales s
-     LEFT JOIN public.toko t ON (((s.id_sales = t.id_sales) AND (t.status_toko = true))))
-     LEFT JOIN public.penagihan pen ON ((t.id_toko = pen.id_toko)))
-  WHERE (s.status_aktif = true)
-  GROUP BY s.id_sales, s.nama_sales
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_sales_performance_real OWNER TO postgres;
-
---
--- TOC entry 4080 (class 0 OID 0)
--- Dependencies: 360
--- Name: MATERIALIZED VIEW mv_sales_performance_real; Type: COMMENT; Schema: public; Owner: postgres
---
-
-COMMENT ON MATERIALIZED VIEW public.mv_sales_performance_real IS 'Real sales performance metrics with cash flow tracking';
-
-
---
--- TOC entry 344 (class 1259 OID 17463)
--- Name: mv_toko_aggregates; Type: MATERIALIZED VIEW; Schema: public; Owner: postgres
---
-
-CREATE MATERIALIZED VIEW public.mv_toko_aggregates AS
- SELECT t.id_toko,
-    t.nama_toko,
-    t.id_sales,
-    s.nama_sales,
-    t.kabupaten,
-    t.kecamatan,
-    t.no_telepon,
-    t.link_gmaps,
-    t.status_toko,
-    t.dibuat_pada,
-    t.diperbarui_pada,
-    COALESCE(agg_kirim.total_terkirim, (0)::bigint) AS barang_terkirim,
-    COALESCE(agg_bayar.total_terbayar, (0)::bigint) AS barang_terbayar,
-    (COALESCE(agg_kirim.total_terkirim, (0)::bigint) - COALESCE(agg_bayar.total_terbayar, (0)::bigint)) AS sisa_stok
-   FROM (((public.toko t
-     LEFT JOIN public.sales s ON ((t.id_sales = s.id_sales)))
-     LEFT JOIN ( SELECT p.id_toko,
-            sum(dp.jumlah_kirim) AS total_terkirim
-           FROM (public.pengiriman p
-             JOIN public.detail_pengiriman dp ON ((p.id_pengiriman = dp.id_pengiriman)))
-          GROUP BY p.id_toko) agg_kirim ON ((t.id_toko = agg_kirim.id_toko)))
-     LEFT JOIN ( SELECT pen.id_toko,
-            sum(dt.jumlah_terjual) AS total_terbayar
-           FROM (public.penagihan pen
-             JOIN public.detail_penagihan dt ON ((pen.id_penagihan = dt.id_penagihan)))
-          GROUP BY pen.id_toko) agg_bayar ON ((t.id_toko = agg_bayar.id_toko)))
-  WITH NO DATA;
-
-
-ALTER MATERIALIZED VIEW public.mv_toko_aggregates OWNER TO postgres;
-
---
--- TOC entry 337 (class 1259 OID 17328)
--- Name: penagihan_id_penagihan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.penagihan_id_penagihan_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNER TO postgres;
-
---
--- TOC entry 4083 (class 0 OID 0)
--- Dependencies: 337
--- Name: penagihan_id_penagihan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.penagihan_id_penagihan_seq OWNED BY public.penagihan.id_penagihan;
-
-
---
--- TOC entry 333 (class 1259 OID 17310)
--- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.pengiriman_id_pengiriman_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNER TO postgres;
-
---
--- TOC entry 4085 (class 0 OID 0)
--- Dependencies: 333
--- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.pengiriman_id_pengiriman_seq OWNED BY public.pengiriman.id_pengiriman;
-
-
---
--- TOC entry 341 (class 1259 OID 17347)
--- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.potongan_penagihan_id_potongan_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNER TO postgres;
-
---
--- TOC entry 4087 (class 0 OID 0)
--- Dependencies: 341
--- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.potongan_penagihan_id_potongan_seq OWNED BY public.potongan_penagihan.id_potongan;
-
-
---
--- TOC entry 329 (class 1259 OID 17284)
--- Name: produk_id_produk_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.produk_id_produk_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.produk_id_produk_seq OWNER TO postgres;
-
---
--- TOC entry 4089 (class 0 OID 0)
--- Dependencies: 329
--- Name: produk_id_produk_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.produk_id_produk_seq OWNED BY public.produk.id_produk;
-
-
---
--- TOC entry 327 (class 1259 OID 17274)
--- Name: sales_id_sales_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.sales_id_sales_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.sales_id_sales_seq OWNER TO postgres;
-
---
--- TOC entry 4091 (class 0 OID 0)
--- Dependencies: 327
--- Name: sales_id_sales_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.sales_id_sales_seq OWNED BY public.sales.id_sales;
-
-
---
--- TOC entry 343 (class 1259 OID 17355)
--- Name: setoran_id_setoran_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.setoran_id_setoran_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.setoran_id_setoran_seq OWNER TO postgres;
-
---
--- TOC entry 4093 (class 0 OID 0)
--- Dependencies: 343
--- Name: setoran_id_setoran_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.setoran_id_setoran_seq OWNED BY public.setoran.id_setoran;
-
-
---
--- TOC entry 350 (class 1259 OID 17645)
--- Name: system_logs; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.system_logs (
-    id integer NOT NULL,
-    log_type character varying(50) NOT NULL,
-    message text NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
-);
-
-
-ALTER TABLE public.system_logs OWNER TO postgres;
-
---
--- TOC entry 349 (class 1259 OID 17644)
--- Name: system_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.system_logs_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.system_logs_id_seq OWNER TO postgres;
-
---
--- TOC entry 4096 (class 0 OID 0)
--- Dependencies: 349
--- Name: system_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.system_logs_id_seq OWNED BY public.system_logs.id;
-
-
---
--- TOC entry 331 (class 1259 OID 17294)
+-- TOC entry 347 (class 1259 OID 17294)
 -- Name: toko_id_toko_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -2357,8 +1436,8 @@ CREATE SEQUENCE public.toko_id_toko_seq
 ALTER SEQUENCE public.toko_id_toko_seq OWNER TO postgres;
 
 --
--- TOC entry 4098 (class 0 OID 0)
--- Dependencies: 331
+-- TOC entry 3985 (class 0 OID 0)
+-- Dependencies: 347
 -- Name: toko_id_toko_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
@@ -2366,7 +1445,7 @@ ALTER SEQUENCE public.toko_id_toko_seq OWNED BY public.toko.id_toko;
 
 
 --
--- TOC entry 345 (class 1259 OID 17485)
+-- TOC entry 360 (class 1259 OID 17485)
 -- Name: v_kabupaten_options; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2380,7 +1459,7 @@ CREATE VIEW public.v_kabupaten_options AS
 ALTER VIEW public.v_kabupaten_options OWNER TO postgres;
 
 --
--- TOC entry 346 (class 1259 OID 17489)
+-- TOC entry 361 (class 1259 OID 17489)
 -- Name: v_kecamatan_options; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2395,7 +1474,7 @@ CREATE VIEW public.v_kecamatan_options AS
 ALTER VIEW public.v_kecamatan_options OWNER TO postgres;
 
 --
--- TOC entry 357 (class 1259 OID 21059)
+-- TOC entry 366 (class 1259 OID 21059)
 -- Name: v_laporan_penagihan; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2424,8 +1503,8 @@ CREATE VIEW public.v_laporan_penagihan AS
 ALTER VIEW public.v_laporan_penagihan OWNER TO postgres;
 
 --
--- TOC entry 4102 (class 0 OID 0)
--- Dependencies: 357
+-- TOC entry 3989 (class 0 OID 0)
+-- Dependencies: 366
 -- Name: VIEW v_laporan_penagihan; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -2433,7 +1512,7 @@ COMMENT ON VIEW public.v_laporan_penagihan IS 'Laporan penagihan dengan detail p
 
 
 --
--- TOC entry 356 (class 1259 OID 21054)
+-- TOC entry 365 (class 1259 OID 21054)
 -- Name: v_laporan_pengiriman; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2458,8 +1537,8 @@ CREATE VIEW public.v_laporan_pengiriman AS
 ALTER VIEW public.v_laporan_pengiriman OWNER TO postgres;
 
 --
--- TOC entry 4104 (class 0 OID 0)
--- Dependencies: 356
+-- TOC entry 3991 (class 0 OID 0)
+-- Dependencies: 365
 -- Name: VIEW v_laporan_pengiriman; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -2467,7 +1546,7 @@ COMMENT ON VIEW public.v_laporan_pengiriman IS 'Laporan pengiriman dengan detail
 
 
 --
--- TOC entry 358 (class 1259 OID 21064)
+-- TOC entry 367 (class 1259 OID 21064)
 -- Name: v_rekonsiliasi_setoran; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2489,8 +1568,8 @@ CREATE VIEW public.v_rekonsiliasi_setoran AS
 ALTER VIEW public.v_rekonsiliasi_setoran OWNER TO postgres;
 
 --
--- TOC entry 4106 (class 0 OID 0)
--- Dependencies: 358
+-- TOC entry 3993 (class 0 OID 0)
+-- Dependencies: 367
 -- Name: VIEW v_rekonsiliasi_setoran; Type: COMMENT; Schema: public; Owner: postgres
 --
 
@@ -2498,7 +1577,7 @@ COMMENT ON VIEW public.v_rekonsiliasi_setoran IS 'Rekonsiliasi setoran vs penagi
 
 
 --
--- TOC entry 347 (class 1259 OID 17493)
+-- TOC entry 362 (class 1259 OID 17493)
 -- Name: v_sales_options; Type: VIEW; Schema: public; Owner: postgres
 --
 
@@ -2513,7 +1592,7 @@ CREATE VIEW public.v_sales_options AS
 ALTER VIEW public.v_sales_options OWNER TO postgres;
 
 --
--- TOC entry 3680 (class 2604 OID 17338)
+-- TOC entry 3644 (class 2604 OID 17338)
 -- Name: detail_penagihan id_detail_tagih; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2521,7 +1600,7 @@ ALTER TABLE ONLY public.detail_penagihan ALTER COLUMN id_detail_tagih SET DEFAUL
 
 
 --
--- TOC entry 3673 (class 2604 OID 17319)
+-- TOC entry 3637 (class 2604 OID 17319)
 -- Name: detail_pengiriman id_detail_kirim; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2529,7 +1608,7 @@ ALTER TABLE ONLY public.detail_pengiriman ALTER COLUMN id_detail_kirim SET DEFAU
 
 
 --
--- TOC entry 3676 (class 2604 OID 17329)
+-- TOC entry 3640 (class 2604 OID 17329)
 -- Name: penagihan id_penagihan; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2537,7 +1616,7 @@ ALTER TABLE ONLY public.penagihan ALTER COLUMN id_penagihan SET DEFAULT nextval(
 
 
 --
--- TOC entry 3669 (class 2604 OID 17311)
+-- TOC entry 3633 (class 2604 OID 17311)
 -- Name: pengiriman id_pengiriman; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2545,7 +1624,7 @@ ALTER TABLE ONLY public.pengiriman ALTER COLUMN id_pengiriman SET DEFAULT nextva
 
 
 --
--- TOC entry 3683 (class 2604 OID 17348)
+-- TOC entry 3647 (class 2604 OID 17348)
 -- Name: potongan_penagihan id_potongan; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2553,7 +1632,7 @@ ALTER TABLE ONLY public.potongan_penagihan ALTER COLUMN id_potongan SET DEFAULT 
 
 
 --
--- TOC entry 3659 (class 2604 OID 17285)
+-- TOC entry 3623 (class 2604 OID 17285)
 -- Name: produk id_produk; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2561,7 +1640,7 @@ ALTER TABLE ONLY public.produk ALTER COLUMN id_produk SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 3655 (class 2604 OID 17275)
+-- TOC entry 3619 (class 2604 OID 17275)
 -- Name: sales id_sales; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2569,7 +1648,7 @@ ALTER TABLE ONLY public.sales ALTER COLUMN id_sales SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 3686 (class 2604 OID 17356)
+-- TOC entry 3650 (class 2604 OID 17356)
 -- Name: setoran id_setoran; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2577,7 +1656,7 @@ ALTER TABLE ONLY public.setoran ALTER COLUMN id_setoran SET DEFAULT nextval('pub
 
 
 --
--- TOC entry 3689 (class 2604 OID 17648)
+-- TOC entry 3653 (class 2604 OID 17648)
 -- Name: system_logs id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2585,7 +1664,7 @@ ALTER TABLE ONLY public.system_logs ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 3665 (class 2604 OID 17295)
+-- TOC entry 3629 (class 2604 OID 17295)
 -- Name: toko id_toko; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2593,8 +1672,8 @@ ALTER TABLE ONLY public.toko ALTER COLUMN id_toko SET DEFAULT nextval('public.to
 
 
 --
--- TOC entry 4004 (class 0 OID 17330)
--- Dependencies: 338
+-- TOC entry 3926 (class 0 OID 17330)
+-- Dependencies: 354
 -- Data for Name: detail_penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -2652,13 +1731,12 @@ COPY public.detail_penagihan (id_detail_tagih, id_penagihan, id_produk, jumlah_t
 55	18	3	1	0	2025-07-21 07:53:03.040303	2025-07-21 07:53:03.040303
 56	18	4	2	0	2025-07-21 07:53:03.040303	2025-07-21 07:53:03.040303
 57	18	5	1	0	2025-07-21 07:53:03.040303	2025-07-21 07:53:03.040303
-62	20	1	2	0	2025-07-21 11:44:23.886851	2025-07-21 11:44:23.886851
 \.
 
 
 --
--- TOC entry 4000 (class 0 OID 17312)
--- Dependencies: 334
+-- TOC entry 3922 (class 0 OID 17312)
+-- Dependencies: 350
 -- Data for Name: detail_pengiriman; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -7203,17 +6281,12 @@ COPY public.detail_pengiriman (id_detail_kirim, id_pengiriman, id_produk, jumlah
 4538	915	3	1	2025-07-21 07:53:03.570901	2025-07-21 07:53:03.570901
 4539	915	4	2	2025-07-21 07:53:03.570901	2025-07-21 07:53:03.570901
 4540	915	5	1	2025-07-21 07:53:03.570901	2025-07-21 07:53:03.570901
-4541	916	1	2	2025-07-21 08:30:06.412893	2025-07-21 08:30:06.412893
-4542	916	2	3	2025-07-21 08:30:06.412893	2025-07-21 08:30:06.412893
-4543	916	3	3	2025-07-21 08:30:06.412893	2025-07-21 08:30:06.412893
-4544	916	4	3	2025-07-21 08:30:06.412893	2025-07-21 08:30:06.412893
-4545	917	1	2	2025-07-21 11:44:24.409701	2025-07-21 11:44:24.409701
 \.
 
 
 --
--- TOC entry 4002 (class 0 OID 17320)
--- Dependencies: 336
+-- TOC entry 3924 (class 0 OID 17320)
+-- Dependencies: 352
 -- Data for Name: penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -7234,13 +6307,12 @@ COPY public.penagihan (id_penagihan, id_toko, total_uang_diterima, metode_pembay
 16	144	60000.00	Cash	f	2025-07-21 07:52:57.700865	2025-07-21 07:52:57.700865
 17	143	300000.00	Cash	f	2025-07-21 07:53:00.201203	2025-07-21 07:53:00.201203
 18	145	150000.00	Cash	f	2025-07-21 07:53:02.756873	2025-07-21 07:53:02.756873
-20	730	60000.00	Cash	f	2025-07-21 11:44:23.602267	2025-07-21 11:44:23.602267
 \.
 
 
 --
--- TOC entry 3998 (class 0 OID 17305)
--- Dependencies: 332
+-- TOC entry 3920 (class 0 OID 17305)
+-- Dependencies: 348
 -- Data for Name: pengiriman; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -8144,7 +7216,6 @@ COPY public.pengiriman (id_pengiriman, id_toko, tanggal_kirim, dibuat_pada, dipe
 897	897	2025-07-19	2025-07-19 02:21:38.983618	2025-07-19 02:21:38.983618	f
 898	12	2025-07-20	2025-07-20 17:42:53.372089	2025-07-20 17:42:53.372089	f
 899	730	2025-07-20	2025-07-20 17:49:35.533882	2025-07-20 17:49:35.533882	f
-916	730	2025-07-21	2025-07-21 08:30:06.122239	2025-07-21 08:30:06.122239	f
 900	74	2025-07-21	2025-07-21 07:41:09.439113	2025-07-21 07:41:09.439113	t
 901	73	2025-07-21	2025-07-21 07:41:37.766632	2025-07-21 07:41:37.766632	t
 902	92	2025-07-21	2025-07-21 07:42:20.828967	2025-07-21 07:42:20.828967	t
@@ -8161,13 +7232,12 @@ COPY public.pengiriman (id_pengiriman, id_toko, tanggal_kirim, dibuat_pada, dipe
 913	144	2025-07-21	2025-07-21 07:52:58.250452	2025-07-21 07:52:58.250452	t
 914	143	2025-07-21	2025-07-21 07:53:00.769542	2025-07-21 07:53:00.769542	t
 915	145	2025-07-21	2025-07-21 07:53:03.319396	2025-07-21 07:53:03.319396	t
-917	730	2025-07-21	2025-07-21 11:44:24.157649	2025-07-21 11:44:24.157649	t
 \.
 
 
 --
--- TOC entry 4006 (class 0 OID 17339)
--- Dependencies: 340
+-- TOC entry 3928 (class 0 OID 17339)
+-- Dependencies: 356
 -- Data for Name: potongan_penagihan; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -8176,8 +7246,8 @@ COPY public.potongan_penagihan (id_potongan, id_penagihan, jumlah_potongan, alas
 
 
 --
--- TOC entry 3994 (class 0 OID 17276)
--- Dependencies: 328
+-- TOC entry 3916 (class 0 OID 17276)
+-- Dependencies: 344
 -- Data for Name: produk; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -8191,8 +7261,8 @@ COPY public.produk (id_produk, nama_produk, harga_satuan, status_produk, dibuat_
 
 
 --
--- TOC entry 3992 (class 0 OID 17268)
--- Dependencies: 326
+-- TOC entry 3914 (class 0 OID 17268)
+-- Dependencies: 342
 -- Data for Name: sales; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -8206,8 +7276,8 @@ COPY public.sales (id_sales, nama_sales, nomor_telepon, status_aktif, dibuat_pad
 
 
 --
--- TOC entry 4008 (class 0 OID 17349)
--- Dependencies: 342
+-- TOC entry 3930 (class 0 OID 17349)
+-- Dependencies: 358
 -- Data for Name: setoran; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -8216,19 +7286,22 @@ COPY public.setoran (id_setoran, total_setoran, penerima_setoran, dibuat_pada, d
 
 
 --
--- TOC entry 4013 (class 0 OID 17645)
--- Dependencies: 350
+-- TOC entry 3933 (class 0 OID 17645)
+-- Dependencies: 364
 -- Data for Name: system_logs; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.system_logs (id, log_type, message, created_at) FROM stdin;
 1	mv_refresh	Pengiriman aggregates materialized view refreshed	2025-07-19 15:49:42.671825
+2	mv_refresh	Manual refresh of all materialized views after pengiriman data sync issue	2025-07-22 00:28:22.540661
+3	fix_applied	Fixed pengiriman table display issue - now showing all 917 records instead of only 897	2025-07-22 00:28:22.540661
+4	schema_cleanup	Materialized views and related functions removed successfully	2025-07-22 06:16:37.728348
 \.
 
 
 --
--- TOC entry 3996 (class 0 OID 17286)
--- Dependencies: 330
+-- TOC entry 3918 (class 0 OID 17286)
+-- Dependencies: 346
 -- Data for Name: toko; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -9145,8 +8218,8 @@ COPY public.toko (id_toko, id_sales, nama_toko, kecamatan, kabupaten, link_gmaps
 
 
 --
--- TOC entry 4109 (class 0 OID 0)
--- Dependencies: 339
+-- TOC entry 3996 (class 0 OID 0)
+-- Dependencies: 355
 -- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9154,8 +8227,8 @@ SELECT pg_catalog.setval('public.detail_penagihan_id_detail_tagih_seq', 62, true
 
 
 --
--- TOC entry 4110 (class 0 OID 0)
--- Dependencies: 335
+-- TOC entry 3997 (class 0 OID 0)
+-- Dependencies: 351
 -- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9163,8 +8236,8 @@ SELECT pg_catalog.setval('public.detail_pengiriman_id_detail_kirim_seq', 4545, t
 
 
 --
--- TOC entry 4111 (class 0 OID 0)
--- Dependencies: 337
+-- TOC entry 3998 (class 0 OID 0)
+-- Dependencies: 353
 -- Name: penagihan_id_penagihan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9172,8 +8245,8 @@ SELECT pg_catalog.setval('public.penagihan_id_penagihan_seq', 20, true);
 
 
 --
--- TOC entry 4112 (class 0 OID 0)
--- Dependencies: 333
+-- TOC entry 3999 (class 0 OID 0)
+-- Dependencies: 349
 -- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9181,8 +8254,8 @@ SELECT pg_catalog.setval('public.pengiriman_id_pengiriman_seq', 917, true);
 
 
 --
--- TOC entry 4113 (class 0 OID 0)
--- Dependencies: 341
+-- TOC entry 4000 (class 0 OID 0)
+-- Dependencies: 357
 -- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9190,8 +8263,8 @@ SELECT pg_catalog.setval('public.potongan_penagihan_id_potongan_seq', 1, false);
 
 
 --
--- TOC entry 4114 (class 0 OID 0)
--- Dependencies: 329
+-- TOC entry 4001 (class 0 OID 0)
+-- Dependencies: 345
 -- Name: produk_id_produk_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9199,8 +8272,8 @@ SELECT pg_catalog.setval('public.produk_id_produk_seq', 5, true);
 
 
 --
--- TOC entry 4115 (class 0 OID 0)
--- Dependencies: 327
+-- TOC entry 4002 (class 0 OID 0)
+-- Dependencies: 343
 -- Name: sales_id_sales_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9208,8 +8281,8 @@ SELECT pg_catalog.setval('public.sales_id_sales_seq', 5, true);
 
 
 --
--- TOC entry 4116 (class 0 OID 0)
--- Dependencies: 343
+-- TOC entry 4003 (class 0 OID 0)
+-- Dependencies: 359
 -- Name: setoran_id_setoran_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9217,17 +8290,17 @@ SELECT pg_catalog.setval('public.setoran_id_setoran_seq', 1, false);
 
 
 --
--- TOC entry 4117 (class 0 OID 0)
--- Dependencies: 349
+-- TOC entry 4004 (class 0 OID 0)
+-- Dependencies: 363
 -- Name: system_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.system_logs_id_seq', 1, true);
+SELECT pg_catalog.setval('public.system_logs_id_seq', 4, true);
 
 
 --
--- TOC entry 4118 (class 0 OID 0)
--- Dependencies: 331
+-- TOC entry 4005 (class 0 OID 0)
+-- Dependencies: 347
 -- Name: toko_id_toko_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -9235,7 +8308,7 @@ SELECT pg_catalog.setval('public.toko_id_toko_seq', 908, true);
 
 
 --
--- TOC entry 3758 (class 2606 OID 17360)
+-- TOC entry 3722 (class 2606 OID 17360)
 -- Name: detail_penagihan detail_penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9244,7 +8317,7 @@ ALTER TABLE ONLY public.detail_penagihan
 
 
 --
--- TOC entry 3741 (class 2606 OID 17362)
+-- TOC entry 3705 (class 2606 OID 17362)
 -- Name: detail_pengiriman detail_pengiriman_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9253,7 +8326,7 @@ ALTER TABLE ONLY public.detail_pengiriman
 
 
 --
--- TOC entry 3756 (class 2606 OID 17364)
+-- TOC entry 3720 (class 2606 OID 17364)
 -- Name: penagihan penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9262,7 +8335,7 @@ ALTER TABLE ONLY public.penagihan
 
 
 --
--- TOC entry 3739 (class 2606 OID 17366)
+-- TOC entry 3703 (class 2606 OID 17366)
 -- Name: pengiriman pengiriman_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9271,7 +8344,7 @@ ALTER TABLE ONLY public.pengiriman
 
 
 --
--- TOC entry 3767 (class 2606 OID 17368)
+-- TOC entry 3731 (class 2606 OID 17368)
 -- Name: potongan_penagihan potongan_penagihan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9280,7 +8353,7 @@ ALTER TABLE ONLY public.potongan_penagihan
 
 
 --
--- TOC entry 3717 (class 2606 OID 17370)
+-- TOC entry 3681 (class 2606 OID 17370)
 -- Name: produk produk_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9289,7 +8362,7 @@ ALTER TABLE ONLY public.produk
 
 
 --
--- TOC entry 3708 (class 2606 OID 17372)
+-- TOC entry 3672 (class 2606 OID 17372)
 -- Name: sales sales_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9298,7 +8371,7 @@ ALTER TABLE ONLY public.sales
 
 
 --
--- TOC entry 3773 (class 2606 OID 17374)
+-- TOC entry 3737 (class 2606 OID 17374)
 -- Name: setoran setoran_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9307,7 +8380,7 @@ ALTER TABLE ONLY public.setoran
 
 
 --
--- TOC entry 3787 (class 2606 OID 17653)
+-- TOC entry 3739 (class 2606 OID 17653)
 -- Name: system_logs system_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9316,7 +8389,7 @@ ALTER TABLE ONLY public.system_logs
 
 
 --
--- TOC entry 3732 (class 2606 OID 17376)
+-- TOC entry 3696 (class 2606 OID 17376)
 -- Name: toko toko_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -9325,7 +8398,7 @@ ALTER TABLE ONLY public.toko
 
 
 --
--- TOC entry 3759 (class 1259 OID 17461)
+-- TOC entry 3723 (class 1259 OID 17461)
 -- Name: idx_detail_penagihan_penagihan; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9333,7 +8406,7 @@ CREATE INDEX idx_detail_penagihan_penagihan ON public.detail_penagihan USING btr
 
 
 --
--- TOC entry 3760 (class 1259 OID 17774)
+-- TOC entry 3724 (class 1259 OID 17774)
 -- Name: idx_detail_penagihan_penagihan_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9341,7 +8414,7 @@ CREATE INDEX idx_detail_penagihan_penagihan_id ON public.detail_penagihan USING 
 
 
 --
--- TOC entry 3761 (class 1259 OID 17775)
+-- TOC entry 3725 (class 1259 OID 17775)
 -- Name: idx_detail_penagihan_produk_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9349,7 +8422,7 @@ CREATE INDEX idx_detail_penagihan_produk_id ON public.detail_penagihan USING btr
 
 
 --
--- TOC entry 3762 (class 1259 OID 17776)
+-- TOC entry 3726 (class 1259 OID 17776)
 -- Name: idx_detail_penagihan_quantities; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9357,7 +8430,7 @@ CREATE INDEX idx_detail_penagihan_quantities ON public.detail_penagihan USING bt
 
 
 --
--- TOC entry 3763 (class 1259 OID 17874)
+-- TOC entry 3727 (class 1259 OID 17874)
 -- Name: idx_detail_penagihan_sales; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9365,7 +8438,7 @@ CREATE INDEX idx_detail_penagihan_sales ON public.detail_penagihan USING btree (
 
 
 --
--- TOC entry 3742 (class 1259 OID 17611)
+-- TOC entry 3706 (class 1259 OID 17611)
 -- Name: idx_detail_pengiriman_composite; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9373,7 +8446,7 @@ CREATE INDEX idx_detail_pengiriman_composite ON public.detail_pengiriman USING b
 
 
 --
--- TOC entry 3743 (class 1259 OID 17873)
+-- TOC entry 3707 (class 1259 OID 17873)
 -- Name: idx_detail_pengiriman_movement; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9381,7 +8454,7 @@ CREATE INDEX idx_detail_pengiriman_movement ON public.detail_pengiriman USING bt
 
 
 --
--- TOC entry 3744 (class 1259 OID 17459)
+-- TOC entry 3708 (class 1259 OID 17459)
 -- Name: idx_detail_pengiriman_pengiriman; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9389,7 +8462,7 @@ CREATE INDEX idx_detail_pengiriman_pengiriman ON public.detail_pengiriman USING 
 
 
 --
--- TOC entry 3745 (class 1259 OID 17871)
+-- TOC entry 3709 (class 1259 OID 17871)
 -- Name: idx_detail_pengiriman_pengiriman_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9397,7 +8470,7 @@ CREATE INDEX idx_detail_pengiriman_pengiriman_id ON public.detail_pengiriman USI
 
 
 --
--- TOC entry 3746 (class 1259 OID 17870)
+-- TOC entry 3710 (class 1259 OID 17870)
 -- Name: idx_detail_pengiriman_produk_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9405,7 +8478,7 @@ CREATE INDEX idx_detail_pengiriman_produk_id ON public.detail_pengiriman USING b
 
 
 --
--- TOC entry 3747 (class 1259 OID 17872)
+-- TOC entry 3711 (class 1259 OID 17872)
 -- Name: idx_detail_pengiriman_quantities; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9413,255 +8486,7 @@ CREATE INDEX idx_detail_pengiriman_quantities ON public.detail_pengiriman USING 
 
 
 --
--- TOC entry 3805 (class 1259 OID 21076)
--- Name: idx_mv_dashboard_realtime_stats_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_dashboard_realtime_stats_pk ON public.mv_dashboard_realtime_stats USING btree (id);
-
-
---
--- TOC entry 3788 (class 1259 OID 17791)
--- Name: idx_mv_penagihan_aggregates_unique; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_penagihan_aggregates_unique ON public.mv_penagihan_aggregates USING btree (id);
-
-
---
--- TOC entry 3789 (class 1259 OID 17806)
--- Name: idx_mv_penagihan_with_totals_date; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_penagihan_with_totals_date ON public.mv_penagihan_with_totals USING btree (dibuat_pada DESC);
-
-
---
--- TOC entry 3790 (class 1259 OID 17804)
--- Name: idx_mv_penagihan_with_totals_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_penagihan_with_totals_pk ON public.mv_penagihan_with_totals USING btree (id_penagihan);
-
-
---
--- TOC entry 3791 (class 1259 OID 17805)
--- Name: idx_mv_penagihan_with_totals_toko; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_penagihan_with_totals_toko ON public.mv_penagihan_with_totals USING btree (id_toko, dibuat_pada DESC);
-
-
---
--- TOC entry 3779 (class 1259 OID 17629)
--- Name: idx_mv_pengiriman_agg_date; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_date ON public.mv_pengiriman_aggregates USING btree (tanggal_kirim DESC);
-
-
---
--- TOC entry 3780 (class 1259 OID 17633)
--- Name: idx_mv_pengiriman_agg_filter; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_filter ON public.mv_pengiriman_aggregates USING btree (id_sales, kabupaten, kecamatan, tanggal_kirim_date);
-
-
---
--- TOC entry 3781 (class 1259 OID 17631)
--- Name: idx_mv_pengiriman_agg_location; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_location ON public.mv_pengiriman_aggregates USING btree (kabupaten, kecamatan);
-
-
---
--- TOC entry 3782 (class 1259 OID 17627)
--- Name: idx_mv_pengiriman_agg_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_pengiriman_agg_pk ON public.mv_pengiriman_aggregates USING btree (id_pengiriman);
-
-
---
--- TOC entry 3783 (class 1259 OID 17630)
--- Name: idx_mv_pengiriman_agg_sales; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_sales ON public.mv_pengiriman_aggregates USING btree (id_sales);
-
-
---
--- TOC entry 3784 (class 1259 OID 17628)
--- Name: idx_mv_pengiriman_agg_search; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_search ON public.mv_pengiriman_aggregates USING gin (search_vector);
-
-
---
--- TOC entry 3785 (class 1259 OID 17632)
--- Name: idx_mv_pengiriman_agg_toko; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_pengiriman_agg_toko ON public.mv_pengiriman_aggregates USING btree (id_toko);
-
-
---
--- TOC entry 3792 (class 1259 OID 17887)
--- Name: idx_mv_produk_aggregates_unique; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_produk_aggregates_unique ON public.mv_produk_aggregates USING btree (id);
-
-
---
--- TOC entry 3793 (class 1259 OID 17905)
--- Name: idx_mv_produk_with_stats_movement; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_produk_with_stats_movement ON public.mv_produk_with_stats USING btree (total_terkirim, total_terbayar, sisa_stok);
-
-
---
--- TOC entry 3794 (class 1259 OID 17901)
--- Name: idx_mv_produk_with_stats_name; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_produk_with_stats_name ON public.mv_produk_with_stats USING btree (nama_produk);
-
-
---
--- TOC entry 3795 (class 1259 OID 17900)
--- Name: idx_mv_produk_with_stats_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_produk_with_stats_pk ON public.mv_produk_with_stats USING btree (id_produk);
-
-
---
--- TOC entry 3796 (class 1259 OID 17904)
--- Name: idx_mv_produk_with_stats_price; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_produk_with_stats_price ON public.mv_produk_with_stats USING btree (harga_satuan);
-
-
---
--- TOC entry 3797 (class 1259 OID 17903)
--- Name: idx_mv_produk_with_stats_priority; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_produk_with_stats_priority ON public.mv_produk_with_stats USING btree (is_priority, priority_order);
-
-
---
--- TOC entry 3798 (class 1259 OID 17902)
--- Name: idx_mv_produk_with_stats_status; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_produk_with_stats_status ON public.mv_produk_with_stats USING btree (status_produk, dibuat_pada DESC);
-
-
---
--- TOC entry 3799 (class 1259 OID 17981)
--- Name: idx_mv_sales_agg_activity; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_sales_agg_activity ON public.mv_sales_aggregates USING btree (last_shipment_date DESC, last_billing_date DESC);
-
-
---
--- TOC entry 3800 (class 1259 OID 17983)
--- Name: idx_mv_sales_agg_filter; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_sales_agg_filter ON public.mv_sales_aggregates USING btree (status_aktif, nomor_telepon, created_month_date);
-
-
---
--- TOC entry 3801 (class 1259 OID 17978)
--- Name: idx_mv_sales_agg_id; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_sales_agg_id ON public.mv_sales_aggregates USING btree (id_sales);
-
-
---
--- TOC entry 3802 (class 1259 OID 17982)
--- Name: idx_mv_sales_agg_name_search; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_sales_agg_name_search ON public.mv_sales_aggregates USING gin (to_tsvector('indonesian'::regconfig, (nama_sales)::text));
-
-
---
--- TOC entry 3803 (class 1259 OID 17980)
--- Name: idx_mv_sales_agg_performance; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_sales_agg_performance ON public.mv_sales_aggregates USING btree (total_revenue DESC, total_stores DESC);
-
-
---
--- TOC entry 3804 (class 1259 OID 17979)
--- Name: idx_mv_sales_agg_status; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_sales_agg_status ON public.mv_sales_aggregates USING btree (status_aktif);
-
-
---
--- TOC entry 3806 (class 1259 OID 21084)
--- Name: idx_mv_sales_performance_real_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_sales_performance_real_pk ON public.mv_sales_performance_real USING btree (id_sales);
-
-
---
--- TOC entry 3774 (class 1259 OID 17477)
--- Name: idx_mv_toko_agg_filter; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_toko_agg_filter ON public.mv_toko_aggregates USING btree (id_sales, kabupaten, kecamatan, status_toko);
-
-
---
--- TOC entry 3775 (class 1259 OID 17478)
--- Name: idx_mv_toko_agg_location; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_toko_agg_location ON public.mv_toko_aggregates USING btree (kabupaten, kecamatan);
-
-
---
--- TOC entry 3776 (class 1259 OID 17475)
--- Name: idx_mv_toko_agg_pk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_mv_toko_agg_pk ON public.mv_toko_aggregates USING btree (id_toko);
-
-
---
--- TOC entry 3777 (class 1259 OID 17479)
--- Name: idx_mv_toko_agg_sales; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_toko_agg_sales ON public.mv_toko_aggregates USING btree (id_sales);
-
-
---
--- TOC entry 3778 (class 1259 OID 17476)
--- Name: idx_mv_toko_agg_search; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_mv_toko_agg_search ON public.mv_toko_aggregates USING gin (to_tsvector('indonesian'::regconfig, (nama_toko)::text));
-
-
---
--- TOC entry 3748 (class 1259 OID 17771)
+-- TOC entry 3712 (class 1259 OID 17771)
 -- Name: idx_penagihan_ada_potongan; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9669,7 +8494,7 @@ CREATE INDEX idx_penagihan_ada_potongan ON public.penagihan USING btree (ada_pot
 
 
 --
--- TOC entry 3749 (class 1259 OID 17773)
+-- TOC entry 3713 (class 1259 OID 17773)
 -- Name: idx_penagihan_amount; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9677,7 +8502,7 @@ CREATE INDEX idx_penagihan_amount ON public.penagihan USING btree (total_uang_di
 
 
 --
--- TOC entry 3750 (class 1259 OID 17768)
+-- TOC entry 3714 (class 1259 OID 17768)
 -- Name: idx_penagihan_composite_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9685,7 +8510,7 @@ CREATE INDEX idx_penagihan_composite_search ON public.penagihan USING btree (id_
 
 
 --
--- TOC entry 3751 (class 1259 OID 17769)
+-- TOC entry 3715 (class 1259 OID 17769)
 -- Name: idx_penagihan_date_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9693,7 +8518,7 @@ CREATE INDEX idx_penagihan_date_filters ON public.penagihan USING btree (dibuat_
 
 
 --
--- TOC entry 3752 (class 1259 OID 17772)
+-- TOC entry 3716 (class 1259 OID 17772)
 -- Name: idx_penagihan_filters_composite; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9701,7 +8526,7 @@ CREATE INDEX idx_penagihan_filters_composite ON public.penagihan USING btree (me
 
 
 --
--- TOC entry 3753 (class 1259 OID 17770)
+-- TOC entry 3717 (class 1259 OID 17770)
 -- Name: idx_penagihan_metode_pembayaran; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9709,7 +8534,7 @@ CREATE INDEX idx_penagihan_metode_pembayaran ON public.penagihan USING btree (me
 
 
 --
--- TOC entry 3754 (class 1259 OID 17460)
+-- TOC entry 3718 (class 1259 OID 17460)
 -- Name: idx_penagihan_toko; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9717,7 +8542,7 @@ CREATE INDEX idx_penagihan_toko ON public.penagihan USING btree (id_toko);
 
 
 --
--- TOC entry 3733 (class 1259 OID 20953)
+-- TOC entry 3697 (class 1259 OID 20953)
 -- Name: idx_pengiriman_autorestock; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9725,7 +8550,7 @@ CREATE INDEX idx_pengiriman_autorestock ON public.pengiriman USING btree (is_aut
 
 
 --
--- TOC entry 3734 (class 1259 OID 17608)
+-- TOC entry 3698 (class 1259 OID 17608)
 -- Name: idx_pengiriman_composite_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9733,7 +8558,7 @@ CREATE INDEX idx_pengiriman_composite_search ON public.pengiriman USING btree (i
 
 
 --
--- TOC entry 3735 (class 1259 OID 17610)
+-- TOC entry 3699 (class 1259 OID 17610)
 -- Name: idx_pengiriman_date_range; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9741,7 +8566,7 @@ CREATE INDEX idx_pengiriman_date_range ON public.pengiriman USING btree (tanggal
 
 
 --
--- TOC entry 3736 (class 1259 OID 17609)
+-- TOC entry 3700 (class 1259 OID 17609)
 -- Name: idx_pengiriman_tanggal_kirim; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9749,7 +8574,7 @@ CREATE INDEX idx_pengiriman_tanggal_kirim ON public.pengiriman USING btree (tang
 
 
 --
--- TOC entry 3737 (class 1259 OID 17458)
+-- TOC entry 3701 (class 1259 OID 17458)
 -- Name: idx_pengiriman_toko; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9757,7 +8582,7 @@ CREATE INDEX idx_pengiriman_toko ON public.pengiriman USING btree (id_toko);
 
 
 --
--- TOC entry 3764 (class 1259 OID 17778)
+-- TOC entry 3728 (class 1259 OID 17778)
 -- Name: idx_potongan_penagihan_amount; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9765,7 +8590,7 @@ CREATE INDEX idx_potongan_penagihan_amount ON public.potongan_penagihan USING bt
 
 
 --
--- TOC entry 3765 (class 1259 OID 17777)
+-- TOC entry 3729 (class 1259 OID 17777)
 -- Name: idx_potongan_penagihan_penagihan_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9773,7 +8598,7 @@ CREATE INDEX idx_potongan_penagihan_penagihan_id ON public.potongan_penagihan US
 
 
 --
--- TOC entry 3709 (class 1259 OID 17868)
+-- TOC entry 3673 (class 1259 OID 17868)
 -- Name: idx_produk_date_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9781,7 +8606,7 @@ CREATE INDEX idx_produk_date_filters ON public.produk USING btree (dibuat_pada D
 
 
 --
--- TOC entry 3710 (class 1259 OID 17867)
+-- TOC entry 3674 (class 1259 OID 17867)
 -- Name: idx_produk_filters_composite; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9789,7 +8614,7 @@ CREATE INDEX idx_produk_filters_composite ON public.produk USING btree (status_p
 
 
 --
--- TOC entry 3711 (class 1259 OID 17869)
+-- TOC entry 3675 (class 1259 OID 17869)
 -- Name: idx_produk_nama_gin; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9797,7 +8622,7 @@ CREATE INDEX idx_produk_nama_gin ON public.produk USING gin (to_tsvector('indone
 
 
 --
--- TOC entry 3712 (class 1259 OID 17863)
+-- TOC entry 3676 (class 1259 OID 17863)
 -- Name: idx_produk_nama_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9805,7 +8630,7 @@ CREATE INDEX idx_produk_nama_search ON public.produk USING btree (nama_produk);
 
 
 --
--- TOC entry 3713 (class 1259 OID 17866)
+-- TOC entry 3677 (class 1259 OID 17866)
 -- Name: idx_produk_price_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9813,7 +8638,7 @@ CREATE INDEX idx_produk_price_filters ON public.produk USING btree (harga_satuan
 
 
 --
--- TOC entry 3714 (class 1259 OID 17865)
+-- TOC entry 3678 (class 1259 OID 17865)
 -- Name: idx_produk_priority_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9821,7 +8646,7 @@ CREATE INDEX idx_produk_priority_filters ON public.produk USING btree (is_priori
 
 
 --
--- TOC entry 3715 (class 1259 OID 17864)
+-- TOC entry 3679 (class 1259 OID 17864)
 -- Name: idx_produk_status_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9829,7 +8654,7 @@ CREATE INDEX idx_produk_status_filters ON public.produk USING btree (status_prod
 
 
 --
--- TOC entry 3698 (class 1259 OID 17961)
+-- TOC entry 3662 (class 1259 OID 17961)
 -- Name: idx_sales_active_name_composite; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9837,7 +8662,7 @@ CREATE INDEX idx_sales_active_name_composite ON public.sales USING btree (status
 
 
 --
--- TOC entry 3699 (class 1259 OID 17965)
+-- TOC entry 3663 (class 1259 OID 17965)
 -- Name: idx_sales_advanced_filter; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9845,7 +8670,7 @@ CREATE INDEX idx_sales_advanced_filter ON public.sales USING btree (status_aktif
 
 
 --
--- TOC entry 3700 (class 1259 OID 17963)
+-- TOC entry 3664 (class 1259 OID 17963)
 -- Name: idx_sales_date_range; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9853,7 +8678,7 @@ CREATE INDEX idx_sales_date_range ON public.sales USING btree (dibuat_pada, stat
 
 
 --
--- TOC entry 3701 (class 1259 OID 17964)
+-- TOC entry 3665 (class 1259 OID 17964)
 -- Name: idx_sales_fulltext_name; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9861,7 +8686,7 @@ CREATE INDEX idx_sales_fulltext_name ON public.sales USING gin (to_tsvector('ind
 
 
 --
--- TOC entry 3702 (class 1259 OID 17580)
+-- TOC entry 3666 (class 1259 OID 17580)
 -- Name: idx_sales_nama_sales; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9869,7 +8694,7 @@ CREATE INDEX idx_sales_nama_sales ON public.sales USING btree (nama_sales);
 
 
 --
--- TOC entry 3703 (class 1259 OID 17614)
+-- TOC entry 3667 (class 1259 OID 17614)
 -- Name: idx_sales_pengiriman_active; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9877,7 +8702,7 @@ CREATE INDEX idx_sales_pengiriman_active ON public.sales USING btree (status_akt
 
 
 --
--- TOC entry 3704 (class 1259 OID 17962)
+-- TOC entry 3668 (class 1259 OID 17962)
 -- Name: idx_sales_phone_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9885,7 +8710,7 @@ CREATE INDEX idx_sales_phone_search ON public.sales USING btree (nomor_telepon) 
 
 
 --
--- TOC entry 3705 (class 1259 OID 17462)
+-- TOC entry 3669 (class 1259 OID 17462)
 -- Name: idx_sales_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9893,7 +8718,7 @@ CREATE INDEX idx_sales_status ON public.sales USING btree (status_aktif);
 
 
 --
--- TOC entry 3706 (class 1259 OID 17581)
+-- TOC entry 3670 (class 1259 OID 17581)
 -- Name: idx_sales_status_aktif; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9901,7 +8726,7 @@ CREATE INDEX idx_sales_status_aktif ON public.sales USING btree (status_aktif);
 
 
 --
--- TOC entry 3768 (class 1259 OID 18161)
+-- TOC entry 3732 (class 1259 OID 18161)
 -- Name: idx_setoran_created; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9909,7 +8734,7 @@ CREATE INDEX idx_setoran_created ON public.setoran USING btree (dibuat_pada DESC
 
 
 --
--- TOC entry 3769 (class 1259 OID 18159)
+-- TOC entry 3733 (class 1259 OID 18159)
 -- Name: idx_setoran_penerima; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9917,7 +8742,7 @@ CREATE INDEX idx_setoran_penerima ON public.setoran USING btree (penerima_setora
 
 
 --
--- TOC entry 3770 (class 1259 OID 18162)
+-- TOC entry 3734 (class 1259 OID 18162)
 -- Name: idx_setoran_penerima_created; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9925,7 +8750,7 @@ CREATE INDEX idx_setoran_penerima_created ON public.setoran USING btree (penerim
 
 
 --
--- TOC entry 3771 (class 1259 OID 18160)
+-- TOC entry 3735 (class 1259 OID 18160)
 -- Name: idx_setoran_total; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9933,7 +8758,7 @@ CREATE INDEX idx_setoran_total ON public.setoran USING btree (total_setoran);
 
 
 --
--- TOC entry 3718 (class 1259 OID 17575)
+-- TOC entry 3682 (class 1259 OID 17575)
 -- Name: idx_toko_composite_filters; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9941,7 +8766,7 @@ CREATE INDEX idx_toko_composite_filters ON public.toko USING btree (status_toko,
 
 
 --
--- TOC entry 3719 (class 1259 OID 17577)
+-- TOC entry 3683 (class 1259 OID 17577)
 -- Name: idx_toko_id_sales; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9949,7 +8774,7 @@ CREATE INDEX idx_toko_id_sales ON public.toko USING btree (id_sales);
 
 
 --
--- TOC entry 3720 (class 1259 OID 17578)
+-- TOC entry 3684 (class 1259 OID 17578)
 -- Name: idx_toko_kabupaten; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9957,7 +8782,7 @@ CREATE INDEX idx_toko_kabupaten ON public.toko USING btree (kabupaten);
 
 
 --
--- TOC entry 3721 (class 1259 OID 17579)
+-- TOC entry 3685 (class 1259 OID 17579)
 -- Name: idx_toko_kecamatan; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9965,7 +8790,7 @@ CREATE INDEX idx_toko_kecamatan ON public.toko USING btree (kecamatan);
 
 
 --
--- TOC entry 3722 (class 1259 OID 17454)
+-- TOC entry 3686 (class 1259 OID 17454)
 -- Name: idx_toko_location; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9973,7 +8798,7 @@ CREATE INDEX idx_toko_location ON public.toko USING btree (kabupaten, kecamatan)
 
 
 --
--- TOC entry 3723 (class 1259 OID 17613)
+-- TOC entry 3687 (class 1259 OID 17613)
 -- Name: idx_toko_nama_fulltext_pengiriman; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9981,7 +8806,7 @@ CREATE INDEX idx_toko_nama_fulltext_pengiriman ON public.toko USING gin (to_tsve
 
 
 --
--- TOC entry 3724 (class 1259 OID 17453)
+-- TOC entry 3688 (class 1259 OID 17453)
 -- Name: idx_toko_nama_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9989,7 +8814,7 @@ CREATE INDEX idx_toko_nama_search ON public.toko USING gin (to_tsvector('indones
 
 
 --
--- TOC entry 3725 (class 1259 OID 17574)
+-- TOC entry 3689 (class 1259 OID 17574)
 -- Name: idx_toko_nama_toko_gin; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -9997,7 +8822,7 @@ CREATE INDEX idx_toko_nama_toko_gin ON public.toko USING gin (to_tsvector('indon
 
 
 --
--- TOC entry 3726 (class 1259 OID 17612)
+-- TOC entry 3690 (class 1259 OID 17612)
 -- Name: idx_toko_pengiriman_search; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -10005,7 +8830,7 @@ CREATE INDEX idx_toko_pengiriman_search ON public.toko USING btree (id_sales, ka
 
 
 --
--- TOC entry 3727 (class 1259 OID 17455)
+-- TOC entry 3691 (class 1259 OID 17455)
 -- Name: idx_toko_sales; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -10013,7 +8838,7 @@ CREATE INDEX idx_toko_sales ON public.toko USING btree (id_sales);
 
 
 --
--- TOC entry 3728 (class 1259 OID 17457)
+-- TOC entry 3692 (class 1259 OID 17457)
 -- Name: idx_toko_search_filter; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -10021,7 +8846,7 @@ CREATE INDEX idx_toko_search_filter ON public.toko USING btree (id_sales, kabupa
 
 
 --
--- TOC entry 3729 (class 1259 OID 17456)
+-- TOC entry 3693 (class 1259 OID 17456)
 -- Name: idx_toko_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -10029,7 +8854,7 @@ CREATE INDEX idx_toko_status ON public.toko USING btree (status_toko);
 
 
 --
--- TOC entry 3730 (class 1259 OID 17576)
+-- TOC entry 3694 (class 1259 OID 17576)
 -- Name: idx_toko_status_toko; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -10037,7 +8862,7 @@ CREATE INDEX idx_toko_status_toko ON public.toko USING btree (status_toko);
 
 
 --
--- TOC entry 3824 (class 2620 OID 17483)
+-- TOC entry 3757 (class 2620 OID 17483)
 -- Name: detail_penagihan refresh_on_penagihan_change; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10045,7 +8870,7 @@ CREATE TRIGGER refresh_on_penagihan_change AFTER INSERT OR DELETE OR UPDATE ON p
 
 
 --
--- TOC entry 3821 (class 2620 OID 17482)
+-- TOC entry 3754 (class 2620 OID 17482)
 -- Name: detail_pengiriman refresh_on_pengiriman_change; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10053,7 +8878,7 @@ CREATE TRIGGER refresh_on_pengiriman_change AFTER INSERT OR DELETE OR UPDATE ON 
 
 
 --
--- TOC entry 3817 (class 2620 OID 17484)
+-- TOC entry 3750 (class 2620 OID 17484)
 -- Name: toko refresh_on_toko_change; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10061,7 +8886,7 @@ CREATE TRIGGER refresh_on_toko_change AFTER INSERT OR DELETE OR UPDATE ON public
 
 
 --
--- TOC entry 3815 (class 2620 OID 17988)
+-- TOC entry 3748 (class 2620 OID 17988)
 -- Name: sales sales_change_trigger; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10069,7 +8894,7 @@ CREATE TRIGGER sales_change_trigger AFTER INSERT OR DELETE OR UPDATE ON public.s
 
 
 --
--- TOC entry 3818 (class 2620 OID 17989)
+-- TOC entry 3751 (class 2620 OID 17989)
 -- Name: toko toko_change_trigger; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10077,7 +8902,7 @@ CREATE TRIGGER toko_change_trigger AFTER INSERT OR DELETE OR UPDATE ON public.to
 
 
 --
--- TOC entry 3823 (class 2620 OID 17811)
+-- TOC entry 3756 (class 2620 OID 17811)
 -- Name: penagihan tr_penagihan_refresh_views; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10085,7 +8910,7 @@ CREATE TRIGGER tr_penagihan_refresh_views AFTER INSERT OR DELETE OR UPDATE ON pu
 
 
 --
--- TOC entry 3825 (class 2620 OID 17813)
+-- TOC entry 3758 (class 2620 OID 17813)
 -- Name: potongan_penagihan tr_potongan_penagihan_refresh_views; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10093,7 +8918,7 @@ CREATE TRIGGER tr_potongan_penagihan_refresh_views AFTER INSERT OR DELETE OR UPD
 
 
 --
--- TOC entry 3822 (class 2620 OID 17641)
+-- TOC entry 3755 (class 2620 OID 17641)
 -- Name: detail_pengiriman trigger_refresh_pengiriman_on_detail; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10101,7 +8926,7 @@ CREATE TRIGGER trigger_refresh_pengiriman_on_detail AFTER INSERT OR DELETE OR UP
 
 
 --
--- TOC entry 3820 (class 2620 OID 17640)
+-- TOC entry 3753 (class 2620 OID 17640)
 -- Name: pengiriman trigger_refresh_pengiriman_on_pengiriman; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10109,7 +8934,7 @@ CREATE TRIGGER trigger_refresh_pengiriman_on_pengiriman AFTER INSERT OR DELETE O
 
 
 --
--- TOC entry 3816 (class 2620 OID 17643)
+-- TOC entry 3749 (class 2620 OID 17643)
 -- Name: sales trigger_refresh_pengiriman_on_sales; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10117,7 +8942,7 @@ CREATE TRIGGER trigger_refresh_pengiriman_on_sales AFTER UPDATE ON public.sales 
 
 
 --
--- TOC entry 3819 (class 2620 OID 17642)
+-- TOC entry 3752 (class 2620 OID 17642)
 -- Name: toko trigger_refresh_pengiriman_on_toko; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -10125,7 +8950,7 @@ CREATE TRIGGER trigger_refresh_pengiriman_on_toko AFTER UPDATE ON public.toko FO
 
 
 --
--- TOC entry 3812 (class 2606 OID 17382)
+-- TOC entry 3745 (class 2606 OID 17382)
 -- Name: detail_penagihan detail_penagihan_id_penagihan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10134,7 +8959,7 @@ ALTER TABLE ONLY public.detail_penagihan
 
 
 --
--- TOC entry 3813 (class 2606 OID 17387)
+-- TOC entry 3746 (class 2606 OID 17387)
 -- Name: detail_penagihan detail_penagihan_id_produk_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10143,7 +8968,7 @@ ALTER TABLE ONLY public.detail_penagihan
 
 
 --
--- TOC entry 3809 (class 2606 OID 17392)
+-- TOC entry 3742 (class 2606 OID 17392)
 -- Name: detail_pengiriman detail_pengiriman_id_pengiriman_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10152,7 +8977,7 @@ ALTER TABLE ONLY public.detail_pengiriman
 
 
 --
--- TOC entry 3810 (class 2606 OID 17397)
+-- TOC entry 3743 (class 2606 OID 17397)
 -- Name: detail_pengiriman detail_pengiriman_id_produk_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10161,7 +8986,7 @@ ALTER TABLE ONLY public.detail_pengiriman
 
 
 --
--- TOC entry 3811 (class 2606 OID 17402)
+-- TOC entry 3744 (class 2606 OID 17402)
 -- Name: penagihan penagihan_id_toko_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10170,7 +8995,7 @@ ALTER TABLE ONLY public.penagihan
 
 
 --
--- TOC entry 3808 (class 2606 OID 17412)
+-- TOC entry 3741 (class 2606 OID 17412)
 -- Name: pengiriman pengiriman_id_toko_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10179,7 +9004,7 @@ ALTER TABLE ONLY public.pengiriman
 
 
 --
--- TOC entry 3814 (class 2606 OID 17417)
+-- TOC entry 3747 (class 2606 OID 17417)
 -- Name: potongan_penagihan potongan_penagihan_id_penagihan_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10188,7 +9013,7 @@ ALTER TABLE ONLY public.potongan_penagihan
 
 
 --
--- TOC entry 3807 (class 2606 OID 17422)
+-- TOC entry 3740 (class 2606 OID 17422)
 -- Name: toko toko_id_sales_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -10197,7 +9022,7 @@ ALTER TABLE ONLY public.toko
 
 
 --
--- TOC entry 4029 (class 0 OID 0)
+-- TOC entry 3940 (class 0 OID 0)
 -- Dependencies: 13
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
 --
@@ -10209,8 +9034,8 @@ GRANT USAGE ON SCHEMA public TO service_role;
 
 
 --
--- TOC entry 4030 (class 0 OID 0)
--- Dependencies: 485
+-- TOC entry 3941 (class 0 OID 0)
+-- Dependencies: 484
 -- Name: FUNCTION count_sales_optimized(search_term text, filter_status text, filter_telepon_exists text, filter_date_from text, filter_date_to text); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10220,8 +9045,8 @@ GRANT ALL ON FUNCTION public.count_sales_optimized(search_term text, filter_stat
 
 
 --
--- TOC entry 4031 (class 0 OID 0)
--- Dependencies: 488
+-- TOC entry 3942 (class 0 OID 0)
+-- Dependencies: 486
 -- Name: FUNCTION get_setoran_filter_options(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10231,8 +9056,8 @@ GRANT ALL ON FUNCTION public.get_setoran_filter_options() TO service_role;
 
 
 --
--- TOC entry 4032 (class 0 OID 0)
--- Dependencies: 472
+-- TOC entry 3943 (class 0 OID 0)
+-- Dependencies: 476
 -- Name: FUNCTION get_toko_filter_options_simple(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10242,8 +9067,8 @@ GRANT ALL ON FUNCTION public.get_toko_filter_options_simple() TO service_role;
 
 
 --
--- TOC entry 4033 (class 0 OID 0)
--- Dependencies: 471
+-- TOC entry 3944 (class 0 OID 0)
+-- Dependencies: 475
 -- Name: FUNCTION get_toko_search_suggestions_simple(search_term text, max_results integer); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10253,85 +9078,8 @@ GRANT ALL ON FUNCTION public.get_toko_search_suggestions_simple(search_term text
 
 
 --
--- TOC entry 4034 (class 0 OID 0)
--- Dependencies: 483
--- Name: FUNCTION manual_refresh_produk_views(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.manual_refresh_produk_views() TO anon;
-GRANT ALL ON FUNCTION public.manual_refresh_produk_views() TO authenticated;
-GRANT ALL ON FUNCTION public.manual_refresh_produk_views() TO service_role;
-
-
---
--- TOC entry 4036 (class 0 OID 0)
--- Dependencies: 489
--- Name: FUNCTION refresh_dashboard_materialized_views(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_dashboard_materialized_views() TO anon;
-GRANT ALL ON FUNCTION public.refresh_dashboard_materialized_views() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_dashboard_materialized_views() TO service_role;
-
-
---
--- TOC entry 4037 (class 0 OID 0)
--- Dependencies: 478
--- Name: FUNCTION refresh_penagihan_materialized_views(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_penagihan_materialized_views() TO anon;
-GRANT ALL ON FUNCTION public.refresh_penagihan_materialized_views() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_penagihan_materialized_views() TO service_role;
-
-
---
--- TOC entry 4038 (class 0 OID 0)
--- Dependencies: 475
--- Name: FUNCTION refresh_pengiriman_aggregates(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_pengiriman_aggregates() TO anon;
-GRANT ALL ON FUNCTION public.refresh_pengiriman_aggregates() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_pengiriman_aggregates() TO service_role;
-
-
---
--- TOC entry 4039 (class 0 OID 0)
--- Dependencies: 481
--- Name: FUNCTION refresh_produk_materialized_views(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_produk_materialized_views() TO anon;
-GRANT ALL ON FUNCTION public.refresh_produk_materialized_views() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_produk_materialized_views() TO service_role;
-
-
---
--- TOC entry 4040 (class 0 OID 0)
--- Dependencies: 486
--- Name: FUNCTION refresh_sales_aggregates(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_sales_aggregates() TO anon;
-GRANT ALL ON FUNCTION public.refresh_sales_aggregates() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_sales_aggregates() TO service_role;
-
-
---
--- TOC entry 4041 (class 0 OID 0)
--- Dependencies: 468
--- Name: FUNCTION refresh_toko_aggregates(); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.refresh_toko_aggregates() TO anon;
-GRANT ALL ON FUNCTION public.refresh_toko_aggregates() TO authenticated;
-GRANT ALL ON FUNCTION public.refresh_toko_aggregates() TO service_role;
-
-
---
--- TOC entry 4042 (class 0 OID 0)
--- Dependencies: 477
+-- TOC entry 3945 (class 0 OID 0)
+-- Dependencies: 480
 -- Name: FUNCTION search_penagihan_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, sales_filter text, kabupaten_filter text, kecamatan_filter text, metode_pembayaran_filter text, ada_potongan_filter boolean, date_from_filter text, date_to_filter text); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10341,8 +9089,8 @@ GRANT ALL ON FUNCTION public.search_penagihan_optimized(search_query text, p_lim
 
 
 --
--- TOC entry 4043 (class 0 OID 0)
--- Dependencies: 473
+-- TOC entry 3946 (class 0 OID 0)
+-- Dependencies: 477
 -- Name: FUNCTION search_pengiriman_optimized(search_term text, filter_sales integer, filter_kabupaten text, filter_kecamatan text, filter_date_from date, filter_date_to date, sort_by text, sort_order text, page_size integer, page_number integer); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10352,8 +9100,8 @@ GRANT ALL ON FUNCTION public.search_pengiriman_optimized(search_term text, filte
 
 
 --
--- TOC entry 4044 (class 0 OID 0)
--- Dependencies: 474
+-- TOC entry 3947 (class 0 OID 0)
+-- Dependencies: 478
 -- Name: FUNCTION search_pengiriman_simple(search_term text, filter_sales integer, filter_kabupaten text, filter_kecamatan text, filter_date_from date, filter_date_to date, sort_by text, sort_order text, page_size integer, page_number integer); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10363,19 +9111,8 @@ GRANT ALL ON FUNCTION public.search_pengiriman_simple(search_term text, filter_s
 
 
 --
--- TOC entry 4045 (class 0 OID 0)
--- Dependencies: 480
--- Name: FUNCTION search_produk_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, status_filter boolean, priority_filter boolean, price_from_filter numeric, price_to_filter numeric, date_from_filter text, date_to_filter text); Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON FUNCTION public.search_produk_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, status_filter boolean, priority_filter boolean, price_from_filter numeric, price_to_filter numeric, date_from_filter text, date_to_filter text) TO anon;
-GRANT ALL ON FUNCTION public.search_produk_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, status_filter boolean, priority_filter boolean, price_from_filter numeric, price_to_filter numeric, date_from_filter text, date_to_filter text) TO authenticated;
-GRANT ALL ON FUNCTION public.search_produk_optimized(search_query text, p_limit integer, p_offset integer, sort_column text, sort_direction text, status_filter boolean, priority_filter boolean, price_from_filter numeric, price_to_filter numeric, date_from_filter text, date_to_filter text) TO service_role;
-
-
---
--- TOC entry 4046 (class 0 OID 0)
--- Dependencies: 484
+-- TOC entry 3948 (class 0 OID 0)
+-- Dependencies: 483
 -- Name: FUNCTION search_sales_optimized(search_term text, page_offset integer, page_limit integer, sort_column text, sort_direction text, filter_status text, filter_telepon_exists text, filter_date_from text, filter_date_to text); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10385,8 +9122,8 @@ GRANT ALL ON FUNCTION public.search_sales_optimized(search_term text, page_offse
 
 
 --
--- TOC entry 4047 (class 0 OID 0)
--- Dependencies: 470
+-- TOC entry 3949 (class 0 OID 0)
+-- Dependencies: 474
 -- Name: FUNCTION search_toko_simple(search_term text, filter_status boolean, filter_sales integer, filter_kabupaten text, filter_kecamatan text, page_size integer, page_number integer); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10396,8 +9133,8 @@ GRANT ALL ON FUNCTION public.search_toko_simple(search_term text, filter_status 
 
 
 --
--- TOC entry 4048 (class 0 OID 0)
--- Dependencies: 479
+-- TOC entry 3950 (class 0 OID 0)
+-- Dependencies: 481
 -- Name: FUNCTION trigger_refresh_penagihan_views(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10407,8 +9144,8 @@ GRANT ALL ON FUNCTION public.trigger_refresh_penagihan_views() TO service_role;
 
 
 --
--- TOC entry 4049 (class 0 OID 0)
--- Dependencies: 476
+-- TOC entry 3951 (class 0 OID 0)
+-- Dependencies: 479
 -- Name: FUNCTION trigger_refresh_pengiriman_mv(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10418,7 +9155,7 @@ GRANT ALL ON FUNCTION public.trigger_refresh_pengiriman_mv() TO service_role;
 
 
 --
--- TOC entry 4050 (class 0 OID 0)
+-- TOC entry 3952 (class 0 OID 0)
 -- Dependencies: 482
 -- Name: FUNCTION trigger_refresh_produk_views(); Type: ACL; Schema: public; Owner: postgres
 --
@@ -10429,8 +9166,8 @@ GRANT ALL ON FUNCTION public.trigger_refresh_produk_views() TO service_role;
 
 
 --
--- TOC entry 4051 (class 0 OID 0)
--- Dependencies: 487
+-- TOC entry 3953 (class 0 OID 0)
+-- Dependencies: 485
 -- Name: FUNCTION trigger_refresh_sales_aggregates(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10440,8 +9177,8 @@ GRANT ALL ON FUNCTION public.trigger_refresh_sales_aggregates() TO service_role;
 
 
 --
--- TOC entry 4052 (class 0 OID 0)
--- Dependencies: 469
+-- TOC entry 3954 (class 0 OID 0)
+-- Dependencies: 473
 -- Name: FUNCTION trigger_refresh_toko_aggregates(); Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10451,8 +9188,8 @@ GRANT ALL ON FUNCTION public.trigger_refresh_toko_aggregates() TO service_role;
 
 
 --
--- TOC entry 4053 (class 0 OID 0)
--- Dependencies: 338
+-- TOC entry 3955 (class 0 OID 0)
+-- Dependencies: 354
 -- Name: TABLE detail_penagihan; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10462,8 +9199,8 @@ GRANT ALL ON TABLE public.detail_penagihan TO service_role;
 
 
 --
--- TOC entry 4055 (class 0 OID 0)
--- Dependencies: 339
+-- TOC entry 3957 (class 0 OID 0)
+-- Dependencies: 355
 -- Name: SEQUENCE detail_penagihan_id_detail_tagih_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10473,8 +9210,8 @@ GRANT ALL ON SEQUENCE public.detail_penagihan_id_detail_tagih_seq TO service_rol
 
 
 --
--- TOC entry 4056 (class 0 OID 0)
--- Dependencies: 334
+-- TOC entry 3958 (class 0 OID 0)
+-- Dependencies: 350
 -- Name: TABLE detail_pengiriman; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10484,8 +9221,8 @@ GRANT ALL ON TABLE public.detail_pengiriman TO service_role;
 
 
 --
--- TOC entry 4058 (class 0 OID 0)
--- Dependencies: 335
+-- TOC entry 3960 (class 0 OID 0)
+-- Dependencies: 351
 -- Name: SEQUENCE detail_pengiriman_id_detail_kirim_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10495,8 +9232,8 @@ GRANT ALL ON SEQUENCE public.detail_pengiriman_id_detail_kirim_seq TO service_ro
 
 
 --
--- TOC entry 4059 (class 0 OID 0)
--- Dependencies: 336
+-- TOC entry 3961 (class 0 OID 0)
+-- Dependencies: 352
 -- Name: TABLE penagihan; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10506,195 +9243,8 @@ GRANT ALL ON TABLE public.penagihan TO service_role;
 
 
 --
--- TOC entry 4062 (class 0 OID 0)
--- Dependencies: 332
--- Name: TABLE pengiriman; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.pengiriman TO anon;
-GRANT ALL ON TABLE public.pengiriman TO authenticated;
-GRANT ALL ON TABLE public.pengiriman TO service_role;
-
-
---
--- TOC entry 4063 (class 0 OID 0)
--- Dependencies: 328
--- Name: TABLE produk; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.produk TO anon;
-GRANT ALL ON TABLE public.produk TO authenticated;
-GRANT ALL ON TABLE public.produk TO service_role;
-
-
---
--- TOC entry 4064 (class 0 OID 0)
--- Dependencies: 326
--- Name: TABLE sales; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.sales TO anon;
-GRANT ALL ON TABLE public.sales TO authenticated;
-GRANT ALL ON TABLE public.sales TO service_role;
-
-
---
--- TOC entry 4065 (class 0 OID 0)
--- Dependencies: 342
--- Name: TABLE setoran; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.setoran TO anon;
-GRANT ALL ON TABLE public.setoran TO authenticated;
-GRANT ALL ON TABLE public.setoran TO service_role;
-
-
---
--- TOC entry 4066 (class 0 OID 0)
--- Dependencies: 330
--- Name: TABLE toko; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.toko TO anon;
-GRANT ALL ON TABLE public.toko TO authenticated;
-GRANT ALL ON TABLE public.toko TO service_role;
-
-
---
--- TOC entry 4068 (class 0 OID 0)
--- Dependencies: 361
--- Name: TABLE mv_asset_distribution_real; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_asset_distribution_real TO anon;
-GRANT ALL ON TABLE public.mv_asset_distribution_real TO authenticated;
-GRANT ALL ON TABLE public.mv_asset_distribution_real TO service_role;
-
-
---
--- TOC entry 4070 (class 0 OID 0)
--- Dependencies: 359
--- Name: TABLE mv_dashboard_realtime_stats; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_dashboard_realtime_stats TO anon;
-GRANT ALL ON TABLE public.mv_dashboard_realtime_stats TO authenticated;
-GRANT ALL ON TABLE public.mv_dashboard_realtime_stats TO service_role;
-
-
---
--- TOC entry 4071 (class 0 OID 0)
--- Dependencies: 351
--- Name: TABLE mv_penagihan_aggregates; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_penagihan_aggregates TO anon;
-GRANT ALL ON TABLE public.mv_penagihan_aggregates TO authenticated;
-GRANT ALL ON TABLE public.mv_penagihan_aggregates TO service_role;
-
-
---
--- TOC entry 4072 (class 0 OID 0)
--- Dependencies: 340
--- Name: TABLE potongan_penagihan; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.potongan_penagihan TO anon;
-GRANT ALL ON TABLE public.potongan_penagihan TO authenticated;
-GRANT ALL ON TABLE public.potongan_penagihan TO service_role;
-
-
---
--- TOC entry 4073 (class 0 OID 0)
--- Dependencies: 352
--- Name: TABLE mv_penagihan_with_totals; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_penagihan_with_totals TO anon;
-GRANT ALL ON TABLE public.mv_penagihan_with_totals TO authenticated;
-GRANT ALL ON TABLE public.mv_penagihan_with_totals TO service_role;
-
-
---
--- TOC entry 4074 (class 0 OID 0)
--- Dependencies: 348
--- Name: TABLE mv_pengiriman_aggregates; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_pengiriman_aggregates TO anon;
-GRANT ALL ON TABLE public.mv_pengiriman_aggregates TO authenticated;
-GRANT ALL ON TABLE public.mv_pengiriman_aggregates TO service_role;
-
-
---
--- TOC entry 4075 (class 0 OID 0)
+-- TOC entry 3963 (class 0 OID 0)
 -- Dependencies: 353
--- Name: TABLE mv_produk_aggregates; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_produk_aggregates TO anon;
-GRANT ALL ON TABLE public.mv_produk_aggregates TO authenticated;
-GRANT ALL ON TABLE public.mv_produk_aggregates TO service_role;
-
-
---
--- TOC entry 4076 (class 0 OID 0)
--- Dependencies: 354
--- Name: TABLE mv_produk_with_stats; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_produk_with_stats TO anon;
-GRANT ALL ON TABLE public.mv_produk_with_stats TO authenticated;
-GRANT ALL ON TABLE public.mv_produk_with_stats TO service_role;
-
-
---
--- TOC entry 4078 (class 0 OID 0)
--- Dependencies: 362
--- Name: TABLE mv_receivables_aging_real; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_receivables_aging_real TO anon;
-GRANT ALL ON TABLE public.mv_receivables_aging_real TO authenticated;
-GRANT ALL ON TABLE public.mv_receivables_aging_real TO service_role;
-
-
---
--- TOC entry 4079 (class 0 OID 0)
--- Dependencies: 355
--- Name: TABLE mv_sales_aggregates; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_sales_aggregates TO anon;
-GRANT ALL ON TABLE public.mv_sales_aggregates TO authenticated;
-GRANT ALL ON TABLE public.mv_sales_aggregates TO service_role;
-
-
---
--- TOC entry 4081 (class 0 OID 0)
--- Dependencies: 360
--- Name: TABLE mv_sales_performance_real; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_sales_performance_real TO anon;
-GRANT ALL ON TABLE public.mv_sales_performance_real TO authenticated;
-GRANT ALL ON TABLE public.mv_sales_performance_real TO service_role;
-
-
---
--- TOC entry 4082 (class 0 OID 0)
--- Dependencies: 344
--- Name: TABLE mv_toko_aggregates; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.mv_toko_aggregates TO anon;
-GRANT ALL ON TABLE public.mv_toko_aggregates TO authenticated;
-GRANT ALL ON TABLE public.mv_toko_aggregates TO service_role;
-
-
---
--- TOC entry 4084 (class 0 OID 0)
--- Dependencies: 337
 -- Name: SEQUENCE penagihan_id_penagihan_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10704,8 +9254,19 @@ GRANT ALL ON SEQUENCE public.penagihan_id_penagihan_seq TO service_role;
 
 
 --
--- TOC entry 4086 (class 0 OID 0)
--- Dependencies: 333
+-- TOC entry 3966 (class 0 OID 0)
+-- Dependencies: 348
+-- Name: TABLE pengiriman; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.pengiriman TO anon;
+GRANT ALL ON TABLE public.pengiriman TO authenticated;
+GRANT ALL ON TABLE public.pengiriman TO service_role;
+
+
+--
+-- TOC entry 3968 (class 0 OID 0)
+-- Dependencies: 349
 -- Name: SEQUENCE pengiriman_id_pengiriman_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10715,8 +9276,19 @@ GRANT ALL ON SEQUENCE public.pengiriman_id_pengiriman_seq TO service_role;
 
 
 --
--- TOC entry 4088 (class 0 OID 0)
--- Dependencies: 341
+-- TOC entry 3969 (class 0 OID 0)
+-- Dependencies: 356
+-- Name: TABLE potongan_penagihan; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.potongan_penagihan TO anon;
+GRANT ALL ON TABLE public.potongan_penagihan TO authenticated;
+GRANT ALL ON TABLE public.potongan_penagihan TO service_role;
+
+
+--
+-- TOC entry 3971 (class 0 OID 0)
+-- Dependencies: 357
 -- Name: SEQUENCE potongan_penagihan_id_potongan_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10726,8 +9298,19 @@ GRANT ALL ON SEQUENCE public.potongan_penagihan_id_potongan_seq TO service_role;
 
 
 --
--- TOC entry 4090 (class 0 OID 0)
--- Dependencies: 329
+-- TOC entry 3972 (class 0 OID 0)
+-- Dependencies: 344
+-- Name: TABLE produk; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.produk TO anon;
+GRANT ALL ON TABLE public.produk TO authenticated;
+GRANT ALL ON TABLE public.produk TO service_role;
+
+
+--
+-- TOC entry 3974 (class 0 OID 0)
+-- Dependencies: 345
 -- Name: SEQUENCE produk_id_produk_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10737,8 +9320,19 @@ GRANT ALL ON SEQUENCE public.produk_id_produk_seq TO service_role;
 
 
 --
--- TOC entry 4092 (class 0 OID 0)
--- Dependencies: 327
+-- TOC entry 3975 (class 0 OID 0)
+-- Dependencies: 342
+-- Name: TABLE sales; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.sales TO anon;
+GRANT ALL ON TABLE public.sales TO authenticated;
+GRANT ALL ON TABLE public.sales TO service_role;
+
+
+--
+-- TOC entry 3977 (class 0 OID 0)
+-- Dependencies: 343
 -- Name: SEQUENCE sales_id_sales_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10748,8 +9342,19 @@ GRANT ALL ON SEQUENCE public.sales_id_sales_seq TO service_role;
 
 
 --
--- TOC entry 4094 (class 0 OID 0)
--- Dependencies: 343
+-- TOC entry 3978 (class 0 OID 0)
+-- Dependencies: 358
+-- Name: TABLE setoran; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.setoran TO anon;
+GRANT ALL ON TABLE public.setoran TO authenticated;
+GRANT ALL ON TABLE public.setoran TO service_role;
+
+
+--
+-- TOC entry 3980 (class 0 OID 0)
+-- Dependencies: 359
 -- Name: SEQUENCE setoran_id_setoran_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10759,8 +9364,8 @@ GRANT ALL ON SEQUENCE public.setoran_id_setoran_seq TO service_role;
 
 
 --
--- TOC entry 4095 (class 0 OID 0)
--- Dependencies: 350
+-- TOC entry 3981 (class 0 OID 0)
+-- Dependencies: 364
 -- Name: TABLE system_logs; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10770,8 +9375,8 @@ GRANT ALL ON TABLE public.system_logs TO service_role;
 
 
 --
--- TOC entry 4097 (class 0 OID 0)
--- Dependencies: 349
+-- TOC entry 3983 (class 0 OID 0)
+-- Dependencies: 363
 -- Name: SEQUENCE system_logs_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10781,8 +9386,19 @@ GRANT ALL ON SEQUENCE public.system_logs_id_seq TO service_role;
 
 
 --
--- TOC entry 4099 (class 0 OID 0)
--- Dependencies: 331
+-- TOC entry 3984 (class 0 OID 0)
+-- Dependencies: 346
+-- Name: TABLE toko; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.toko TO anon;
+GRANT ALL ON TABLE public.toko TO authenticated;
+GRANT ALL ON TABLE public.toko TO service_role;
+
+
+--
+-- TOC entry 3986 (class 0 OID 0)
+-- Dependencies: 347
 -- Name: SEQUENCE toko_id_toko_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10792,8 +9408,8 @@ GRANT ALL ON SEQUENCE public.toko_id_toko_seq TO service_role;
 
 
 --
--- TOC entry 4100 (class 0 OID 0)
--- Dependencies: 345
+-- TOC entry 3987 (class 0 OID 0)
+-- Dependencies: 360
 -- Name: TABLE v_kabupaten_options; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10803,8 +9419,8 @@ GRANT ALL ON TABLE public.v_kabupaten_options TO service_role;
 
 
 --
--- TOC entry 4101 (class 0 OID 0)
--- Dependencies: 346
+-- TOC entry 3988 (class 0 OID 0)
+-- Dependencies: 361
 -- Name: TABLE v_kecamatan_options; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10814,8 +9430,8 @@ GRANT ALL ON TABLE public.v_kecamatan_options TO service_role;
 
 
 --
--- TOC entry 4103 (class 0 OID 0)
--- Dependencies: 357
+-- TOC entry 3990 (class 0 OID 0)
+-- Dependencies: 366
 -- Name: TABLE v_laporan_penagihan; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10825,8 +9441,8 @@ GRANT ALL ON TABLE public.v_laporan_penagihan TO service_role;
 
 
 --
--- TOC entry 4105 (class 0 OID 0)
--- Dependencies: 356
+-- TOC entry 3992 (class 0 OID 0)
+-- Dependencies: 365
 -- Name: TABLE v_laporan_pengiriman; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10836,8 +9452,8 @@ GRANT ALL ON TABLE public.v_laporan_pengiriman TO service_role;
 
 
 --
--- TOC entry 4107 (class 0 OID 0)
--- Dependencies: 358
+-- TOC entry 3994 (class 0 OID 0)
+-- Dependencies: 367
 -- Name: TABLE v_rekonsiliasi_setoran; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10847,8 +9463,8 @@ GRANT ALL ON TABLE public.v_rekonsiliasi_setoran TO service_role;
 
 
 --
--- TOC entry 4108 (class 0 OID 0)
--- Dependencies: 347
+-- TOC entry 3995 (class 0 OID 0)
+-- Dependencies: 362
 -- Name: TABLE v_sales_options; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -10858,7 +9474,7 @@ GRANT ALL ON TABLE public.v_sales_options TO service_role;
 
 
 --
--- TOC entry 2460 (class 826 OID 16488)
+-- TOC entry 2424 (class 826 OID 16488)
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: postgres
 --
 
@@ -10869,7 +9485,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON SEQUENC
 
 
 --
--- TOC entry 2461 (class 826 OID 16489)
+-- TOC entry 2425 (class 826 OID 16489)
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
 --
 
@@ -10880,7 +9496,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON S
 
 
 --
--- TOC entry 2459 (class 826 OID 16487)
+-- TOC entry 2423 (class 826 OID 16487)
 -- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: public; Owner: postgres
 --
 
@@ -10891,7 +9507,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON FUNCTIO
 
 
 --
--- TOC entry 2463 (class 826 OID 16491)
+-- TOC entry 2427 (class 826 OID 16491)
 -- Name: DEFAULT PRIVILEGES FOR FUNCTIONS; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
 --
 
@@ -10902,7 +9518,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON F
 
 
 --
--- TOC entry 2458 (class 826 OID 16486)
+-- TOC entry 2422 (class 826 OID 16486)
 -- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
 --
 
@@ -10913,7 +9529,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES 
 
 
 --
--- TOC entry 2462 (class 826 OID 16490)
+-- TOC entry 2426 (class 826 OID 16490)
 -- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: supabase_admin
 --
 
@@ -10923,106 +9539,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 
 
---
--- TOC entry 4021 (class 0 OID 21085)
--- Dependencies: 361 4024
--- Name: mv_asset_distribution_real; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_asset_distribution_real;
-
-
---
--- TOC entry 4019 (class 0 OID 21069)
--- Dependencies: 359 4024
--- Name: mv_dashboard_realtime_stats; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_dashboard_realtime_stats;
-
-
---
--- TOC entry 4014 (class 0 OID 17779)
--- Dependencies: 351 4024
--- Name: mv_penagihan_aggregates; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_penagihan_aggregates;
-
-
---
--- TOC entry 4015 (class 0 OID 17792)
--- Dependencies: 352 4024
--- Name: mv_penagihan_with_totals; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_penagihan_with_totals;
-
-
---
--- TOC entry 4011 (class 0 OID 17615)
--- Dependencies: 348 4024
--- Name: mv_pengiriman_aggregates; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_pengiriman_aggregates;
-
-
---
--- TOC entry 4016 (class 0 OID 17875)
--- Dependencies: 353 4024
--- Name: mv_produk_aggregates; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_produk_aggregates;
-
-
---
--- TOC entry 4017 (class 0 OID 17888)
--- Dependencies: 354 4024
--- Name: mv_produk_with_stats; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_produk_with_stats;
-
-
---
--- TOC entry 4022 (class 0 OID 21092)
--- Dependencies: 362 4024
--- Name: mv_receivables_aging_real; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_receivables_aging_real;
-
-
---
--- TOC entry 4018 (class 0 OID 17966)
--- Dependencies: 355 4024
--- Name: mv_sales_aggregates; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_sales_aggregates;
-
-
---
--- TOC entry 4020 (class 0 OID 21077)
--- Dependencies: 360 4024
--- Name: mv_sales_performance_real; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_sales_performance_real;
-
-
---
--- TOC entry 4010 (class 0 OID 17463)
--- Dependencies: 344 4024
--- Name: mv_toko_aggregates; Type: MATERIALIZED VIEW DATA; Schema: public; Owner: postgres
---
-
-REFRESH MATERIALIZED VIEW public.mv_toko_aggregates;
-
-
--- Completed on 2025-07-21 19:27:52
+-- Completed on 2025-07-22 17:03:24
 
 --
 -- PostgreSQL database dump complete

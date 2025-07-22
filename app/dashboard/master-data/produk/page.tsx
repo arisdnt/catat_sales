@@ -1,562 +1,535 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { type ColumnDef } from '@tanstack/react-table'
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
 import {
-  Eye,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/components/ui/use-toast'
+import { 
+  Search,
+  Plus, 
   Edit,
   Trash2,
-  Package,
   Star,
-  CheckCircle,
-  XCircle,
-  Truck,
-  CreditCard,
-  Warehouse
+  Package,
+  DollarSign,
+  TrendingUp,
+  Activity,
+  Loader2
 } from 'lucide-react'
+import { formatCurrency } from '@/lib/form-utils'
 
-import { useToast } from '@/components/ui/use-toast'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { useNavigation } from '@/lib/hooks/use-navigation'
-
-import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
-import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
-import {
-  useOptimizedProdukState,
-  useInvalidateOptimizedProduk,
-  type ProdukWithStats
-} from '@/lib/queries/produk-optimized'
-import { useDeleteProdukMutation } from '@/lib/queries/produk'
-import { exportProductData } from '@/lib/excel-export'
-
-// Page animations (identical to toko)
-const pageVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      staggerChildren: 0.1
-    }
-  }
+interface Produk {
+  id_produk: number
+  nama_produk: string
+  harga_satuan: number
+  status_produk: boolean
+  is_priority: boolean
+  priority_order: number
+  total_terjual: number
+  total_kirim: number
+  total_revenue: number
+  sisa_stok_estimated: number
 }
 
-const cardVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.4 }
-  },
-  hover: {
-    scale: 1.02,
-    transition: { duration: 0.2 }
-  }
-}
-
-// Status configuration
-const statusConfig = {
-  true: { 
-    label: 'Aktif', 
-    color: 'bg-green-100 text-green-800 border-green-200',
-    icon: CheckCircle
-  },
-  false: { 
-    label: 'Non-aktif', 
-    color: 'bg-red-100 text-red-800 border-red-200',
-    icon: XCircle
-  }
-}
-
-// Priority configuration
-const priorityConfig = {
-  true: { 
-    label: 'Prioritas', 
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    icon: Star
-  },
-  false: { 
-    label: 'Standar', 
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    icon: Package
-  }
-}
-
-
-// Helper function to format numbers (identical to toko)
-function formatNumber(num: number): string {
-  return new Intl.NumberFormat('id-ID').format(num)
-}
-
-// Helper function to format currency
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount)
-}
-
-// Data table component (identical structure to toko)
-function ProdukDataTable({ 
-  data, 
-  isLoading, 
-  error, 
-  refetch, 
-  params, 
-  updateParams, 
-  onDelete, 
-  onView, 
-  onEdit 
-}: {
-  data: any
-  isLoading: boolean
-  error: any
-  refetch: () => void
-  params: any
-  updateParams: (params: any) => void
-  onDelete: (produk: ProdukWithStats) => void
-  onView: (produk: ProdukWithStats) => void
-  onEdit: (produk: ProdukWithStats) => void
-}) {
-  // Define responsive columns with balanced sizing and left alignment
-  const columns = useMemo<ColumnDef<ProdukWithStats>[]>(() => [
-    {
-      accessorKey: 'nama_produk',
-      header: 'Nama Produk',
-      cell: ({ row }) => {
-        const produk = row.original
-        return (
-          <div className="text-left">
-            <div className="font-medium text-gray-900 truncate">{produk.nama_produk}</div>
-            <div className="text-xs text-gray-500 font-mono">ID: #{produk.id_produk}</div>
-          </div>
-        )
-      },
-      size: 200,
-      minSize: 180,
-      maxSize: 250,
-      meta: { priority: 'high', columnType: 'name' },
-    },
-    {
-      accessorKey: 'harga_satuan',
-      header: 'Harga Satuan',
-      cell: ({ row }) => {
-        const produk = row.original
-        return (
-          <div className="text-left">
-            <div className="text-sm font-medium text-gray-900">
-              {formatCurrency(produk.harga_satuan)}
-            </div>
-            <div className="text-xs text-gray-500">per unit</div>
-          </div>
-        )
-      },
-      size: 140,
-      minSize: 120,
-      maxSize: 160,
-      meta: { priority: 'high', columnType: 'currency' },
-    },
-    {
-      accessorKey: 'priority_status',
-      header: 'Prioritas & Status',
-      cell: ({ row }) => {
-        const produk = row.original
-        return (
-          <div className="text-left">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                produk.is_priority 
-                  ? 'bg-yellow-100 text-yellow-800' 
-                  : 'bg-gray-100 text-gray-600'
-              }`}>
-                {produk.is_priority ? `Prioritas ${produk.priority_order || 0}` : 'Non Prioritas'}
-              </span>
-            </div>
-            <div>
-              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                produk.status_produk 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {produk.status_produk ? 'Aktif' : 'Tidak Aktif'}
-              </span>
-            </div>
-          </div>
-        )
-      },
-      size: 160,
-      minSize: 140,
-      maxSize: 180,
-      meta: { priority: 'medium', columnType: 'status' },
-    },
-    {
-      accessorKey: 'barang_terkirim',
-      header: 'Barang Terkirim',
-      cell: ({ row }) => {
-        const produk = row.original
-        const stats = produk.stats || { total_terkirim: 0 }
-        
-        return (
-          <div className="text-left flex items-center gap-2">
-            <Truck className="h-4 w-4 text-blue-500" />
-            <div>
-              <div className="text-sm font-medium text-blue-600">
-                {formatNumber(stats.total_terkirim)}
-              </div>
-              <div className="text-xs text-gray-500">unit</div>
-            </div>
-          </div>
-        )
-      },
-      size: 140,
-      minSize: 120,
-      maxSize: 160,
-      meta: { priority: 'medium', columnType: 'stats' },
-    },
-    {
-      accessorKey: 'barang_terbayar',
-      header: 'Barang Terbayar',
-      cell: ({ row }) => {
-        const produk = row.original
-        const stats = produk.stats || { total_terbayar: 0 }
-        
-        return (
-          <div className="text-left flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-green-500" />
-            <div>
-              <div className="text-sm font-medium text-green-600">
-                {formatNumber(stats.total_terbayar)}
-              </div>
-              <div className="text-xs text-gray-500">unit</div>
-            </div>
-          </div>
-        )
-      },
-      size: 140,
-      minSize: 120,
-      maxSize: 160,
-      meta: { priority: 'medium', columnType: 'stats' },
-    },
-    {
-      accessorKey: 'stok_di_toko',
-      header: 'Stok di Toko',
-      cell: ({ row }) => {
-        const produk = row.original
-        const stats = produk.stats || { sisa_stok: 0 }
-        
-        return (
-          <div className="text-left flex items-center gap-2">
-            <Warehouse className="h-4 w-4 text-orange-500" />
-            <div>
-              <div className="text-sm font-medium text-orange-600">
-                {formatNumber(stats.sisa_stok)}
-              </div>
-              <div className="text-xs text-gray-500">unit</div>
-            </div>
-          </div>
-        )
-      },
-      size: 140,
-      minSize: 120,
-      maxSize: 160,
-      meta: { priority: 'medium', columnType: 'stats' },
-    },
-    {
-      accessorKey: 'dibuat_pada',
-      header: 'Tanggal Dibuat',
-      cell: ({ row }) => {
-        const produk = row.original
-        const date = new Date(produk.dibuat_pada)
-        return (
-          <div>
-            <div className="text-sm font-medium text-gray-900">
-              {date.toLocaleDateString('id-ID', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-              })}
-            </div>
-            <div className="text-xs text-gray-500">
-              {date.toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
-          </div>
-        )
-      },
-      size: 150,
-      minSize: 130,
-      maxSize: 180,
-      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
-    },
-  ], [])
-
-  // Handle pagination (identical to toko)
-  const handleNextPage = useCallback(() => {
-    if (data?.pagination?.hasNextPage) {
-      updateParams({ page: (params.page || 1) + 1 })
-    }
-  }, [data?.pagination?.hasNextPage, params.page, updateParams])
-
-  const handlePrevPage = useCallback(() => {
-    if (data?.pagination?.hasPrevPage) {
-      updateParams({ page: (params.page || 1) - 1 })
-    }
-  }, [data?.pagination?.hasPrevPage, params.page, updateParams])
-
-  const handlePageChange = useCallback((page: number) => {
-    updateParams({ page })
-  }, [updateParams])
-
-  // Table actions (identical to toko)
-  const tableActions = useMemo(() => [
-    {
-      label: 'Lihat Detail',
-      icon: Eye,
-      onClick: onView,
-      variant: 'view' as const,
-    },
-    {
-      label: 'Edit',
-      icon: Edit,
-      onClick: onEdit,
-      variant: 'edit' as const,
-    },
-    {
-      label: 'Hapus',
-      icon: Trash2,
-      onClick: onDelete,
-      variant: 'delete' as const,
-    },
-  ], [onView, onEdit, onDelete])
-
-  return (
-    <DataTableToko
-      data={data?.data || []}
-      columns={columns}
-      loading={isLoading}
-      error={error?.message}
-      onRefresh={refetch}
-      actions={tableActions}
-      pagination={data?.pagination ? {
-        currentPage: data.pagination.page,
-        totalPages: data.pagination.total_pages,
-        total: data.pagination.total,
-        hasNextPage: data.pagination.page < data.pagination.total_pages,
-        hasPrevPage: data.pagination.page > 1,
-        onPageChange: handlePageChange,
-        onNextPage: handleNextPage,
-        onPrevPage: handlePrevPage,
-        pageSize: data.pagination.limit,
-      } : undefined}
-      enableVirtualization={false}
-      enableRowSelection={false}
-      enableColumnVisibility={false}
-      enableSorting={true}
-      maxHeight="none"
-      emptyStateMessage="Tidak ada data produk ditemukan"
-      title={undefined}
-      description={undefined}
-      searchComponent={undefined}
-      className="border-none shadow-none"
-    />
-  )
+interface ProdukStats {
+  total_produk: number
+  produk_aktif: number
+  produk_non_aktif: number
+  produk_priority: number
+  total_nilai_produk: number
+  total_terkirim: number
+  total_terjual: number
+  sisa_stok_total: number
 }
 
 export default function ProdukPage() {
-  const { navigate } = useNavigation()
+  const router = useRouter()
   const { toast } = useToast()
-  const deleteProdukMutation = useDeleteProdukMutation()
-  const invalidate = useInvalidateOptimizedProduk()
 
-  // Initialize state management (identical to toko)
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    suggestions,
-    suggestionsLoading,
-    filterOptions,
-    params,
-    updateParams
-  } = useOptimizedProdukState({
-    page: 1,
-    limit: 20,
-    search: '',
-    sortBy: 'nama_produk',
-    sortOrder: 'asc'
-  })
+  const [products, setProducts] = useState<Produk[]>([])
+  const [stats, setStats] = useState<ProdukStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('semua')
+  const [priorityFilter, setPriorityFilter] = useState('semua')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  // Handle search (identical to toko)
-  const handleSearchChange = useCallback((value: string) => {
-    updateParams({ search: value, page: 1 })
-  }, [updateParams])
-
-  // Handle search suggestion selection (adapted for produk)
-  const handleSuggestionSelect = useCallback((suggestion: any) => {
-    if (suggestion.type === 'produk') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'harga') {
-      updateParams({ price_from: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'priority') {
-      updateParams({ is_priority: suggestion.value, search: '', page: 1 })
-    }
-  }, [updateParams])
-
-  // Handle filter changes (adapted for produk)
-  const handleFilterChange = useCallback((filters: Record<string, string>) => {
-    if (Object.keys(filters).length === 0) {
-      updateParams({
-        status_produk: '',
-        is_priority: '',
-        price_from: '',
-        price_to: '',
-        search: '',
-        page: 1
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      
+      const params = new URLSearchParams({
+        search: searchTerm,
+        status: statusFilter,
+        priority: priorityFilter,
+        page: currentPage.toString(),
+        limit: '20'
       })
-    } else {
-      updateParams({ ...filters, page: 1 })
-    }
-  }, [updateParams])
 
-  // Handle delete (adapted for produk)
-  const handleDelete = useCallback((produk: ProdukWithStats) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus produk "${produk.nama_produk}"?`)) {
-      deleteProdukMutation.mutate(produk.id_produk, {
-        onSuccess: () => {
-          toast({
-            title: "Berhasil",
-            description: `Produk "${produk.nama_produk}" berhasil dihapus`,
-          })
-          invalidate.invalidateLists()
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || "Gagal menghapus produk",
-            variant: "destructive",
-          })
-        }
-      })
-    }
-  }, [deleteProdukMutation, toast, invalidate])
+      const [productsRes, statsRes] = await Promise.all([
+        fetch(`/api/produk?${params}`),
+        fetch('/api/produk?action=stats')
+      ])
 
-  // Handle view
-  const handleView = useCallback((produk: ProdukWithStats) => {
-    navigate(`/dashboard/master-data/produk/${produk.id_produk}`)
-  }, [navigate])
+      if (!productsRes.ok || !statsRes.ok) {
+        throw new Error('Failed to fetch data')
+      }
 
-  // Handle edit
-  const handleEdit = useCallback((produk: ProdukWithStats) => {
-    navigate(`/dashboard/master-data/produk/${produk.id_produk}/edit`)
-  }, [navigate])
+      const productsData = await productsRes.json()
+      const statsData = await statsRes.json()
 
-  // Handle export
-  const handleExport = useCallback(() => {
-    if (!data?.data) return
-    
-    const result = exportProductData(data.data)
-    if (result.success) {
+      setProducts(productsData.data)
+      setTotalPages(productsData.pagination.totalPages)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Error fetching products:', error)
       toast({
-        title: "Export Berhasil",
-        description: `Data berhasil diexport ke ${result.filename}`,
-      })
-    } else {
-      toast({
-        title: "Export Gagal",
-        description: result.error || "Terjadi kesalahan saat export",
+        title: "Error",
+        description: "Gagal memuat data produk",
         variant: "destructive",
       })
+    } finally {
+      setLoading(false)
     }
-  }, [data?.data, toast])
+  }
 
-  // Handle add new
-  const handleAdd = useCallback(() => {
-    navigate('/dashboard/master-data/produk/add')
-  }, [navigate])
+  useEffect(() => {
+    fetchProducts()
+  }, [searchTerm, statusFilter, priorityFilter, currentPage])
 
-  // Current filters for display (adapted for produk)
-  const currentFilters = useMemo(() => {
-    const filters: Record<string, string> = {}
-    if (params.status_produk) filters.status_produk = params.status_produk
-    if (params.is_priority) filters.is_priority = params.is_priority
-    if (params.price_from) filters.price_from = params.price_from
-    if (params.price_to) filters.price_to = params.price_to
-    return filters
-  }, [params])
+  const handleDelete = async (id: number) => {
+    try {
+      setDeletingId(id)
+      const response = await fetch(`/api/produk/${id}`, {
+        method: 'DELETE',
+      })
 
-  // Summary statistics with safe defaults (adapted for produk)
-  const summary = filterOptions?.summary
+      if (!response.ok) {
+        throw new Error('Failed to delete product')
+      }
+
+      toast({
+        title: "Berhasil",
+        description: "Produk berhasil dihapus",
+      })
+
+      fetchProducts()
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      toast({
+        title: "Error",
+        description: "Gagal menghapus produk",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const resetFilters = () => {
+    setSearchTerm('')
+    setStatusFilter('semua')
+    setPriorityFilter('semua')
+    setCurrentPage(1)
+  }
 
   return (
-    <motion.div 
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible" 
-      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
-    >
-      {/* Page Header (identical structure to toko) */}
-      <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Daftar Produk</h1>
-          <p className="text-gray-600 mt-2">
-            {summary ? 
-              `${formatNumber(summary.total_products)} produk dengan total value ${formatCurrency(summary.total_value)}` :
-              "Memuat data produk..."
-            }
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Master Data Produk</h1>
+          <p className="text-muted-foreground">
+            Kelola data produk dan pantau performa penjualan
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExport} variant="outline" size="lg">
-            Export Excel
-          </Button>
-          <Button onClick={handleAdd} size="lg">
-            Tambah Produk
-          </Button>
-        </div>
-      </motion.div>
+        <Button onClick={() => router.push('/dashboard/master-data/produk/add')}>
+          <Plus className="h-4 w-4 mr-2" />
+          Tambah Produk
+        </Button>
+      </div>
 
-      {/* Integrated Data Table Card (identical structure to toko) */}
-      <motion.div 
-        variants={cardVariants} 
-        className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
-      >
-        {/* Search and Filter Section (identical to toko) */}
-        <div className="p-6 border-b bg-gray-50">
-          <SearchFilterToko
-            value={params.search || ''}
-            onChange={handleSearchChange}
-            onFilterChange={handleFilterChange}
-            suggestions={suggestions}
-            suggestionsLoading={suggestionsLoading}
-            filterOptions={filterOptions}
-            activeFilters={currentFilters}
-            placeholder="Cari produk, harga, prioritas..."
-            onSuggestionSelect={handleSuggestionSelect}
-          />
-        </div>
+      {stats && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Produk</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.total_produk}</div>
+              </CardContent>
+            </Card>
 
-        {/* Data Table Section (identical structure to toko) */}
-        <div className="w-full">
-          <ProdukDataTable
-            data={data}
-            isLoading={isLoading}
-            error={error}
-            refetch={refetch}
-            params={params}
-            updateParams={updateParams}
-            onDelete={handleDelete}
-            onView={handleView}
-            onEdit={handleEdit}
-          />
-        </div>
-      </motion.div>
-    </motion.div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Produk Aktif</CardTitle>
+                <Activity className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.produk_aktif}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Produk Non-Aktif</CardTitle>
+                <Activity className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{stats.produk_non_aktif}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Produk Priority</CardTitle>
+                <Star className="h-4 w-4 text-yellow-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{stats.produk_priority}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Nilai</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.total_nilai_produk)}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Terkirim</CardTitle>
+                <Package className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {stats.total_terkirim?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Semua produk yang telah dikirim
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Terjual</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.total_terjual?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Semua produk yang telah terjual
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Sisa Stok Total</CardTitle>
+                <Activity className={`h-4 w-4 ${
+                  (stats.sisa_stok_total || 0) < 0 ? 'text-red-500' : 
+                  (stats.sisa_stok_total || 0) === 0 ? 'text-yellow-500' :
+                  'text-green-500'
+                }`} />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${
+                  (stats.sisa_stok_total || 0) < 0 ? 'text-red-600' : 
+                  (stats.sisa_stok_total || 0) === 0 ? 'text-yellow-600' :
+                  'text-green-600'
+                }`}>
+                  {(stats.sisa_stok_total || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Terkirim - Terjual
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Tingkat Penjualan</CardTitle>
+                <DollarSign className="h-4 w-4 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {stats.total_terkirim > 0 
+                    ? `${Math.round((stats.total_terjual / stats.total_terkirim) * 100)}%`
+                    : '0%'
+                  }
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Rasio terjual dari terkirim
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filter & Pencarian</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>Cari Produk</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Nama produk..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua Status</SelectItem>
+                  <SelectItem value="aktif">Aktif</SelectItem>
+                  <SelectItem value="non-aktif">Non-Aktif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="semua">Semua</SelectItem>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="non-priority">Non-Priority</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button variant="outline" onClick={resetFilters}>
+                Reset Filter
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Produk</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nama Produk</TableHead>
+                    <TableHead>Harga</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Total Terkirim</TableHead>
+                    <TableHead>Total Terjual</TableHead>
+                    <TableHead>Sisa Stok</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-8">
+                        Tidak ada data produk
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    products.map((product) => (
+                      <TableRow key={product.id_produk}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            {product.is_priority && (
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            )}
+                            <span className="font-medium">{product.nama_produk}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatCurrency(product.harga_satuan)}</TableCell>
+                        <TableCell>
+                          <Badge variant={product.status_produk ? "default" : "secondary"}>
+                            {product.status_produk ? 'Aktif' : 'Non-Aktif'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={product.is_priority ? "default" : "outline"}>
+                            {product.is_priority ? `Priority (${product.priority_order})` : 'Normal'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Package className="h-4 w-4 text-blue-500" />
+                            <span className="font-medium text-blue-600">
+                              {product.total_kirim.toLocaleString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                            <span className="font-medium text-green-600">
+                              {product.total_terjual.toLocaleString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Activity className={`h-4 w-4 ${
+                              product.sisa_stok_estimated < 0 ? 'text-red-500' : 
+                              product.sisa_stok_estimated === 0 ? 'text-yellow-500' :
+                              'text-green-500'
+                            }`} />
+                            <span className={`font-bold ${
+                              product.sisa_stok_estimated < 0 ? 'text-red-600' : 
+                              product.sisa_stok_estimated === 0 ? 'text-yellow-600' :
+                              'text-green-600'
+                            }`}>
+                              {product.sisa_stok_estimated.toLocaleString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="h-4 w-4 text-purple-500" />
+                            <span className="font-medium text-purple-600">
+                              {formatCurrency(product.total_revenue)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`/dashboard/master-data/produk/${product.id_produk}/edit`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Apakah Anda yakin ingin menghapus produk "{product.nama_produk}"?
+                                    Tindakan ini tidak dapat dibatalkan.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(product.id_produk)}
+                                    disabled={deletingId === product.id_produk}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    {deletingId === product.id_produk ? (
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    ) : null}
+                                    Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-4">
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

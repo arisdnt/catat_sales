@@ -1,0 +1,175 @@
+**Catatan Teknis API - Analisis Inkonsistensi dan Skema Database**
+
+**Tanggal Analisis:** 22 Juli 2025
+
+**Ringkasan:**
+Analisis ini mengidentifikasi beberapa rute API dan fungsi database yang tidak lagi sinkron dengan skema database saat ini. Secara khusus, beberapa fungsi masih mencoba untuk mengakses *materialized view* (`mv_`) yang telah dihapus dari database. Panggilan ke endpoint API yang terpengaruh kemungkinan besar akan gagal di lapisan database. Dokumen ini juga menyertakan skema database lengkap yang diekstrak dari `snipet.csv` untuk referensi.
+
+---
+
+**File yang Terpengaruh dan Masalah yang Ditemukan:**
+
+1.  **`app/api/sales/optimized/route.ts`**
+    *   **Masalah:** Rute ini memanggil fungsi database `search_sales_optimized` dan `count_sales_optimized`.
+    *   **Detail:** Kedua fungsi PostgreSQL ini secara eksplisit melakukan query ke `mv_sales_aggregates`, sebuah *materialized view* yang sudah tidak ada lagi.
+    *   **Rekomendasi:** Ganti panggilan ke `search_sales_optimized` dan `count_sales_optimized` dengan fungsi alternatif yang melakukan query langsung ke tabel `sales` dan `toko` (misalnya, `search_sales_simple` jika ada, atau buat fungsi baru yang efisien).
+
+2.  **`app/api/pengiriman/optimized/route.ts`**
+    *   **Masalah:** Rute ini memanggil fungsi database `search_pengiriman_optimized`.
+    *   **Detail:** Fungsi PostgreSQL ini melakukan query ke `mv_pengiriman_aggregates`, sebuah *materialized view* yang sudah tidak ada.
+    *   **Rekomendasi:** Ganti panggilan ke `search_pengiriman_optimized` dengan `search_pengiriman_simple` yang sudah ada, yang tampaknya menjadi pengganti yang dituju karena melakukan query langsung ke tabel.
+
+3.  **`app/api/penagihan/optimized/route.ts`**
+    *   **Masalah:** Rute ini memanggil fungsi `search_penagihan_optimized`.
+    *   **Detail:** Meskipun fungsi ini tidak secara langsung mereferensikan *materialized view* dalam `FROM` clause-nya, struktur query-nya sangat kompleks dengan beberapa CTEs dan agregasi. Fungsi ini kemungkinan besar adalah sisa dari refactoring sebelumnya dan mungkin tidak seefisien atau sesederhana yang seharusnya. Perlu ditinjau ulang untuk memastikan kinerjanya optimal tanpa *materialized view*.
+    *   **Rekomendasi:** Tinjau ulang dan sederhanakan query di dalam fungsi `search_penagihan_optimized` untuk memastikan performa yang baik tanpa ketergantungan pada data yang sudah diagregasi sebelumnya.
+
+4.  **`app/api/toko/optimized/route.ts`**
+    *   **Masalah:** Rute ini mencoba memanggil fungsi `search_toko_optimized`.
+    *   **Detail:** Fungsi `search_toko_optimized` tidak ada di dalam skema database `dump_db.sql`. Ini adalah panggilan ke fungsi yang tidak ada.
+    *   **Rekomendasi:** Hapus atau perbarui rute ini untuk memanggil fungsi yang valid, seperti `search_toko_simple`.
+
+---
+
+**Catatan Tambahan: Logika Bisnis untuk Query Database**
+
+Dengan tidak digunakannya *materialized view*, semua query harus dibangun dengan melakukan `JOIN` langsung antar tabel utama. Berikut adalah panduan untuk menyusun query berdasarkan logika bisnis yang ada di proyek:
+
+1.  **Agregasi Data Sales (`sales`):**
+    *   Untuk mendapatkan statistik seperti `total_stores`, `total_shipped_items`, dan `total_revenue` yang sebelumnya ada di `mv_sales_aggregates`, query harus melakukan:
+        *   `COUNT` pada tabel `toko` dengan `JOIN` ke `sales`.
+        *   `SUM` dari `jumlah_kirim` di `detail_pengiriman` dengan `JOIN` melalui `pengiriman` -> `toko` -> `sales`.
+        *   `SUM` dari `jumlah_terjual` di `detail_penagihan` dikalikan `harga_satuan` di `produk`, dengan `JOIN` melalui `penagihan` -> `toko` -> `sales`.
+    *   Gunakan **Common Table Expressions (CTEs)** untuk memisahkan setiap logika agregasi agar query tetap terbaca.
+
+2.  **Pencarian Pengiriman (`pengiriman`):**
+    *   Fungsi `search_pengiriman_simple` adalah contoh yang baik. Query harus melakukan `JOIN` antara `pengiriman`, `toko`, dan `sales` untuk memfilter berdasarkan nama toko, nama sales, kabupaten, atau kecamatan.
+    *   Detail pengiriman (item produk) harus didapatkan dengan `JOIN` ke `detail_pengiriman` dan `produk`, lalu diagregasi menggunakan `json_agg` seperti yang sudah diimplementasikan.
+
+3.  **Pencarian Toko (`toko`):**
+    *   Fungsi `search_toko_simple` menunjukkan pola yang benar. Statistik seperti `barang_terkirim`, `barang_terbayar`, dan `sisa_stok` harus dihitung secara *on-the-fly* menggunakan subquery atau CTEs yang melakukan agregasi pada tabel `detail_pengiriman` dan `detail_penagihan`.
+    *   Pastikan untuk menggunakan `COALESCE` untuk menangani toko yang mungkin belum memiliki transaksi pengiriman atau penagihan.
+
+4.  **Pentingnya Indexing:**
+    *   Tanpa *materialized view*, performa query sangat bergantung pada **indexing**. Pastikan semua kolom *foreign key* (`id_sales`, `id_toko`, `id_pengiriman`, `id_penagihan`, `id_produk`) dan kolom yang sering digunakan untuk filter (`tanggal_kirim`, `dibuat_pada` di berbagai tabel, `kabupaten`, `kecamatan`) memiliki index yang sesuai.
+
+---
+
+**Skema Database (dari snipet.csv)**
+
+**Tables:**
+
+*   **detail_penagihan**
+    *   `id_detail_tagih` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_penagihan` (integer, NOT NULL)
+    *   `id_produk` (integer, NOT NULL)
+    *   `jumlah_terjual` (integer, NOT NULL)
+    *   `jumlah_kembali` (integer, NOT NULL)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **detail_pengiriman**
+    *   `id_detail_kirim` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_pengiriman` (integer, NOT NULL)
+    *   `id_produk` (integer, NOT NULL)
+    *   `jumlah_kirim` (integer, NOT NULL)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **penagihan**
+    *   `id_penagihan` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_toko` (integer, NOT NULL)
+    *   `total_uang_diterima` (numeric, NOT NULL)
+    *   `metode_pembayaran` (character varying, NOT NULL)
+    *   `ada_potongan` (boolean, YES, DEFAULT false)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **pengiriman**
+    *   `id_pengiriman` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_toko` (integer, NOT NULL)
+    *   `tanggal_kirim` (date, NOT NULL)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `is_autorestock` (boolean, YES, DEFAULT false)
+*   **potongan_penagihan**
+    *   `id_potongan` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_penagihan` (integer, NOT NULL)
+    *   `jumlah_potongan` (numeric, NOT NULL)
+    *   `alasan` (text, YES)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **produk**
+    *   `id_produk` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `nama_produk` (character varying, NOT NULL)
+    *   `harga_satuan` (numeric, NOT NULL)
+    *   `status_produk` (boolean, YES, DEFAULT true)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `is_priority` (boolean, YES, DEFAULT false)
+    *   `priority_order` (integer, YES, DEFAULT 0)
+*   **sales**
+    *   `id_sales` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `nama_sales` (character varying, NOT NULL)
+    *   `nomor_telepon` (character varying, YES)
+    *   `status_aktif` (boolean, YES, DEFAULT true)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **setoran**
+    *   `id_setoran` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `total_setoran` (numeric, NOT NULL)
+    *   `penerima_setoran` (character varying, NOT NULL)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **system_logs**
+    *   `id` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `log_type` (character varying, NOT NULL)
+    *   `message` (text, NOT NULL)
+    *   `created_at` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+*   **toko**
+    *   `id_toko` (integer, NOT NULL, DEFAULT nextval(...))
+    *   `id_sales` (integer, NOT NULL)
+    *   `nama_toko` (character varying, NOT NULL)
+    *   `kecamatan` (character varying, YES)
+    *   `kabupaten` (character varying, YES)
+    *   `link_gmaps` (text, YES)
+    *   `status_toko` (boolean, YES, DEFAULT true)
+    *   `dibuat_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `diperbarui_pada` (timestamp without time zone, YES, DEFAULT CURRENT_TIMESTAMP)
+    *   `no_telepon` (character varying, YES)
+
+**Functions:**
+
+*   `count_sales_optimized(search_term text, filter_status text, filter_telepon_exists text, filter_date_from text, filter_date_to text)` - RETURNS `integer`
+*   `get_setoran_filter_options()` - RETURNS `json`
+*   `get_toko_filter_options_simple()` - RETURNS `TABLE(...)`
+*   `get_toko_search_suggestions_simple(search_term text, max_results integer)` - RETURNS `TABLE(...)`
+*   `search_penagihan_optimized(...)` - RETURNS `TABLE(...)`
+*   `search_pengiriman_optimized(...)` - RETURNS `TABLE(...)`
+*   `search_pengiriman_simple(...)` - RETURNS `TABLE(...)`
+*   `search_sales_optimized(...)` - RETURNS `TABLE(...)`
+*   `search_toko_simple(...)` - RETURNS `TABLE(...)`
+*   `trigger_refresh_penagihan_views()` - RETURNS `trigger`
+*   `trigger_refresh_pengiriman_mv()` - RETURNS `trigger`
+*   `trigger_refresh_produk_views()` - RETURNS `trigger`
+*   `trigger_refresh_sales_aggregates()` - RETURNS `trigger`
+*   `trigger_refresh_toko_aggregates()` - RETURNS `trigger`
+
+**Views:**
+
+*   `v_kabupaten_options`
+*   `v_kecamatan_options`
+*   `v_laporan_penagihan`
+*   `v_laporan_pengiriman`
+*   `v_rekonsiliasi_setoran`
+*   `v_sales_options`
+
+**Triggers:**
+
+*   `detail_penagihan`: `refresh_on_penagihan_change` (AFTER INSERT/DELETE/UPDATE)
+*   `detail_pengiriman`: `refresh_on_pengiriman_change` (AFTER INSERT/DELETE/UPDATE), `trigger_refresh_pengiriman_on_detail` (AFTER INSERT/DELETE/UPDATE)
+*   `penagihan`: `tr_penagihan_refresh_views` (AFTER INSERT/DELETE/UPDATE)
+*   `pengiriman`: `trigger_refresh_pengiriman_on_pengiriman` (AFTER INSERT/DELETE/UPDATE)
+*   `potongan_penagihan`: `tr_potongan_penagihan_refresh_views` (AFTER INSERT/DELETE/UPDATE)
+*   `sales`: `sales_change_trigger` (AFTER INSERT/DELETE/UPDATE), `trigger_refresh_pengiriman_on_sales` (AFTER UPDATE)
+*   `toko`: `refresh_on_toko_change` (AFTER INSERT/DELETE/UPDATE), `toko_change_trigger` (AFTER INSERT/DELETE/UPDATE), `trigger_refresh_pengiriman_on_toko` (AFTER UPDATE)
+
+**Langkah Selanjutnya:**
+Tim pengembang harus meninjau file-file yang tercantum di atas dan memperbarui kode untuk menghapus semua ketergantungan pada *materialized view* dan fungsi database usang. Prioritaskan perbaikan pada `sales` dan `pengiriman` karena keduanya secara langsung menyebabkan error. Gunakan panduan logika bisnis di atas untuk membangun query yang efisien dan akurat.

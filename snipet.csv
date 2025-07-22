@@ -1,0 +1,141 @@
+type,table_schema,table_name,column_name,data_type,is_nullable,column_default
+FUNCTION,public,count_sales_optimized,"search_term text DEFAULT ''::text, filter_status text DEFAULT N",integer,null,null
+FUNCTION,public,get_setoran_filter_options,,json,null,null
+FUNCTION,public,get_toko_filter_options_simple,,"TABLE(filter_type text, filter_value text, filter_label text, filter_count bigint, metadata json)",null,null
+FUNCTION,public,get_toko_search_suggestions_simple,"search_term text, max_results integer DEFAULT 5","TABLE(suggestion_type text, suggestion_value text, suggestion_label text, metadata json)",null,null
+FUNCTION,public,search_penagihan_optimized,"search_query text DEFAULT ''::text, p_limit integer DEFAULT 20,","TABLE(id_penagihan integer, total_uang_diterima numeric, metode_pembayaran text, ada_potongan boolean, dibuat_pada timestamp with time zone, diperbarui_pada timestamp with time zone, toko_data json, detail_penagihan_data json, potongan_penagihan_data json, total_count bigint)",null,null
+FUNCTION,public,search_pengiriman_optimized,"search_term text DEFAULT ''::text, filter_sales integer DEFAULT","TABLE(id_pengiriman integer, tanggal_kirim date, dibuat_pada timestamp without time zone, diperbarui_pada timestamp without time zone, id_toko integer, nama_toko character varying, kecamatan character varying, kabupaten character varying, link_gmaps text, id_sales integer, nama_sales character varying, nomor_telepon character varying, total_quantity bigint, detail_pengiriman json, total_count bigint)",null,null
+FUNCTION,public,search_pengiriman_simple,"search_term text DEFAULT ''::text, filter_sales integer DEFAULT","TABLE(id_pengiriman integer, tanggal_kirim date, dibuat_pada timestamp without time zone, diperbarui_pada timestamp without time zone, id_toko integer, nama_toko character varying, kecamatan character varying, kabupaten character varying, link_gmaps text, id_sales integer, nama_sales character varying, nomor_telepon character varying, total_quantity bigint, detail_pengiriman json, total_count bigint)",null,null
+FUNCTION,public,search_sales_optimized,"search_term text DEFAULT ''::text, page_offset integer DEFAULT ","TABLE(id_sales integer, nama_sales character varying, nomor_telepon character varying, status_aktif boolean, dibuat_pada timestamp without time zone, diperbarui_pada timestamp without time zone, stats jsonb)",null,null
+FUNCTION,public,search_toko_simple,"search_term text DEFAULT ''::text, filter_status boolean DEFAUL","TABLE(id_toko integer, nama_toko character varying, kecamatan character varying, kabupaten character varying, no_telepon character varying, link_gmaps text, id_sales integer, status_toko boolean, dibuat_pada timestamp without time zone, diperbarui_pada timestamp without time zone, barang_terkirim bigint, detail_barang_terkirim json[], barang_terbayar bigint, detail_barang_terbayar json[], sisa_stok bigint, detail_sisa_stok json[], total_count bigint)",null,null
+FUNCTION,public,trigger_refresh_penagihan_views,,trigger,null,null
+FUNCTION,public,trigger_refresh_pengiriman_mv,,trigger,null,null
+FUNCTION,public,trigger_refresh_produk_views,,trigger,null,null
+FUNCTION,public,trigger_refresh_sales_aggregates,,trigger,null,null
+FUNCTION,public,trigger_refresh_toko_aggregates,,trigger,null,null
+TABLE_COLUMN,public,detail_penagihan,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,detail_penagihan,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,detail_penagihan,id_detail_tagih,integer,NO,nextval('detail_penagihan_id_detail_tagih_seq'::regclass)
+TABLE_COLUMN,public,detail_penagihan,id_penagihan,integer,NO,null
+TABLE_COLUMN,public,detail_penagihan,id_produk,integer,NO,null
+TABLE_COLUMN,public,detail_penagihan,jumlah_kembali,integer,NO,null
+TABLE_COLUMN,public,detail_penagihan,jumlah_terjual,integer,NO,null
+TABLE_COLUMN,public,detail_pengiriman,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,detail_pengiriman,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,detail_pengiriman,id_detail_kirim,integer,NO,nextval('detail_pengiriman_id_detail_kirim_seq'::regclass)
+TABLE_COLUMN,public,detail_pengiriman,id_pengiriman,integer,NO,null
+TABLE_COLUMN,public,detail_pengiriman,id_produk,integer,NO,null
+TABLE_COLUMN,public,detail_pengiriman,jumlah_kirim,integer,NO,null
+TABLE_COLUMN,public,penagihan,ada_potongan,boolean,YES,false
+TABLE_COLUMN,public,penagihan,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,penagihan,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,penagihan,id_penagihan,integer,NO,nextval('penagihan_id_penagihan_seq'::regclass)
+TABLE_COLUMN,public,penagihan,id_toko,integer,NO,null
+TABLE_COLUMN,public,penagihan,metode_pembayaran,character varying,NO,null
+TABLE_COLUMN,public,penagihan,total_uang_diterima,numeric,NO,null
+TABLE_COLUMN,public,pengiriman,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,pengiriman,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,pengiriman,id_pengiriman,integer,NO,nextval('pengiriman_id_pengiriman_seq'::regclass)
+TABLE_COLUMN,public,pengiriman,id_toko,integer,NO,null
+TABLE_COLUMN,public,pengiriman,is_autorestock,boolean,YES,false
+TABLE_COLUMN,public,pengiriman,tanggal_kirim,date,NO,null
+TABLE_COLUMN,public,potongan_penagihan,alasan,text,YES,null
+TABLE_COLUMN,public,potongan_penagihan,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,potongan_penagihan,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,potongan_penagihan,id_penagihan,integer,NO,null
+TABLE_COLUMN,public,potongan_penagihan,id_potongan,integer,NO,nextval('potongan_penagihan_id_potongan_seq'::regclass)
+TABLE_COLUMN,public,potongan_penagihan,jumlah_potongan,numeric,NO,null
+TABLE_COLUMN,public,produk,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,produk,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,produk,harga_satuan,numeric,NO,null
+TABLE_COLUMN,public,produk,id_produk,integer,NO,nextval('produk_id_produk_seq'::regclass)
+TABLE_COLUMN,public,produk,is_priority,boolean,YES,false
+TABLE_COLUMN,public,produk,nama_produk,character varying,NO,null
+TABLE_COLUMN,public,produk,priority_order,integer,YES,0
+TABLE_COLUMN,public,produk,status_produk,boolean,YES,true
+TABLE_COLUMN,public,sales,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,sales,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,sales,id_sales,integer,NO,nextval('sales_id_sales_seq'::regclass)
+TABLE_COLUMN,public,sales,nama_sales,character varying,NO,null
+TABLE_COLUMN,public,sales,nomor_telepon,character varying,YES,null
+TABLE_COLUMN,public,sales,status_aktif,boolean,YES,true
+TABLE_COLUMN,public,setoran,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,setoran,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,setoran,id_setoran,integer,NO,nextval('setoran_id_setoran_seq'::regclass)
+TABLE_COLUMN,public,setoran,penerima_setoran,character varying,NO,null
+TABLE_COLUMN,public,setoran,total_setoran,numeric,NO,null
+TABLE_COLUMN,public,system_logs,created_at,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,system_logs,id,integer,NO,nextval('system_logs_id_seq'::regclass)
+TABLE_COLUMN,public,system_logs,log_type,character varying,NO,null
+TABLE_COLUMN,public,system_logs,message,text,NO,null
+TABLE_COLUMN,public,toko,dibuat_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,toko,diperbarui_pada,timestamp without time zone,YES,CURRENT_TIMESTAMP
+TABLE_COLUMN,public,toko,id_sales,integer,NO,null
+TABLE_COLUMN,public,toko,id_toko,integer,NO,nextval('toko_id_toko_seq'::regclass)
+TABLE_COLUMN,public,toko,kabupaten,character varying,YES,null
+TABLE_COLUMN,public,toko,kecamatan,character varying,YES,null
+TABLE_COLUMN,public,toko,link_gmaps,text,YES,null
+TABLE_COLUMN,public,toko,nama_toko,character varying,NO,null
+TABLE_COLUMN,public,toko,no_telepon,character varying,YES,null
+TABLE_COLUMN,public,toko,status_toko,boolean,YES,true
+TRIGGER,public,detail_penagihan,refresh_on_penagihan_change,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_penagihan,refresh_on_penagihan_change,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_penagihan,refresh_on_penagihan_change,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_pengiriman,refresh_on_pengiriman_change,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_pengiriman,refresh_on_pengiriman_change,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_pengiriman,refresh_on_pengiriman_change,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,detail_pengiriman,trigger_refresh_pengiriman_on_detail,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,detail_pengiriman,trigger_refresh_pengiriman_on_detail,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,detail_pengiriman,trigger_refresh_pengiriman_on_detail,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,penagihan,tr_penagihan_refresh_views,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,penagihan,tr_penagihan_refresh_views,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,penagihan,tr_penagihan_refresh_views,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,pengiriman,trigger_refresh_pengiriman_on_pengiriman,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,pengiriman,trigger_refresh_pengiriman_on_pengiriman,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,pengiriman,trigger_refresh_pengiriman_on_pengiriman,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,potongan_penagihan,tr_potongan_penagihan_refresh_views,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,potongan_penagihan,tr_potongan_penagihan_refresh_views,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,potongan_penagihan,tr_potongan_penagihan_refresh_views,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_penagihan_views()
+TRIGGER,public,sales,sales_change_trigger,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,sales,sales_change_trigger,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,sales,sales_change_trigger,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,sales,trigger_refresh_pengiriman_on_sales,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+TRIGGER,public,toko,refresh_on_toko_change,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,toko,refresh_on_toko_change,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,toko,refresh_on_toko_change,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_toko_aggregates()
+TRIGGER,public,toko,toko_change_trigger,null,AFTER DELETE,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,toko,toko_change_trigger,null,AFTER INSERT,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,toko,toko_change_trigger,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_sales_aggregates()
+TRIGGER,public,toko,trigger_refresh_pengiriman_on_toko,null,AFTER UPDATE,EXECUTE FUNCTION trigger_refresh_pengiriman_mv()
+VIEW_COLUMN,public,v_kabupaten_options,kabupaten,character varying,YES,null
+VIEW_COLUMN,public,v_kecamatan_options,kabupaten,character varying,YES,null
+VIEW_COLUMN,public,v_kecamatan_options,kecamatan,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,ada_potongan,boolean,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,id_penagihan,integer,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,jumlah_kembali,integer,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,jumlah_potongan,numeric,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,jumlah_terjual,integer,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,metode_pembayaran,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,nama_produk,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,nama_sales,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,nama_toko,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,nilai_terjual,numeric,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,tanggal_tagih,date,YES,null
+VIEW_COLUMN,public,v_laporan_penagihan,total_uang_diterima,numeric,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,dibuat_pada,timestamp without time zone,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,id_pengiriman,integer,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,is_autorestock,boolean,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,jumlah_kirim,integer,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,nama_produk,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,nama_sales,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,nama_toko,character varying,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,nilai_kirim,numeric,YES,null
+VIEW_COLUMN,public,v_laporan_pengiriman,tanggal_kirim,date,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,id_setoran,integer,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,penerima_setoran,character varying,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,selisih,numeric,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,tanggal_setoran,date,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,total_penagihan_cash,numeric,YES,null
+VIEW_COLUMN,public,v_rekonsiliasi_setoran,total_setoran,numeric,YES,null
+VIEW_COLUMN,public,v_sales_options,id_sales,integer,YES,null
+VIEW_COLUMN,public,v_sales_options,nama_sales,character varying,YES,null

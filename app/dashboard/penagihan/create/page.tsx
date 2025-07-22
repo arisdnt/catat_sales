@@ -15,7 +15,6 @@ import { apiClient } from '@/lib/api-client'
 import { useSalesQuery } from '@/lib/queries/sales'
 import { useCreatePenagihanMutation, penagihanKeys } from '@/lib/queries/penagihan'
 import { penagihanOptimizedKeys } from '@/lib/queries/penagihan-optimized'
-import { mvKeys } from '@/lib/queries/materialized-views'
 import { useQueryClient } from '@tanstack/react-query'
 
 // Types
@@ -591,8 +590,7 @@ export default function CreatePenagihanPage() {
       queryClient.invalidateQueries({ queryKey: penagihanKeys.all })
       queryClient.invalidateQueries({ queryKey: penagihanOptimizedKeys.lists() })
       queryClient.invalidateQueries({ queryKey: penagihanOptimizedKeys.all })
-      queryClient.invalidateQueries({ queryKey: mvKeys.penagihan() })
-      queryClient.invalidateQueries({ queryKey: mvKeys.penagihanAggregates() })
+      // Materialized views removed - using direct queries now
       
       // Reset form after successful submission
       setFormData({ 

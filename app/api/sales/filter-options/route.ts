@@ -24,20 +24,15 @@ export async function GET(request: NextRequest) {
           .select('nomor_telepon')
           .order('nomor_telepon'),
           
-        // Summary statistics with sales performance data from materialized view
+        // Summary statistics using direct table queries (mv_sales_aggregates removed)
         supabaseAdmin
-          .from('mv_sales_aggregates')
+          .from('sales')
           .select(`
             id_sales,
             nama_sales,
             nomor_telepon,
             status_aktif,
-            dibuat_pada,
-            total_stores,
-            total_shipped_items,
-            total_revenue,
-            total_items_sold,
-            total_items_returned
+            dibuat_pada
           `)
       ])
       
@@ -81,14 +76,14 @@ export async function GET(request: NextRequest) {
         }
       ]
       
-      // Since we're using mv_sales_aggregates, the data already includes all statistics
-      const salesStats = summaryResult.data || []
+      // Calculate basic statistics from direct sales data
+      const salesData = summaryResult.data || []
       
-      // Calculate summary statistics
-      const totalSales = summaryResult.data?.length || 0
-      const activeSales = summaryResult.data?.filter((s: any) => s.status_aktif).length || 0
+      // Basic sales counts
+      const totalSales = salesData.length
+      const activeSales = salesData.filter((s: any) => s.status_aktif).length
       const inactiveSales = totalSales - activeSales
-      const salesWithPhone = summaryResult.data?.filter((s: any) => s.nomor_telepon).length || 0
+      const salesWithPhone = salesData.filter((s: any) => s.nomor_telepon).length
       const salesWithoutPhone = totalSales - salesWithPhone
       
       const today = new Date().toDateString()
@@ -97,24 +92,55 @@ export async function GET(request: NextRequest) {
       const monthAgo = new Date()
       monthAgo.setDate(monthAgo.getDate() - 30)
       
-      const todaySales = summaryResult.data?.filter((s: any) => 
+      const todaySales = salesData.filter((s: any) => 
         new Date(s.dibuat_pada).toDateString() === today
-      ).length || 0
+      ).length
       
-      const thisWeekSales = summaryResult.data?.filter((s: any) => 
+      const thisWeekSales = salesData.filter((s: any) => 
         new Date(s.dibuat_pada) >= weekAgo
-      ).length || 0
+      ).length
       
-      const thisMonthSales = summaryResult.data?.filter((s: any) => 
+      const thisMonthSales = salesData.filter((s: any) => 
         new Date(s.dibuat_pada) >= monthAgo
-      ).length || 0
+      ).length
       
-      // Calculate performance statistics using materialized view fields
-      const totalStores = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_stores || 0), 0)
-      const totalShippedItems = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_shipped_items || 0), 0)
-      const totalRevenue = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_revenue || 0), 0)
-      const totalItemsSold = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_items_sold || 0), 0)
-      const totalItemsReturned = salesStats.reduce((sum: number, s: any) => sum + Number(s.total_items_returned || 0), 0)
+      // Calculate performance statistics by querying related tables
+      let totalStores = 0
+      let totalShippedItems = 0  
+      let totalRevenue = 0
+      let totalItemsSold = 0
+      let totalItemsReturned = 0
+      
+      try {
+        // Get total stores count
+        const { count: storesCount } = await supabaseAdmin
+          .from('toko')
+          .select('*', { count: 'exact', head: true })
+        totalStores = storesCount || 0
+        
+        // Get shipped items total
+        const { data: shippedData } = await supabaseAdmin
+          .from('detail_pengiriman')
+          .select('jumlah_kirim')
+        totalShippedItems = shippedData?.reduce((sum, item: any) => sum + (item.jumlah_kirim || 0), 0) || 0
+        
+        // Get sold and returned items
+        const { data: billingData } = await supabaseAdmin
+          .from('detail_penagihan')
+          .select('jumlah_terjual, jumlah_kembali, produk(harga_satuan)')
+        
+        if (billingData) {
+          totalItemsSold = billingData.reduce((sum, item: any) => sum + (item.jumlah_terjual || 0), 0)
+          totalItemsReturned = billingData.reduce((sum, item: any) => sum + (item.jumlah_kembali || 0), 0)
+          totalRevenue = billingData.reduce((sum, item: any) => {
+            const revenue = (item.jumlah_terjual || 0) * (item.produk?.harga_satuan || 0)
+            return sum + revenue
+          }, 0)
+        }
+      } catch (perfError) {
+        console.warn('Failed to calculate performance statistics:', perfError)
+        // Use defaults
+      }
       
       // Calculate averages
       const avgStoresPerSales = activeSales > 0 ? Math.round((totalStores / activeSales) * 100) / 100 : 0

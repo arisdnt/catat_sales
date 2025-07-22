@@ -104,11 +104,10 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'dibuat_pada'
     const sortOrder = (searchParams.get('sortOrder') || 'desc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
-    // Use the optimized search function (with fallback to simple version)
+    // Use the simple search function directly (materialized views removed)
     let searchResults, searchError
     
-    // TEMP: Force use fallback query to bypass materialized view issue
-    console.log('Temporarily bypassing optimized function due to materialized view sync issue')
+    console.log('Using search_pengiriman_simple function')
     const simpleResult = await supabase
       .rpc('search_pengiriman_simple', {
         search_term: search,
@@ -125,47 +124,6 @@ export async function GET(request: NextRequest) {
     
     searchResults = simpleResult.data
     searchError = simpleResult.error
-    
-    // Original optimized query (commented out temporarily)
-    /*
-    const optimizedResult = await supabase
-      .rpc('search_pengiriman_optimized', {
-        search_term: search,
-        filter_sales: salesFilter ? parseInt(salesFilter) : null,
-        filter_kabupaten: kabupatenFilter,
-        filter_kecamatan: kecamatanFilter,
-        filter_date_from: dateFrom,
-        filter_date_to: dateTo,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-        page_size: limit,
-        page_number: page
-      })
-    
-    if (optimizedResult.error) {
-      console.log('Optimized function not available, trying simple function...')
-      // Fallback to simple function
-      const simpleResult = await supabase
-        .rpc('search_pengiriman_simple', {
-          search_term: search,
-          filter_sales: salesFilter ? parseInt(salesFilter) : null,
-          filter_kabupaten: kabupatenFilter,
-          filter_kecamatan: kecamatanFilter,
-          filter_date_from: dateFrom,
-          filter_date_to: dateTo,
-          sort_by: sortBy,
-          sort_order: sortOrder,
-          page_size: limit,
-          page_number: page
-        })
-      
-      searchResults = simpleResult.data
-      searchError = simpleResult.error
-    } else {
-      searchResults = optimizedResult.data
-      searchError = optimizedResult.error
-    }
-    */
 
     if (searchError) {
       console.error('Search error:', searchError)

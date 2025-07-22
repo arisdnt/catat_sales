@@ -393,19 +393,28 @@ class ApiClient {
     return this.request(`/laporan?${params.toString()}`)
   }
 
-  // Materialized Views API
-  async getMaterializedView(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', params?: string) {
+  // Direct Query API (previously materialized views)
+  async getDirectQuery(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', params?: string) {
     const queryString = params ? `?${params}` : ''
     return this.request(`/mv/${entity}${queryString}`)
   }
 
-  async getMaterializedViewById(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', id: number, extraParams?: string) {
+  async getDirectQueryById(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', id: number, extraParams?: string) {
     const params = new URLSearchParams({ id: id.toString() })
     if (extraParams) {
       const extraParamsObj = new URLSearchParams(extraParams)
       extraParamsObj.forEach((value, key) => params.append(key, value))
     }
     return this.request(`/mv/${entity}?${params.toString()}`)
+  }
+  
+  // Legacy aliases for backward compatibility
+  async getMaterializedView(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', params?: string) {
+    return this.getDirectQuery(entity, params)
+  }
+
+  async getMaterializedViewById(entity: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman', id: number, extraParams?: string) {
+    return this.getDirectQueryById(entity, id, extraParams)
   }
 
   // Optimized search methods

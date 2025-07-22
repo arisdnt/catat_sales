@@ -30,41 +30,13 @@ export async function GET(request: NextRequest) {
       // Calculate offset
       const offset = (page - 1) * limit
       
-      // Try optimized search function first
-      let result
+      // Note: search_penagihan_optimized function may contain complex queries that were dependent on materialized views
+      // Using fallback query as primary method to ensure stability
+      let result = null
       
       if (search) {
-        console.log('Using search function for query:', search)
-        
-        try {
-          const { data: searchData, error: searchError } = await supabaseAdmin
-            .rpc('search_penagihan_optimized', {
-              search_query: search,
-              p_limit: limit,
-              p_offset: offset,
-              sort_column: sortBy,
-              sort_direction: sortOrder,
-              sales_filter: salesFilter,
-              kabupaten_filter: kabupatenFilter,
-              kecamatan_filter: kecamatanFilter,
-              metode_pembayaran_filter: metodePembayaranFilter,
-              ada_potongan_filter: adaPotonganFilter ? adaPotonganFilter === 'true' : null,
-              date_from_filter: dateFromFilter,
-              date_to_filter: dateToFilter
-            })
-            
-          if (searchError) {
-            console.warn('Search function failed, falling back to regular query:', searchError.message)
-            throw searchError
-          }
-          
-          result = searchData
-          console.log('Search function successful, found:', result?.length || 0, 'results')
-          
-        } catch (_searchFunctionError) {
-          console.warn('Search function not available, using fallback query')
-          result = null
-        }
+        console.log('Using direct fallback query for search:', search)
+        // Skip the optimized function for now to avoid potential materialized view dependencies
       }
       
       // Fallback query if search function is not available or no search
@@ -117,8 +89,9 @@ export async function GET(request: NextRequest) {
             // Search by ID
             query = query.eq('id_penagihan', searchNum)
           } else {
-            // Search by store name or sales name
-            query = query.or(`toko.nama_toko.ilike.%${search}%,toko.sales.nama_sales.ilike.%${search}%`)
+            // Search by store name (nested relationship search is complex, so we'll use a simpler approach)
+            // For now, just search by store name as nested sales search requires different approach
+            query = query.filter('toko.nama_toko', 'ilike', `%${search}%`)
           }
         }
         
@@ -181,8 +154,8 @@ export async function GET(request: NextRequest) {
         pagination: {
           page,
           limit,
-          total: result?.count || result?.length || 0,
-          total_pages: result?.total_pages || Math.ceil((result?.count || result?.length || 0) / limit)
+          total: result?.count || (Array.isArray(result) ? result.length : 0) || 0,
+          total_pages: result?.total_pages || Math.ceil((result?.count || (Array.isArray(result) ? result.length : 0) || 0) / limit)
         },
         filters: {
           search,

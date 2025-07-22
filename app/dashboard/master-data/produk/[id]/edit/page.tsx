@@ -1,251 +1,280 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/components/ui/use-toast'
+import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+interface FormData {
+  nama_produk: string
+  harga_satuan: number
+  status_produk: boolean
+  is_priority: boolean
+  priority_order: number
+}
 
-import { useProdukDetailQuery, useUpdateProdukMutation } from '@/lib/queries/produk'
-import { ArrowLeft, Save, Package } from 'lucide-react'
+interface ProdukEditPageProps {
+  params: { id: string }
+}
 
-const formSchema = z.object({
-  nama_produk: z.string().min(1, 'Nama produk harus diisi').max(255, 'Nama produk maksimal 255 karakter'),
-  harga_satuan: z.number().min(0, 'Harga satuan harus lebih dari 0'),
-  status_produk: z.boolean(),
-  is_priority: z.boolean(),
-})
-
-type FormData = z.infer<typeof formSchema>
-
-export default function EditProdukPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditProdukPage({ params }: ProdukEditPageProps) {
   const router = useRouter()
-  const [productId, setProductId] = useState<number | null>(null)
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const productId = parseInt(params.id)
 
-  // Initialize product ID from params
-  useState(() => {
-    params.then(({ id }) => {
-      setProductId(parseInt(id))
-    })
-  })
-
-  // Queries and mutations
-  const { data: productResponse, isLoading, error } = useProdukDetailQuery(productId!)
-  const updateProduct = useUpdateProdukMutation()
-
-  const product = (productResponse as { data: any })?.data
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors }
+  } = useForm<FormData>({
     defaultValues: {
       nama_produk: '',
       harga_satuan: 0,
       status_produk: true,
       is_priority: false,
-    },
-  })
-
-  // Update form when product data is loaded
-  useState(() => {
-    if (product) {
-      form.reset({
-        nama_produk: product.nama_produk,
-        harga_satuan: product.harga_satuan,
-        status_produk: product.status_produk,
-        is_priority: product.is_priority || false,
-      })
+      priority_order: 0
     }
   })
 
-  const onSubmit = (data: FormData) => {
-    if (!productId) return
-    
-    setIsSubmitting(true)
-    updateProduct.mutate(
-      { id: productId, data },
-      {
-        onSuccess: () => {
-          router.push(`/dashboard/master-data/produk/${productId}`)
-        },
-        onSettled: () => {
-          setIsSubmitting(false)
+  const isPriority = watch('is_priority')
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/produk/${productId}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch product')
         }
+
+        const product = await response.json()
+        reset({
+          nama_produk: product.nama_produk,
+          harga_satuan: product.harga_satuan,
+          status_produk: product.status_produk,
+          is_priority: product.is_priority,
+          priority_order: product.priority_order
+        })
+      } catch (error) {
+        console.error('Error fetching product:', error)
+        toast({
+          title: "Error",
+          description: "Gagal memuat data produk",
+          variant: "destructive",
+        })
+        router.back()
+      } finally {
+        setIsLoading(false)
       }
-    )
+    }
+
+    if (productId && !isNaN(productId)) {
+      fetchProduct()
+    } else {
+      router.back()
+    }
+  }, [productId, router, toast, reset])
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      setIsSubmitting(true)
+      
+      const response = await fetch(`/api/produk/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update product')
+      }
+
+      toast({
+        title: "Berhasil",
+        description: "Data produk berhasil diperbarui",
+      })
+
+      router.push('/dashboard/master-data/produk')
+    } catch (error: any) {
+      console.error('Error updating product:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Gagal memperbarui produk",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (isLoading) {
     return (
-      <div className="p-8 bg-white min-h-screen">
-        <div className="max-w-4xl mx-auto animate-pulse">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 bg-gray-200 rounded"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          </div>
-          <div className="h-96 bg-gray-200 rounded-lg"></div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !product) {
-    return (
-      <div className="p-8 bg-white min-h-screen">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="text-red-600 mb-4">
-            {error ? 'Error loading product data' : 'Data produk tidak ditemukan'}
-          </div>
-          <Button onClick={() => router.back()}>
-            Kembali
-          </Button>
-        </div>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
-      <div className="w-full max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Edit Produk</h1>
-            <p className="text-sm text-muted-foreground">ID: {product.id_produk}</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4">
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Edit Produk</h1>
+          <p className="text-muted-foreground">
+            Perbarui informasi produk
+          </p>
         </div>
+      </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Information */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Package className="h-5 w-5 text-blue-600" />
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Informasi Dasar</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informasi Produk</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="nama_produk">
+                  Nama Produk <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="nama_produk"
+                  {...register('nama_produk', { 
+                    required: 'Nama produk harus diisi',
+                    minLength: {
+                      value: 2,
+                      message: 'Nama produk minimal 2 karakter'
+                    }
+                  })}
+                  placeholder="Masukkan nama produk"
+                />
+                {errors.nama_produk && (
+                  <p className="text-sm text-red-500">{errors.nama_produk.message}</p>
+                )}
               </div>
-              <div className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="nama_produk"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nama Produk</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Masukkan nama produk"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+
+              <div className="space-y-2">
+                <Label htmlFor="harga_satuan">
+                  Harga Satuan <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="harga_satuan"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  {...register('harga_satuan', { 
+                    required: 'Harga satuan harus diisi',
+                    min: {
+                      value: 0.01,
+                      message: 'Harga satuan harus lebih dari 0'
+                    },
+                    valueAsNumber: true
+                  })}
+                  placeholder="Masukkan harga satuan"
                 />
-
-                <FormField
-                  control={form.control}
-                  name="harga_satuan"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Harga Satuan</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="Masukkan harga satuan"
-                          {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="status_produk"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg bg-gray-50 border border-gray-200 p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base font-medium text-gray-900">Status Aktif</FormLabel>
-                          <FormDescription className="text-sm text-gray-600">
-                            Produk dapat dijual
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="is_priority"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg bg-gray-50 border border-gray-200 p-4">
-                        <div className="space-y-1">
-                          <FormLabel className="text-base font-medium text-gray-900">Prioritas</FormLabel>
-                          <FormDescription className="text-sm text-gray-600">
-                            Produk prioritas
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {errors.harga_satuan && (
+                  <p className="text-sm text-red-500">{errors.harga_satuan.message}</p>
+                )}
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="status_produk"
+                  checked={watch('status_produk')}
+                  onCheckedChange={(checked) => setValue('status_produk', checked)}
+                />
+                <Label htmlFor="status_produk" className="text-sm font-medium">
+                  Status Aktif
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Produk yang tidak aktif tidak akan muncul dalam transaksi baru
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="is_priority"
+                  checked={isPriority}
+                  onCheckedChange={(checked) => setValue('is_priority', checked)}
+                />
+                <Label htmlFor="is_priority" className="text-sm font-medium">
+                  Produk Priority
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Produk priority akan ditampilkan lebih dulu dalam daftar
+              </p>
+
+              {isPriority && (
+                <div className="space-y-2">
+                  <Label htmlFor="priority_order">
+                    Urutan Priority
+                  </Label>
+                  <Input
+                    id="priority_order"
+                    type="number"
+                    min="0"
+                    {...register('priority_order', { 
+                      valueAsNumber: true,
+                      min: {
+                        value: 0,
+                        message: 'Urutan priority tidak boleh negatif'
+                      }
+                    })}
+                    placeholder="0"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Angka lebih kecil akan ditampilkan lebih dulu (0 = prioritas tertinggi)
+                  </p>
+                  {errors.priority_order && (
+                    <p className="text-sm text-red-500">{errors.priority_order.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end space-x-4 pt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="flex-1"
+                disabled={isSubmitting}
               >
                 Batal
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1"
               >
                 {isSubmitting ? (
                   <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Menyimpan...
                   </>
                 ) : (
@@ -257,8 +286,8 @@ export default function EditProdukPage({ params }: { params: Promise<{ id: strin
               </Button>
             </div>
           </form>
-        </Form>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -12,10 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 
-import { 
-  useTokoAggregateDetailQuery, 
-  useSalesAggregatesQuery,
-} from '@/lib/queries/materialized-views'
+// Materialized views removed - using direct queries
 import { useUpdateTokoMutation } from '@/lib/queries/toko'
 import { useComprehensivePrefetch } from '@/lib/hooks/use-smart-prefetch'
 import { SalesSelect } from '@/components/forms/optimized-select'
@@ -43,8 +40,12 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
   const tokoId = parseInt(params.id)
   
   // Use optimized queries with materialized views
-  const { data: tokoData, isLoading: tokoLoading, error: tokoError } = useTokoAggregateDetailQuery(tokoId)
-  const { data: salesData, isLoading: salesLoading } = useSalesAggregatesQuery()
+  // TODO: Replace with direct queries - materialized views removed
+  const tokoData = null
+  const tokoLoading = false
+  const tokoError = null
+  const salesData = []
+  const salesLoading = false
   const updateMutation = useUpdateTokoMutation()
   
   // Smart prefetching

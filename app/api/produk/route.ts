@@ -1,59 +1,79 @@
-import { NextRequest } from 'next/server'
-import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { NextRequest, NextResponse } from 'next/server';
+import { searchProduk, countProduk, createProduk, getProdukStats } from '@/lib/queries/produk';
 
 export async function GET(request: NextRequest) {
-  return handleApiRequest(request, async () => {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    
-    let query = supabaseAdmin
-      .from('produk')
-      .select('*')
-      .order('nama_produk')
+  try {
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
 
-    if (status === 'active') {
-      query = query.eq('status_produk', true)
+    if (action === 'stats') {
+      const stats = await getProdukStats();
+      return NextResponse.json(stats);
     }
 
-    const { data, error } = await query
+    const search = searchParams.get('search') || '';
+    const status = (searchParams.get('status') as 'aktif' | 'non-aktif' | 'semua') || 'semua';
+    const priority = (searchParams.get('priority') as 'priority' | 'non-priority' | 'semua') || 'semua';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
-    if (error) {
-      return createErrorResponse(error.message)
-    }
+    const [products, totalCount] = await Promise.all([
+      searchProduk({ search, status, priority, limit, offset }),
+      countProduk({ search, status, priority })
+    ]);
 
-    return createSuccessResponse(data)
-  })
+    return NextResponse.json({
+      data: products,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error in GET /api/produk:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
-  return handleApiRequest(request, async () => {
-    const body = await request.json()
-    const { nama_produk, harga_satuan, is_priority, priority_order } = body
+  try {
+    const body = await request.json();
+    
+    const { nama_produk, harga_satuan, is_priority, priority_order } = body;
 
-    if (!nama_produk || !harga_satuan) {
-      return createErrorResponse('Nama produk and harga satuan are required')
+    if (!nama_produk || typeof nama_produk !== 'string' || nama_produk.trim() === '') {
+      return NextResponse.json(
+        { error: 'Nama produk harus diisi' },
+        { status: 400 }
+      );
     }
 
-    if (isNaN(parseFloat(harga_satuan)) || parseFloat(harga_satuan) <= 0) {
-      return createErrorResponse('Harga satuan must be a positive number')
+    if (!harga_satuan || typeof harga_satuan !== 'number' || harga_satuan <= 0) {
+      return NextResponse.json(
+        { error: 'Harga satuan harus berupa angka positif' },
+        { status: 400 }
+      );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('produk')
-      .insert([{
-        nama_produk,
-        harga_satuan: parseFloat(harga_satuan),
-        status_produk: true,
-        is_priority: is_priority || false,
-        priority_order: priority_order || 0
-      }])
-      .select()
-      .single()
+    const newProduct = await createProduk({
+      nama_produk: nama_produk.trim(),
+      harga_satuan,
+      is_priority: Boolean(is_priority),
+      priority_order: Number(priority_order) || 0
+    });
 
-    if (error) {
-      return createErrorResponse(error.message)
-    }
-
-    return createSuccessResponse(data, 201)
-  })
+    return NextResponse.json(newProduct, { status: 201 });
+  } catch (error) {
+    console.error('Error in POST /api/produk:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }

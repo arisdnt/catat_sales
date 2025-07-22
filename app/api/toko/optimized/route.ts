@@ -98,12 +98,12 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'nama_toko'
     const sortOrder = (searchParams.get('sortOrder') || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
-    // Use the optimized search function (with fallback to simple version)
+    // Use the simple search function directly (search_toko_optimized doesn't exist)
     let searchResults, searchError
     
-    // Try the optimized function first
-    const optimizedResult = await supabase
-      .rpc('search_toko_optimized', {
+    console.log('Using search_toko_simple function')
+    const simpleResult = await supabase
+      .rpc('search_toko_simple', {
         search_term: search,
         filter_status: statusFilter === 'true' ? true : statusFilter === 'false' ? false : null,
         filter_sales: salesFilter ? parseInt(salesFilter) : null,
@@ -115,28 +115,8 @@ export async function GET(request: NextRequest) {
         page_number: page
       })
     
-    if (optimizedResult.error) {
-      console.log('Optimized function not available, trying simple function...')
-      // Fallback to simple function
-      const simpleResult = await supabase
-        .rpc('search_toko_simple', {
-          search_term: search,
-          filter_status: statusFilter === 'true' ? true : statusFilter === 'false' ? false : null,
-          filter_sales: salesFilter ? parseInt(salesFilter) : null,
-          filter_kabupaten: kabupatenFilter,
-          filter_kecamatan: kecamatanFilter,
-          sort_by: sortBy,
-          sort_order: sortOrder,
-          page_size: limit,
-          page_number: page
-        })
-      
-      searchResults = simpleResult.data
-      searchError = simpleResult.error
-    } else {
-      searchResults = optimizedResult.data
-      searchError = optimizedResult.error
-    }
+    searchResults = simpleResult.data
+    searchError = simpleResult.error
 
     if (searchError) {
       console.error('Search error:', searchError)
@@ -338,7 +318,7 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
           `)
           .in('pengiriman.id_toko', tokoIds)
         
-        // Get billing data (barang terbayar)
+        // Get billing data (barang terjual dan kembali)
         const { data: billingData } = await supabase
           .from('detail_penagihan')
           .select(`
@@ -348,7 +328,8 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
             produk(
               nama_produk
             ),
-            jumlah_terjual
+            jumlah_terjual,
+            jumlah_kembali
           `)
           .in('penagihan.id_toko', tokoIds)
         
@@ -358,8 +339,10 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
           const billings = billingData?.filter((b: any) => b.penagihan?.id_toko === tokoId) || []
           
           const totalTerkirim = shipments.reduce((sum: number, s: any) => sum + (s.jumlah_kirim || 0), 0)
-          const totalTerbayar = billings.reduce((sum: number, b: any) => sum + (b.jumlah_terjual || 0), 0)
-          const sisaStok = totalTerkirim - totalTerbayar
+          const totalTerjual = billings.reduce((sum: number, b: any) => sum + (b.jumlah_terjual || 0), 0)
+          const totalKembali = billings.reduce((sum: number, b: any) => sum + (b.jumlah_kembali || 0), 0)
+          const totalTerbayar = totalTerjual - totalKembali
+          const sisaStok = totalTerkirim - totalTerjual - totalKembali
           
           aggregationData[tokoId] = {
             barang_terkirim: totalTerkirim,
@@ -370,7 +353,9 @@ async function getFallbackResults(supabase: any, searchParams: URLSearchParams, 
             barang_terbayar: totalTerbayar,
             detail_barang_terbayar: billings.map((b: any) => ({
               nama_produk: b.produk?.nama_produk || 'Unknown',
-              jumlah: b.jumlah_terjual || 0
+              jumlah_terjual: b.jumlah_terjual || 0,
+              jumlah_kembali: b.jumlah_kembali || 0,
+              jumlah_net: (b.jumlah_terjual || 0) - (b.jumlah_kembali || 0)
             })),
             sisa_stok: Math.max(0, sisaStok),
             detail_sisa_stok: []

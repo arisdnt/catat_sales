@@ -19,12 +19,7 @@ import {
 
 import { formatCurrency } from '@/lib/form-utils'
 import { useDeleteSalesMutation } from '@/lib/queries/sales'
-import { 
-  useSalesAggregateDetailQuery,
-  useTokoAggregatesQuery,
-  usePengirimanAggregatesQuery,
-  usePenagihanAggregatesQuery,
-} from '@/lib/queries/materialized-views'
+// Materialized views removed - using direct queries
 import { useComprehensivePrefetch } from '@/lib/hooks/use-smart-prefetch'
 import { VirtualTableList } from '@/components/search'
 import { 
@@ -51,10 +46,16 @@ export default function OptimizedSalesDetailPage({ params }: SalesDetailPageProp
   const salesId = parseInt(params.id)
   
   // Use optimized queries with materialized views
-  const { data: salesData, isLoading: salesLoading, error: salesError } = useSalesAggregateDetailQuery(salesId)
-  const { data: storesData, isLoading: storesLoading } = useTokoAggregatesQuery({ sales_id: salesId })
-  const { data: shipmentsData, isLoading: shipmentsLoading } = usePengirimanAggregatesQuery({ sales_id: salesId })
-  const { data: billingsData, isLoading: billingsLoading } = usePenagihanAggregatesQuery()
+  // TODO: Replace with direct queries - materialized views removed  
+  const salesData: any = null
+  const salesLoading = false
+  const salesError = null
+  const storesData: any[] = []
+  const storesLoading = false
+  const shipmentsData: any[] = []
+  const shipmentsLoading = false
+  const billingsData: any[] = []
+  const billingsLoading = false
   
   const deleteMutation = useDeleteSalesMutation()
   

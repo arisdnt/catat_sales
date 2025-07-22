@@ -31,7 +31,11 @@
       "Bash(npx eslint:*)",
       "Bash(timeout:*)",
       "Bash(npx next build:*)",
-      "WebFetch(domain:deksultan.netlify.app)"
+      "WebFetch(domain:deksultan.netlify.app)",
+      "Bash(psql:*)",
+      "Bash(true)",
+      "Bash(taskkill:*)",
+      "Bash(npm run:*)"
     ],
     "deny": []
   }

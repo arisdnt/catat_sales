@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
         id_toko,
         detail_penagihan(
           jumlah_terjual,
+          jumlah_kembali,
           produk(nama_produk)
         )
       `)
@@ -200,8 +201,9 @@ export async function GET(request: NextRequest) {
             penagihan.detail_penagihan?.forEach((detail: any) => {
               const produk = Array.isArray(detail.produk) ? detail.produk[0] : detail.produk
               const namaProduk = produk?.nama_produk || 'Unknown'
-              barangTerbayar += detail.jumlah_terjual
-              produkTerbayar[namaProduk] = (produkTerbayar[namaProduk] || 0) + detail.jumlah_terjual
+              const netTerbayar = (detail.jumlah_terjual || 0) - (detail.jumlah_kembali || 0)
+              barangTerbayar += netTerbayar
+              produkTerbayar[namaProduk] = (produkTerbayar[namaProduk] || 0) + netTerbayar
             })
           })
           

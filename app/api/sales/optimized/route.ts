@@ -45,64 +45,11 @@ export async function GET(request: NextRequest) {
         .from('sales')
         .select('*', { count: 'exact', head: true })
       
-      // Apply search filter
+      // Apply search filter - direct query approach only
       if (search && search.trim()) {
         const searchTerm = `%${search.trim()}%`
+        console.log('Using direct search query for:', search.trim())
         
-        // Try using RPC function if available, otherwise use basic search
-        try {
-          const { data: rpcData, error: rpcError } = await supabaseAdmin
-            .rpc('search_sales_optimized', {
-              search_term: search.trim(),
-              page_offset: offset,
-              page_limit: limit,
-              sort_column: sortBy,
-              sort_direction: sortOrder,
-              filter_status: statusAktif,
-              filter_telepon_exists: teleponExists,
-              filter_date_from: dateFrom,
-              filter_date_to: dateTo
-            })
-          
-          if (!rpcError && rpcData) {
-            const totalResult = await supabaseAdmin
-              .rpc('count_sales_optimized', {
-                search_term: search.trim(),
-                filter_status: statusAktif,
-                filter_telepon_exists: teleponExists,
-                filter_date_from: dateFrom,
-                filter_date_to: dateTo
-              })
-            
-            const total = totalResult.data || 0
-            const totalPages = Math.ceil(total / limit)
-            
-            return createSuccessResponse({
-              data: rpcData,
-              pagination: {
-                page,
-                limit,
-                total,
-                total_pages: totalPages
-              },
-              filters: {
-                search,
-                status_aktif: statusAktif,
-                telepon_exists: teleponExists,
-                date_from: dateFrom,
-                date_to: dateTo
-              },
-              sorting: {
-                sortBy,
-                sortOrder
-              }
-            })
-          }
-        } catch (rpcError) {
-          console.warn('RPC function not available, using fallback search:', rpcError)
-        }
-        
-        // Fallback to basic search
         query = query.or(`nama_sales.ilike.${searchTerm},nomor_telepon.ilike.${searchTerm}`)
         countQuery = countQuery.or(`nama_sales.ilike.${searchTerm},nomor_telepon.ilike.${searchTerm}`)
       }

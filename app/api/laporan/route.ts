@@ -180,8 +180,26 @@ export async function GET(request: NextRequest) {
 async function getLaporanPengiriman(start_date?: string | null, end_date?: string | null) {
   try {
     let query = supabaseAdmin
-      .from('v_laporan_pengiriman')
-      .select('*')
+      .from('pengiriman')
+      .select(`
+        id_pengiriman,
+        tanggal_kirim,
+        is_autorestock,
+        dibuat_pada,
+        toko!inner(
+          nama_toko,
+          sales!inner(
+            nama_sales
+          )
+        ),
+        detail_pengiriman!inner(
+          jumlah_kirim,
+          produk!inner(
+            nama_produk,
+            harga_satuan
+          )
+        )
+      `)
       .order('tanggal_kirim', { ascending: false })
 
     if (start_date) {
@@ -197,7 +215,22 @@ async function getLaporanPengiriman(start_date?: string | null, end_date?: strin
       return createErrorResponse(error.message)
     }
 
-    return createSuccessResponse(data)
+    // Transform data to match view format
+    const transformedData = data?.flatMap((pengiriman: any) => 
+      pengiriman.detail_pengiriman?.map((detail: any) => ({
+        id_pengiriman: pengiriman.id_pengiriman,
+        tanggal_kirim: pengiriman.tanggal_kirim,
+        is_autorestock: pengiriman.is_autorestock,
+        nama_toko: pengiriman.toko?.nama_toko,
+        nama_sales: pengiriman.toko?.sales?.nama_sales,
+        nama_produk: detail.produk?.nama_produk,
+        jumlah_kirim: detail.jumlah_kirim,
+        nilai_kirim: detail.jumlah_kirim * (detail.produk?.harga_satuan || 0),
+        dibuat_pada: pengiriman.dibuat_pada
+      }))
+    ) || []
+
+    return createSuccessResponse(transformedData)
   } catch {
     return createErrorResponse('Failed to fetch shipment report')
   }
@@ -206,15 +239,38 @@ async function getLaporanPengiriman(start_date?: string | null, end_date?: strin
 async function getLaporanPenagihan(start_date?: string | null, end_date?: string | null) {
   try {
     let query = supabaseAdmin
-      .from('v_laporan_penagihan')
-      .select('*')
-      .order('tanggal_tagih', { ascending: false })
+      .from('penagihan')
+      .select(`
+        id_penagihan,
+        dibuat_pada,
+        total_uang_diterima,
+        metode_pembayaran,
+        ada_potongan,
+        toko!inner(
+          nama_toko,
+          sales!inner(
+            nama_sales
+          )
+        ),
+        detail_penagihan!inner(
+          jumlah_terjual,
+          jumlah_kembali,
+          produk!inner(
+            nama_produk,
+            harga_satuan
+          )
+        ),
+        potongan_penagihan(
+          jumlah_potongan
+        )
+      `)
+      .order('dibuat_pada', { ascending: false })
 
     if (start_date) {
-      query = query.gte('tanggal_tagih', start_date)
+      query = query.gte('dibuat_pada', start_date + 'T00:00:00')
     }
     if (end_date) {
-      query = query.lte('tanggal_tagih', end_date)
+      query = query.lte('dibuat_pada', end_date + 'T23:59:59')
     }
 
     const { data, error } = await query
@@ -223,7 +279,25 @@ async function getLaporanPenagihan(start_date?: string | null, end_date?: string
       return createErrorResponse(error.message)
     }
 
-    return createSuccessResponse(data)
+    // Transform data to match view format
+    const transformedData = data?.flatMap((penagihan: any) => 
+      penagihan.detail_penagihan?.map((detail: any) => ({
+        id_penagihan: penagihan.id_penagihan,
+        tanggal_tagih: penagihan.dibuat_pada?.split('T')[0],
+        total_uang_diterima: penagihan.total_uang_diterima,
+        metode_pembayaran: penagihan.metode_pembayaran,
+        ada_potongan: penagihan.ada_potongan,
+        nama_toko: penagihan.toko?.nama_toko,
+        nama_sales: penagihan.toko?.sales?.nama_sales,
+        nama_produk: detail.produk?.nama_produk,
+        jumlah_terjual: detail.jumlah_terjual,
+        jumlah_kembali: detail.jumlah_kembali,
+        nilai_terjual: detail.jumlah_terjual * (detail.produk?.harga_satuan || 0),
+        jumlah_potongan: penagihan.potongan_penagihan?.[0]?.jumlah_potongan || 0
+      }))
+    ) || []
+
+    return createSuccessResponse(transformedData)
   } catch {
     return createErrorResponse('Failed to fetch billing report')
   }
@@ -231,26 +305,73 @@ async function getLaporanPenagihan(start_date?: string | null, end_date?: string
 
 async function getLaporanRekonsiliasi(start_date?: string | null, end_date?: string | null) {
   try {
-    let query = supabaseAdmin
-      .from('v_rekonsiliasi_setoran')
-      .select('*')
-      .order('tanggal_setoran', { ascending: false })
+    // Get setoran data
+    let setoranQuery = supabaseAdmin
+      .from('setoran')
+      .select('id_setoran, dibuat_pada, total_setoran, penerima_setoran')
+      .order('dibuat_pada', { ascending: false })
 
     if (start_date) {
-      query = query.gte('tanggal_setoran', start_date)
+      setoranQuery = setoranQuery.gte('dibuat_pada', start_date + 'T00:00:00')
     }
     if (end_date) {
-      query = query.lte('tanggal_setoran', end_date)
+      setoranQuery = setoranQuery.lte('dibuat_pada', end_date + 'T23:59:59')
     }
 
-    const { data, error } = await query
+    const { data: setoranData, error: setoranError } = await setoranQuery
 
-    if (error) {
-      return createErrorResponse(error.message)
+    if (setoranError) {
+      return createErrorResponse(setoranError.message)
     }
 
-    return createSuccessResponse(data)
-  } catch {
+    // Get cash penagihan data for the same date range
+    let penagihanQuery = supabaseAdmin
+      .from('penagihan')
+      .select('dibuat_pada, total_uang_diterima')
+      .eq('metode_pembayaran', 'Cash')
+
+    if (start_date) {
+      penagihanQuery = penagihanQuery.gte('dibuat_pada', start_date + 'T00:00:00')
+    }
+    if (end_date) {
+      penagihanQuery = penagihanQuery.lte('dibuat_pada', end_date + 'T23:59:59')
+    }
+
+    const { data: penagihanData, error: penagihanError } = await penagihanQuery
+
+    if (penagihanError) {
+      return createErrorResponse(penagihanError.message)
+    }
+
+    // Group penagihan by date
+    const penagihanByDate = penagihanData?.reduce((acc, penagihan) => {
+      const date = penagihan.dibuat_pada.split('T')[0]
+      if (!acc[date]) {
+        acc[date] = 0
+      }
+      acc[date] += penagihan.total_uang_diterima
+      return acc
+    }, {} as Record<string, number>) || {}
+
+    // Transform data to match view format
+    const transformedData = setoranData?.map(setoran => {
+      const tanggal_setoran = setoran.dibuat_pada.split('T')[0]
+      const total_penagihan_cash = penagihanByDate[tanggal_setoran] || 0
+      const selisih = setoran.total_setoran - total_penagihan_cash
+
+      return {
+        id_setoran: setoran.id_setoran,
+        tanggal_setoran,
+        total_setoran: setoran.total_setoran,
+        penerima_setoran: setoran.penerima_setoran,
+        total_penagihan_cash,
+        selisih
+      }
+    }) || []
+
+    return createSuccessResponse(transformedData)
+  } catch (error) {
+    console.error('Laporan rekonsiliasi error:', error)
     return createErrorResponse('Failed to fetch reconciliation report')
   }
 }
@@ -316,22 +437,38 @@ async function getDashboardStats(timeFilter?: string | null) {
 
     // Advanced analytics - using direct queries instead of functions for now
     
-    // Fetch sales performance data from v_laporan_penagihan
+    // Fetch sales performance data using direct query instead of view
     let salesQuery = supabaseAdmin
-      .from('v_laporan_penagihan')
-      .select('nama_sales, total_uang_diterima, metode_pembayaran')
+      .from('penagihan')
+      .select(`
+        total_uang_diterima,
+        metode_pembayaran,
+        toko!inner(
+          nama_toko,
+          sales!inner(
+            nama_sales
+          )
+        )
+      `)
     
     if (useTimeFilter) {
       salesQuery = salesQuery
-        .gte('tanggal_tagih', `${currentMonth}-01`)
-        .lt('tanggal_tagih', `${getNextMonth(currentMonth)}-01`)
+        .gte('dibuat_pada', `${currentMonth}-01T00:00:00`)
+        .lt('dibuat_pada', `${getNextMonth(currentMonth)}-01T00:00:00`)
     }
     
+    const { data: salesRawData, error: salesError } = await salesQuery
     
-    const { data: salesData, error: salesError } = await salesQuery
+    // Transform the data to match expected format
+    const salesData = salesRawData?.map((item: any) => ({
+      nama_sales: item.toko?.sales?.nama_sales,
+      total_uang_diterima: item.total_uang_diterima,
+      metode_pembayaran: item.metode_pembayaran
+    })) || []
     
     if (salesError) {
-      // Sales query error - continue with empty data
+      console.error('Sales query error:', salesError)
+      // Continue with empty data
     }
     
     // Use direct queries for enhanced data consistency
@@ -346,68 +483,74 @@ async function getDashboardStats(timeFilter?: string | null) {
       { data: cashInHandData }
     ] = await Promise.all([
       
-      // Top products (from v_laporan_penagihan or fallback)
+      // Top products using direct query
       (async () => {
-        try {
-          let query = supabaseAdmin
-            .from('v_laporan_penagihan')
-            .select('nama_produk, jumlah_terjual, nilai_terjual')
-          if (useTimeFilter) {
-            query = query
-              .gte('tanggal_tagih', currentMonth + '-01')
-              .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
-          }
-          return await query
-        } catch (error) {
-          // Fallback to direct query
-          let query = supabaseAdmin
-            .from('penagihan')
-            .select(`
-              total_uang_diterima,
-              detail_penagihan!inner(
-                jumlah_terjual,
-                produk!inner(nama_produk, harga_satuan)
+        let query = supabaseAdmin
+          .from('penagihan')
+          .select(`
+            detail_penagihan!inner(
+              jumlah_terjual,
+              produk!inner(
+                nama_produk,
+                harga_satuan
               )
-            `)
-          if (useTimeFilter) {
-            query = query
-              .gte('dibuat_pada', currentMonth + '-01T00:00:00')
-              .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
-          }
-          return await query
+            )
+          `)
+        if (useTimeFilter) {
+          query = query
+            .gte('dibuat_pada', currentMonth + '-01T00:00:00')
+            .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
         }
+        
+        const result = await query
+        
+        // Transform data to match expected format
+        if (result.data) {
+          const transformedData = result.data.flatMap((penagihan: any) => 
+            penagihan.detail_penagihan?.map((detail: any) => ({
+              nama_produk: detail.produk?.nama_produk,
+              jumlah_terjual: detail.jumlah_terjual,
+              nilai_terjual: detail.jumlah_terjual * (detail.produk?.harga_satuan || 0)
+            })) || []
+          )
+          return { data: transformedData, error: null }
+        }
+        
+        return result
       })(),
       
-      // Top stores (from v_laporan_penagihan or fallback)
+      // Top stores using direct query
       (async () => {
-        try {
-          let query = supabaseAdmin
-            .from('v_laporan_penagihan')
-            .select('nama_toko, nama_sales, total_uang_diterima')
-          if (useTimeFilter) {
-            query = query
-              .gte('tanggal_tagih', currentMonth + '-01')
-              .lt('tanggal_tagih', getNextMonth(currentMonth) + '-01')
-          }
-          return await query
-        } catch (error) {
-          // Fallback to direct query
-          let query = supabaseAdmin
-            .from('penagihan')
-            .select(`
-              total_uang_diterima,
-              toko!inner(
-                nama_toko,
-                sales!inner(nama_sales)
+        let query = supabaseAdmin
+          .from('penagihan')
+          .select(`
+            total_uang_diterima,
+            toko!inner(
+              nama_toko,
+              sales!inner(
+                nama_sales
               )
-            `)
-          if (useTimeFilter) {
-            query = query
-              .gte('dibuat_pada', currentMonth + '-01T00:00:00')
-              .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
-          }
-          return await query
+            )
+          `)
+        if (useTimeFilter) {
+          query = query
+            .gte('dibuat_pada', currentMonth + '-01T00:00:00')
+            .lt('dibuat_pada', getNextMonth(currentMonth) + '-01T00:00:00')
         }
+        
+        const result = await query
+        
+        // Transform data to match expected format
+        if (result.data) {
+          const transformedData = result.data.map((penagihan: any) => ({
+            nama_toko: penagihan.toko?.nama_toko,
+            nama_sales: penagihan.toko?.sales?.nama_sales,
+            total_uang_diterima: penagihan.total_uang_diterima
+          }))
+          return { data: transformedData, error: null }
+        }
+        
+        return result
       })(),
       
       // Monthly trends (last 3 months) - get both penagihan and setoran data
