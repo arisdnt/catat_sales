@@ -89,37 +89,48 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div className="w-full h-full bg-white">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+        {/* Header with Action Buttons */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Edit Sales</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Edit Sales</h1>
             <p className="text-gray-600">Edit informasi sales: {sales.nama_sales}</p>
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center gap-2 justify-end">
             <Button
+              type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="flex items-center gap-2 bg-white hover:bg-gray-50 border-gray-300"
+              disabled={updateSales.isPending}
+              className="bg-white hover:bg-gray-50 border-gray-300"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Kembali
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              form="sales-form"
+              disabled={updateSales.isPending || !form.state.isValid}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {updateSales.isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </div>
         </div>
 
         {/* Form */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 sm:p-8">
+        <div className="w-full">
           <form
+            id="sales-form"
             onSubmit={(e) => {
               e.preventDefault()
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-6"
+            className="w-full"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <form.Field name="nama_sales">
                 {(field) => (
                   <FormField
@@ -147,9 +158,7 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
                   />
                 )}
               </form.Field>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <form.Field name="status_aktif">
                 {(field) => (
                   <FormField
@@ -162,26 +171,6 @@ export default function EditSalesPage({ params }: { params: Promise<{ id: string
                   />
                 )}
               </form.Field>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-8 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={updateSales.isPending}
-                className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-300"
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateSales.isPending || !form.state.isValid}
-                className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {updateSales.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </Button>
             </div>
           </form>
         </div>
