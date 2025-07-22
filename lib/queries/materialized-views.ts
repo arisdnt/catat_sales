@@ -1,31 +1,34 @@
-// @ts-nocheck
+// Direct query hooks to replace materialized views for data consistency
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 
-// Query keys for materialized views
-export const mvKeys = {
-  all: ['mv'] as const,
-  sales: () => [...mvKeys.all, 'sales'] as const,
-  salesDetail: (id: number) => [...mvKeys.sales(), id] as const,
-  produk: () => [...mvKeys.all, 'produk'] as const,
-  produkDetail: (id: number, withStats: boolean = false) => [...mvKeys.produk(), id, { withStats }] as const,
-  toko: () => [...mvKeys.all, 'toko'] as const,
-  tokoDetail: (id: number) => [...mvKeys.toko(), id] as const,
-  tokoByFilter: (filters: Record<string, any>) => [...mvKeys.toko(), { filters }] as const,
-  penagihan: () => [...mvKeys.all, 'penagihan'] as const,
-  penagihanDetail: (id: number) => [...mvKeys.penagihan(), id] as const,
-  penagihanAggregates: () => [...mvKeys.penagihan(), 'aggregates'] as const,
-  pengiriman: () => [...mvKeys.all, 'pengiriman'] as const,
-  pengirimanDetail: (id: number) => [...mvKeys.pengiriman(), id] as const,
-  pengirimanByFilter: (filters: Record<string, any>) => [...mvKeys.pengiriman(), { filters }] as const,
+// Query keys for direct queries (formerly materialized views)
+export const directQueryKeys = {
+  all: ['direct-query'] as const,
+  sales: () => [...directQueryKeys.all, 'sales'] as const,
+  salesDetail: (id: number) => [...directQueryKeys.sales(), id] as const,
+  produk: () => [...directQueryKeys.all, 'produk'] as const,
+  produkDetail: (id: number, withStats: boolean = false) => [...directQueryKeys.produk(), id, { withStats }] as const,
+  toko: () => [...directQueryKeys.all, 'toko'] as const,
+  tokoDetail: (id: number) => [...directQueryKeys.toko(), id] as const,
+  tokoByFilter: (filters: Record<string, any>) => [...directQueryKeys.toko(), { filters }] as const,
+  penagihan: () => [...directQueryKeys.all, 'penagihan'] as const,
+  penagihanDetail: (id: number) => [...directQueryKeys.penagihan(), id] as const,
+  penagihanAggregates: () => [...directQueryKeys.penagihan(), 'aggregates'] as const,
+  pengiriman: () => [...directQueryKeys.all, 'pengiriman'] as const,
+  pengirimanDetail: (id: number) => [...directQueryKeys.pengiriman(), id] as const,
+  pengirimanByFilter: (filters: Record<string, any>) => [...directQueryKeys.pengiriman(), { filters }] as const,
 }
 
-// Sales materialized view hooks
+// Legacy alias for backward compatibility
+export const mvKeys = directQueryKeys
+
+// Sales direct query hooks (replacing materialized views)
 export function useSalesAggregatesQuery() {
   return useQuery({
     queryKey: mvKeys.sales(),
-    queryFn: () => apiClient.get('/mv/sales'),
-    staleTime: 1000 * 60 * 2, // 2 minutes for fresh aggregated data
+    queryFn: () => apiClient.get('/mv/sales'), // Still uses same API endpoint but with direct queries
+    staleTime: 1000 * 30, // Reduced to 30 seconds for more real-time data
   })
 }
 
@@ -34,16 +37,16 @@ export function useSalesAggregateDetailQuery(id: number, enabled: boolean = true
     queryKey: mvKeys.salesDetail(id),
     queryFn: () => apiClient.get(`/mv/sales?id=${id}`),
     enabled: enabled && !!id,
-    staleTime: 1000 * 60 * 5, // 5 minutes for detail views
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
-// Product materialized view hooks
+// Product direct query hooks (replacing materialized views)
 export function useProdukAggregatesQuery(withStats: boolean = false) {
   return useQuery({
     queryKey: mvKeys.produk(),
     queryFn: () => apiClient.get(`/mv/produk?withStats=${withStats}`),
-    staleTime: 1000 * 60 * 3, // 3 minutes for product data
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
@@ -52,11 +55,11 @@ export function useProdukAggregateDetailQuery(id: number, withStats: boolean = t
     queryKey: mvKeys.produkDetail(id, withStats),
     queryFn: () => apiClient.get(`/mv/produk?id=${id}&withStats=${withStats}`),
     enabled: enabled && !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
-// Store materialized view hooks
+// Store direct query hooks (replacing materialized views)
 export function useTokoAggregatesQuery(filters?: {
   sales_id?: number
   search?: string
@@ -72,7 +75,7 @@ export function useTokoAggregatesQuery(filters?: {
   return useQuery({
     queryKey: mvKeys.tokoByFilter(filters || {}),
     queryFn: () => apiClient.get(`/mv/toko?${params.toString()}`),
-    staleTime: 1000 * 60 * 3,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
@@ -81,16 +84,16 @@ export function useTokoAggregateDetailQuery(id: number, enabled: boolean = true)
     queryKey: mvKeys.tokoDetail(id),
     queryFn: () => apiClient.get(`/mv/toko?id=${id}`),
     enabled: enabled && !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
-// Billing materialized view hooks
+// Billing direct query hooks (replacing materialized views)
 export function usePenagihanAggregatesQuery(type: 'aggregates' | 'with_totals' = 'with_totals') {
   return useQuery({
     queryKey: type === 'aggregates' ? mvKeys.penagihanAggregates() : mvKeys.penagihan(),
     queryFn: () => apiClient.get(`/mv/penagihan?type=${type}`),
-    staleTime: 1000 * 60 * 2, // Fresh data for billing
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
@@ -99,11 +102,11 @@ export function usePenagihanAggregateDetailQuery(id: number, enabled: boolean = 
     queryKey: mvKeys.penagihanDetail(id),
     queryFn: () => apiClient.get(`/mv/penagihan?id=${id}`),
     enabled: enabled && !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
-// Shipment materialized view hooks
+// Shipment direct query hooks (replacing materialized views)
 export function usePengirimanAggregatesQuery(filters?: {
   sales_id?: number
   search?: string
@@ -123,7 +126,7 @@ export function usePengirimanAggregatesQuery(filters?: {
   return useQuery({
     queryKey: mvKeys.pengirimanByFilter(filters || {}),
     queryFn: () => apiClient.get(`/mv/pengiriman?${params.toString()}`),
-    staleTime: 1000 * 60 * 3,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
@@ -132,34 +135,36 @@ export function usePengirimanAggregateDetailQuery(id: number, enabled: boolean =
     queryKey: mvKeys.pengirimanDetail(id),
     queryFn: () => apiClient.get(`/mv/pengiriman?id=${id}`),
     enabled: enabled && !!id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30, // Reduced for real-time data consistency
   })
 }
 
 // Batch queries for forms that need multiple related data
+// Now using direct queries for consistent real-time data
 export function useFormRelatedDataQueries(_entityType: 'pengiriman' | 'penagihan' | 'setoran') {
   return useQueries({
     queries: [
       {
         queryKey: mvKeys.sales(),
         queryFn: () => apiClient.get('/mv/sales'),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       },
       {
         queryKey: mvKeys.produk(),
         queryFn: () => apiClient.get('/mv/produk?withStats=true'),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       },
       {
         queryKey: mvKeys.toko(),
         queryFn: () => apiClient.get('/mv/toko'),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       },
     ],
   })
 }
 
 // Prefetch utilities for edit pages
+// Now using direct queries for consistent real-time data
 export function prefetchEditPageData(
   queryClient: any,
   entityType: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman' | 'setoran',
@@ -170,35 +175,35 @@ export function prefetchEditPageData(
       queryClient.prefetchQuery({
         queryKey: mvKeys.salesDetail(id),
         queryFn: () => apiClient.get(`/mv/sales?id=${id}`),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       })
       break
     case 'produk':
       queryClient.prefetchQuery({
         queryKey: mvKeys.produkDetail(id, true),
         queryFn: () => apiClient.get(`/mv/produk?id=${id}&withStats=true`),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       })
       break
     case 'toko':
       queryClient.prefetchQuery({
         queryKey: mvKeys.tokoDetail(id),
         queryFn: () => apiClient.get(`/mv/toko?id=${id}`),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       })
       break
     case 'penagihan':
       queryClient.prefetchQuery({
         queryKey: mvKeys.penagihanDetail(id),
         queryFn: () => apiClient.get(`/mv/penagihan?id=${id}`),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       })
       break
     case 'pengiriman':
       queryClient.prefetchQuery({
         queryKey: mvKeys.pengirimanDetail(id),
         queryFn: () => apiClient.get(`/mv/pengiriman?id=${id}`),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 30, // Reduced for real-time data consistency
       })
       break
   }

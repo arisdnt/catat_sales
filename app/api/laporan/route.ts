@@ -286,19 +286,10 @@ async function getDashboardStats(timeFilter?: string | null) {
       }
     }
     
-    // Try to use new materialized views first, fallback to direct queries
-    let realtimeStats = null
-    try {
-      const { data: statsData } = await supabaseAdmin
-        .from('mv_dashboard_realtime_stats')
-        .select('*')
-        .single()
-      realtimeStats = statsData
-    } catch (error) {
-      console.log('Materialized view not available, using direct queries')
-    }
+    // Use direct queries for real-time data consistency
+    const realtimeStats = null
     
-    // Basic counts - use materialized view data if available, otherwise direct queries
+    // Basic counts - using direct queries for real-time data
     const [
       { count: pengirimanCount },
       { count: penagihanCount },
@@ -307,15 +298,7 @@ async function getDashboardStats(timeFilter?: string | null) {
       { count: produkCount },
       { count: salesCount },
       { data: pendapatanData }
-    ] = realtimeStats ? [
-      { count: realtimeStats.total_pengiriman },
-      { count: realtimeStats.total_penagihan },
-      { count: realtimeStats.total_setoran },
-      { count: realtimeStats.total_toko },
-      { count: realtimeStats.total_produk },
-      { count: realtimeStats.total_sales },
-      { data: [{ total_uang_diterima: realtimeStats.pendapatan_harian }] }
-    ] : await Promise.all([
+    ] = await Promise.all([
       supabaseAdmin.from('pengiriman').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('penagihan').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('setoran').select('*', { count: 'exact', head: true }),
@@ -351,24 +334,10 @@ async function getDashboardStats(timeFilter?: string | null) {
       // Sales query error - continue with empty data
     }
     
-    // Try to use new materialized views for enhanced data
-    let enhancedSalesPerformance = null
-    let enhancedAssetDistribution = null
-    let enhancedReceivables = null
-    
-    try {
-      const [salesPerfData, assetDistData, receivablesData] = await Promise.all([
-        supabaseAdmin.from('mv_sales_performance_real').select('*'),
-        supabaseAdmin.from('mv_asset_distribution_real').select('*'),
-        supabaseAdmin.from('mv_receivables_aging_real').select('*')
-      ])
-      
-      enhancedSalesPerformance = salesPerfData.data
-      enhancedAssetDistribution = assetDistData.data
-      enhancedReceivables = receivablesData.data
-    } catch (error) {
-      console.log('Enhanced materialized views not available, using fallback queries')
-    }
+    // Use direct queries for enhanced data consistency
+    const enhancedSalesPerformance = null
+    const enhancedAssetDistribution = null
+    const enhancedReceivables = null
 
     const [
       { data: topProductsData },
@@ -458,22 +427,18 @@ async function getDashboardStats(timeFilter?: string | null) {
       
       // Real cash in hand calculation
       (async () => {
-        if (enhancedSalesPerformance) {
-          return { data: enhancedSalesPerformance.filter(s => s.kas_di_tangan > 0) }
-        } else {
-          // Fallback: Cash payments minus deposits per sales
-          return supabaseAdmin
-            .from('penagihan')
-            .select(`
-              total_uang_diterima, 
-              dibuat_pada, 
-              toko!inner(
-                sales!inner(nama_sales)
-              )
-            `)
-            .eq('metode_pembayaran', 'Cash')
-            .gte('dibuat_pada', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        }
+        // Always use fallback for now since materialized views are removed
+        return supabaseAdmin
+          .from('penagihan')
+          .select(`
+            total_uang_diterima, 
+            dibuat_pada, 
+            toko!inner(
+              sales!inner(nama_sales)
+            )
+          `)
+          .eq('metode_pembayaran', 'Cash')
+          .gte('dibuat_pada', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       })()
     ])
 
@@ -492,11 +457,7 @@ async function getDashboardStats(timeFilter?: string | null) {
         : []
     )
     const processedMonthlyTrends = processMonthlyTrends(monthlyTrendsData || [])
-    const processedCashInHand = enhancedSalesPerformance ? 
-      enhancedSalesPerformance.filter(s => s.kas_di_tangan > 0).map(s => ({
-        nama_sales: s.nama_sales,
-        kas_di_tangan: s.kas_di_tangan
-      })) : processCashInHand(cashInHandData || [])
+    const processedCashInHand = processCashInHand(cashInHandData || [])
     
     const processedAssetDistribution = enhancedAssetDistribution || 
       generateAssetDistribution(pendapatanHarian, pengirimanCount || 0, produkCount || 0)
