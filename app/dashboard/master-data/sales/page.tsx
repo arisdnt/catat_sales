@@ -271,7 +271,7 @@ function SalesDataTable({
             <Store className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-sm font-medium text-blue-600">
-                {formatNumber(sales.total_toko)}
+                {formatNumber(sales.total_stores)}
               </div>
               <div className="text-xs text-gray-500">toko</div>
             </div>
@@ -296,7 +296,7 @@ function SalesDataTable({
                   <Package className="h-4 w-4 text-blue-500" />
                   <div>
                     <div className="text-sm font-medium text-blue-600">
-                      {formatNumber(sales.total_quantity_dikirim)}
+                      {formatNumber(sales.quantity_shipped)}
                     </div>
                     <div className="text-xs text-gray-500">
                       barang
@@ -334,7 +334,7 @@ function SalesDataTable({
                   <Package className="h-4 w-4 text-green-500" />
                   <div>
                     <div className="text-sm font-medium text-green-600">
-                      {formatNumber(sales.total_quantity_terjual)}
+                      {formatNumber(sales.quantity_sold)}
                     </div>
                     <div className="text-xs text-gray-500">
                       barang
@@ -364,7 +364,7 @@ function SalesDataTable({
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const sales = row.original
-        const remainingStock = (sales.total_quantity_dikirim || 0) - (sales.total_quantity_terjual || 0)
+        const remainingStock = (sales.quantity_shipped || 0) - (sales.quantity_sold || 0)
         
         // Parse detail untuk menghitung sisa per produk
         const parseDetail = (detail: string) => {
@@ -428,7 +428,7 @@ function SalesDataTable({
             <DollarSign className="h-4 w-4 text-purple-500" />
             <div>
               <div className="text-sm font-medium text-purple-600">
-                {formatCurrency(sales.total_uang_diterima)}
+                {formatCurrency(sales.total_revenue)}
               </div>
               <div className="text-xs text-gray-500">
                 revenue
@@ -676,9 +676,11 @@ export default function SalesPage() {
   const summary = {
     total_sales: filteredData.length,
     active_sales: filteredData.filter(s => s.status_aktif).length,
-    total_shipped_items: filteredData.reduce((sum, s) => sum + (s.total_quantity_dikirim || 0), 0),
-    total_items_sold: filteredData.reduce((sum, s) => sum + (s.total_quantity_terjual || 0), 0),
-    total_remaining_stock: filteredData.reduce((sum, s) => sum + ((s.total_quantity_dikirim || 0) - (s.total_quantity_terjual || 0)), 0)
+    total_stores: filteredData.reduce((sum, s) => sum + (Number(s.total_stores) || 0), 0),
+    total_shipped_items: filteredData.reduce((sum, s) => sum + (Number(s.quantity_shipped) || 0), 0),
+    total_items_sold: filteredData.reduce((sum, s) => sum + (Number(s.quantity_sold) || 0), 0),
+    total_remaining_stock: filteredData.reduce((sum, s) => sum + ((Number(s.quantity_shipped) || 0) - (Number(s.quantity_sold) || 0)), 0),
+    total_revenue: filteredData.reduce((sum, s) => sum + (Number(s.total_revenue) || 0), 0)
   }
 
   return (
@@ -697,7 +699,7 @@ export default function SalesPage() {
               Menampilkan {formatNumber(summary.total_sales)} sales 
               {masterData?.data && summary.total_sales !== masterData.data.length && 
                 ` dari ${formatNumber(masterData.data.length)} total`
-              } dengan {formatNumber(summary.active_sales)} aktif, {formatNumber(summary.total_shipped_items)} barang terkirim, {formatNumber(summary.total_items_sold)} terjual, dan sisa stok {formatNumber(summary.total_remaining_stock)}
+              } dengan {formatNumber(summary.active_sales)} aktif, {formatNumber(summary.total_stores)} toko, {formatNumber(summary.total_shipped_items)} barang terkirim, {formatNumber(summary.total_items_sold)} terjual, sisa stok {formatNumber(summary.total_remaining_stock)}, dan total revenue {formatCurrency(summary.total_revenue)}
             </p>
           </div>
           <div className="flex items-center gap-3">

@@ -237,6 +237,7 @@ interface TokoFilters {
   kabupaten: string
   kecamatan: string
   status_toko: string
+  sales_id: string
 }
 
 // Filter component
@@ -253,6 +254,7 @@ function TokoFilterPanel({
 }) {
   const { data: kabupatenOptions } = useKabupatenOptionsQuery()
   const { data: kecamatanOptions } = useKecamatanOptionsQuery(filters.kabupaten)
+  const { data: salesOptions } = useSalesOptionsQuery()
   
   const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
 
@@ -271,6 +273,26 @@ function TokoFilterPanel({
                 className="pl-10"
               />
             </div>
+          </div>
+
+          {/* Sales Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.sales_id}
+              onValueChange={(value) => onFiltersChange({ sales_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sales" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Sales</SelectItem>
+                {salesOptions?.data?.map((sales: any) => (
+                  <SelectItem key={sales.id_sales} value={sales.id_sales.toString()}>
+                    {sales.nama_sales}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Kabupaten Filter */}
@@ -339,7 +361,7 @@ function TokoFilterPanel({
             disabled={!hasActiveFilters || isLoading}
             className="p-2"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4 text-red-500" />
           </Button>
         </div>
       </CardContent>
@@ -706,7 +728,8 @@ export default function TokoPage() {
     search: '',
     kabupaten: 'all',
     kecamatan: 'all',
-    status_toko: 'all'
+    status_toko: 'all',
+    sales_id: 'all'
   })
   
   const [pagination, setPagination] = useState({
@@ -733,6 +756,9 @@ export default function TokoPage() {
     }
     if (filters.status_toko !== 'all') {
       params.status_toko = filters.status_toko
+    }
+    if (filters.sales_id !== 'all') {
+      params.sales_id = filters.sales_id
     }
     
     return params
@@ -785,7 +811,8 @@ export default function TokoPage() {
       search: '',
       kabupaten: 'all',
       kecamatan: 'all', 
-      status_toko: 'all'
+      status_toko: 'all',
+      sales_id: 'all'
     })
     // Reset to page 1 when clearing filters
     setPagination(prev => ({ ...prev, page: 1 }))

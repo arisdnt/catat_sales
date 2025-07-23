@@ -19,7 +19,8 @@ import {
   Filter,
   X,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
@@ -149,15 +150,24 @@ function PenagihanFilterPanel({
   const { data: kabupatenOptions } = useKabupatenOptionsQuery()
   const { data: kecamatanOptions } = useKecamatanOptionsQuery(filters.kabupaten)
   
-  const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
+  const hasActiveFilters = Boolean(
+    filters.search || 
+    (filters.date_range && filters.date_range !== 'all') ||
+    (filters.sales_id && filters.sales_id !== 'all') ||
+    (filters.kabupaten && filters.kabupaten !== 'all') ||
+    (filters.kecamatan && filters.kecamatan !== 'all') ||
+    (filters.metode_pembayaran && filters.metode_pembayaran !== 'all') ||
+    (filters.ada_potongan && filters.ada_potongan !== 'all')
+  )
 
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           {/* Search Input */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
+          <div className="flex-1 min-w-[300px]">
+            <label className="text-sm font-medium">Pencarian</label>
+            <div className="relative mt-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Cari toko, sales, ID..."
@@ -169,31 +179,33 @@ function PenagihanFilterPanel({
           </div>
 
           {/* Date Range */}
-          <div className="min-w-[150px]">
+          <div className="min-w-[160px]">
+            <label className="text-sm font-medium">Periode Waktu</label>
             <Select
               value={filters.date_range}
               onValueChange={(value) => onFiltersChange({ date_range: value as any })}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Periode" />
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Pilih periode" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="today">Hari Ini</SelectItem>
-                <SelectItem value="week">7 Hari</SelectItem>
-                <SelectItem value="month">30 Hari</SelectItem>
-                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="week">7 Hari Terakhir</SelectItem>
+                <SelectItem value="month">30 Hari Terakhir</SelectItem>
+                <SelectItem value="all">Semua Data</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Sales Filter */}
-          <div className="min-w-[150px]">
+          <div className="min-w-[160px]">
+            <label className="text-sm font-medium">Sales</label>
             <Select
               value={filters.sales_id}
               onValueChange={(value) => onFiltersChange({ sales_id: value })}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Sales" />
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Semua sales" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Sales</SelectItem>
@@ -207,16 +219,17 @@ function PenagihanFilterPanel({
           </div>
 
           {/* Kabupaten Filter */}
-          <div className="min-w-[150px]">
+          <div className="min-w-[160px]">
+            <label className="text-sm font-medium">Kabupaten</label>
             <Select
               value={filters.kabupaten}
               onValueChange={(value) => onFiltersChange({ kabupaten: value, kecamatan: 'all' })}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Kabupaten" />
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Semua kabupaten" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="all">Semua Kabupaten</SelectItem>
                 {kabupatenOptions?.data?.map((kab: any) => (
                   <SelectItem key={kab.kabupaten} value={kab.kabupaten}>
                     {kab.kabupaten}
@@ -227,17 +240,18 @@ function PenagihanFilterPanel({
           </div>
 
           {/* Kecamatan Filter */}
-          <div className="min-w-[150px]">
+          <div className="min-w-[160px]">
+            <label className="text-sm font-medium">Kecamatan</label>
             <Select
               value={filters.kecamatan}
               onValueChange={(value) => onFiltersChange({ kecamatan: value })}
               disabled={!filters.kabupaten || filters.kabupaten === 'all'}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Kecamatan" />
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Semua kecamatan" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="all">Semua Kecamatan</SelectItem>
                 {kecamatanOptions?.data?.map((kec: any) => (
                   <SelectItem key={kec.kecamatan} value={kec.kecamatan}>
                     {kec.kecamatan}
@@ -247,17 +261,55 @@ function PenagihanFilterPanel({
             </Select>
           </div>
 
-          {/* Clear Filters Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClearFilters}
-            disabled={!hasActiveFilters || isLoading}
-            className="p-2"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {/* Clear Filters Button - Only Trash Icon */}
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearFilters}
+              disabled={!hasActiveFilters || isLoading}
+              className="px-3 py-2"
+              title="Clear Filters"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
+
+        {/* Active Filters Display */}
+        {hasActiveFilters && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm text-gray-500">Active filters:</span>
+              {filters.search && (
+                <Badge variant="secondary">Search: {filters.search}</Badge>
+              )}
+              {filters.date_range && filters.date_range !== 'all' && (
+                <Badge variant="secondary">
+                  Period: {filters.date_range === 'today' ? 'Today' : 
+                          filters.date_range === 'week' ? '7 Days' : '30 Days'}
+                </Badge>
+              )}
+              {filters.sales_id && filters.sales_id !== 'all' && (
+                <Badge variant="secondary">
+                  Sales: {salesOptions?.data?.find((s: any) => s.id_sales.toString() === filters.sales_id)?.nama_sales || filters.sales_id}
+                </Badge>
+              )}
+              {filters.kabupaten && filters.kabupaten !== 'all' && (
+                <Badge variant="secondary">Region: {filters.kabupaten}</Badge>
+              )}
+              {filters.kecamatan && filters.kecamatan !== 'all' && (
+                <Badge variant="secondary">District: {filters.kecamatan}</Badge>
+              )}
+              {filters.metode_pembayaran && filters.metode_pembayaran !== 'all' && (
+                <Badge variant="secondary">Payment: {filters.metode_pembayaran}</Badge>
+              )}
+              {filters.ada_potongan && filters.ada_potongan !== 'all' && (
+                <Badge variant="secondary">Discount: {filters.ada_potongan === 'true' ? 'Yes' : 'No'}</Badge>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -289,7 +341,7 @@ function PenagihanDataTable({
   const columns = useMemo<ColumnDef<any>[]>(() => [
     {
       accessorKey: 'id_penagihan',
-      header: 'ID Penagihan',
+      header: 'No. Penagihan',
       cell: ({ row }) => {
         const penagihan = row.original
         return (
@@ -311,34 +363,36 @@ function PenagihanDataTable({
       meta: { priority: 'high', columnType: 'id' },
     },
     {
-      accessorKey: 'toko_info',
-      header: 'Nama Toko & Lokasi',
+      accessorKey: 'nama_toko',
+      header: 'Nama Toko',
       cell: ({ row }) => {
         const penagihan = row.original
         return (
           <div className="text-left">
-            <div className="text-sm font-medium text-gray-900 truncate">
-              {penagihan.nama_toko || '-'}
-            </div>
-            <div className="text-xs text-gray-500 truncate">
-              {penagihan.kecamatan && penagihan.kabupaten 
-                ? `${penagihan.kecamatan}, ${penagihan.kabupaten}`
-                : penagihan.kabupaten || 'Lokasi tidak tersedia'
-              }
-            </div>
+            <div className="font-medium text-gray-900 truncate">{penagihan.nama_toko}</div>
+            {penagihan.link_gmaps && (
+              <a 
+                href={penagihan.link_gmaps} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline mt-1"
+              >
+                <MapPin className="w-3 h-3" />
+                 Lihat Lokasi
+                 <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
           </div>
         )
       },
-      size: 200,
-      minSize: 180,
-      maxSize: 250,
-      meta: { priority: 'high', columnType: 'name' },
+      size: 160,
+      minSize: 140,
+      maxSize: 200,
+      meta: { priority: 'high', columnType: 'description' },
     },
-
-
     {
-      accessorKey: 'sales_info',
-      header: 'Sales',
+      accessorKey: 'nama_sales',
+      header: 'Sales Penagih',
       cell: ({ row }) => {
         const penagihan = row.original
         
@@ -347,6 +401,9 @@ function PenagihanDataTable({
             <div className="text-sm font-medium text-gray-900 truncate">
               {penagihan.nama_sales || 'Sales tidak tersedia'}
             </div>
+            <div className="text-xs text-gray-500">
+              ID Sales: {penagihan.id_sales}
+            </div>
           </div>
         )
       },
@@ -354,6 +411,60 @@ function PenagihanDataTable({
       minSize: 130,
       maxSize: 180,
       meta: { priority: 'medium', columnType: 'name' },
+    },
+    {
+      accessorKey: 'kabupaten',
+      header: 'Kabupaten',
+      cell: ({ row }) => {
+        const penagihan = row.original
+        return (
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {penagihan.kabupaten || '-'}
+            </span>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
+    },
+    {
+      accessorKey: 'kecamatan',
+      header: 'Kecamatan',
+      cell: ({ row }) => {
+        const penagihan = row.original
+        return (
+          <div className="text-left">
+            <span className="text-sm text-gray-900">
+              {penagihan.kecamatan || '-'}
+            </span>
+          </div>
+        )
+      },
+      size: 140,
+      minSize: 120,
+      maxSize: 160,
+      meta: { priority: 'medium', columnType: 'location' },
+    },
+    {
+      accessorKey: 'tanggal_penagihan',
+      header: 'Tanggal Penagihan',
+      cell: ({ row }) => (
+        <div className="text-left">
+          <div className="text-sm font-medium text-gray-900">
+            {formatDate(row.getValue('tanggal_penagihan'))}
+          </div>
+          <div className="text-xs text-gray-500">
+            {new Date(row.getValue('tanggal_penagihan')).toLocaleDateString('id-ID', { weekday: 'short' })}
+          </div>
+        </div>
+      ),
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      meta: { priority: 'medium', columnType: 'date' },
     },
     {
       accessorKey: 'total_uang_diterima',
@@ -378,7 +489,6 @@ function PenagihanDataTable({
       maxSize: 180,
       meta: { priority: 'high', columnType: 'currency' },
     },
-
     {
       accessorKey: 'metode_pembayaran',
       header: 'Metode Bayar',
@@ -409,13 +519,13 @@ function PenagihanDataTable({
         const [isHovered, setIsHovered] = useState(false)
         const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
         
-        // Use detail_terjual and kuantitas_terjual from view
-        const detailTerjual = penagihan.detail_terjual || 'Tidak ada produk terjual'
-        const totalQuantity = penagihan.kuantitas_terjual || 0
-        
-        // Parse detail_terjual untuk mendapatkan array produk
-        const products = detailTerjual !== 'Tidak ada produk terjual' 
-          ? detailTerjual.split(', ').map((item: string) => {
+        // Use detail_produk and total_quantity_terjual from API response
+          const detailProduk = penagihan.detail_produk || 'Tidak ada produk terjual'
+          const totalQuantity = penagihan.total_quantity_terjual || 0
+          
+          // Parse detail_terjual untuk mendapatkan array produk
+          const products = detailProduk !== 'Tidak ada produk terjual' 
+            ? detailProduk.split(', ').map((item: string) => {
               const match = item.match(/^(.+) \[(\d+)\]$/)
               return match ? {
                 nama_produk: match[1],

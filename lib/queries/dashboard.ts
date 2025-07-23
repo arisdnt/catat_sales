@@ -5,22 +5,21 @@ import { apiClient } from '@/lib/api-client'
 export interface DashboardPenagihan {
   id_penagihan: number
   tanggal_penagihan: string
+  metode_pembayaran: 'Cash' | 'Transfer'
+  total_uang_diterima: number
+  ada_potongan: boolean
+  id_toko: number
   nama_toko: string
+  no_telepon?: string
+  link_gmaps?: string
   kecamatan: string
   kabupaten: string
+  id_sales: number
   nama_sales: string
-  total_uang_diterima: number
-  metode_pembayaran: 'Cash' | 'Transfer'
-  ada_potongan: boolean
-  detail_produk: string
-  total_nilai_terjual: number
-  total_nilai_kembali: number
-  total_potongan: number
-  alasan_potongan?: string
-  // Additional fields for improved display
-  link_gmaps?: string
-  no_telepon?: string
-  total_quantity_terjual?: number
+  kuantitas_terjual: number
+  kuantitas_kembali: number
+  detail_terjual: string
+  detail_kembali: string
 }
 
 export interface DashboardPengiriman {
@@ -156,22 +155,13 @@ export interface MasterSales {
   status_aktif: boolean
   dibuat_pada: string
   diperbarui_pada: string
-  // Toko statistics
-  jumlah_toko_aktif: number
-  jumlah_toko_nonaktif: number
-  total_toko: number
-  // Business statistics
-  total_pengiriman: number
-  total_quantity_dikirim: number
-  total_nilai_dikirim: number
-  total_penagihan: number
-  total_quantity_terjual: number
-  total_quantity_dikembalikan: number
-  total_stok_di_toko: number
-  // Payment information
-  total_uang_diterima: number
-  total_cash: number
-  total_transfer: number
+  // Data from v_master_sales view
+  total_stores: number
+  total_revenue: number
+  quantity_shipped: number
+  quantity_sold: number
+  detail_shipped: string
+  detail_sold: string
 }
 
 // Filter Options Types
