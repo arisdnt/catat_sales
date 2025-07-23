@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -14,19 +14,31 @@ import {
   Users,
   Package,
   Minus,
-  DollarSign
+  DollarSign,
+  Search,
+  Filter,
+  X,
+  Calendar,
+  RefreshCw
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
 import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
-import {
-  useOptimizedPenagihanState
-} from '@/lib/queries/penagihan-optimized'
+import { 
+  useDashboardPenagihanQuery,
+  useSalesOptionsQuery,
+  useKabupatenOptionsQuery,
+  useKecamatanOptionsQuery,
+  useTokoOptionsQuery
+} from '@/lib/queries/dashboard'
 import { useDeletePenagihanMutation } from '@/lib/queries/penagihan'
 import { exportBillingData } from '@/lib/excel-export'
 
@@ -110,6 +122,147 @@ function formatDate(dateStr: string): string {
   })
 }
 
+// Filter types
+interface PenagihanFilters {
+  search: string
+  metode_pembayaran: string
+  ada_potongan: string
+  sales_id: string
+  kabupaten: string
+  kecamatan: string
+  date_range: 'today' | 'week' | 'month' | 'all'
+}
+
+// Filter component
+function PenagihanFilterPanel({ 
+  filters, 
+  onFiltersChange,
+  onClearFilters,
+  isLoading
+}: {
+  filters: PenagihanFilters
+  onFiltersChange: (filters: Partial<PenagihanFilters>) => void
+  onClearFilters: () => void
+  isLoading: boolean
+}) {
+  const { data: salesOptions } = useSalesOptionsQuery()
+  const { data: kabupatenOptions } = useKabupatenOptionsQuery()
+  const { data: kecamatanOptions } = useKecamatanOptionsQuery(filters.kabupaten)
+  
+  const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Cari toko, sales, ID..."
+                value={filters.search}
+                onChange={(e) => onFiltersChange({ search: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.date_range}
+              onValueChange={(value) => onFiltersChange({ date_range: value as any })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Periode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Hari Ini</SelectItem>
+                <SelectItem value="week">7 Hari</SelectItem>
+                <SelectItem value="month">30 Hari</SelectItem>
+                <SelectItem value="all">Semua</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sales Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.sales_id}
+              onValueChange={(value) => onFiltersChange({ sales_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sales" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Sales</SelectItem>
+                {salesOptions?.data?.map((sales: any) => (
+                  <SelectItem key={sales.id_sales} value={sales.id_sales.toString()}>
+                    {sales.nama_sales}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Kabupaten Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.kabupaten}
+              onValueChange={(value) => onFiltersChange({ kabupaten: value, kecamatan: 'all' })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Kabupaten" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                {kabupatenOptions?.data?.map((kab: any) => (
+                  <SelectItem key={kab.kabupaten} value={kab.kabupaten}>
+                    {kab.kabupaten}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Kecamatan Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.kecamatan}
+              onValueChange={(value) => onFiltersChange({ kecamatan: value })}
+              disabled={!filters.kabupaten || filters.kabupaten === 'all'}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Kecamatan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                {kecamatanOptions?.data?.map((kec: any) => (
+                  <SelectItem key={kec.kecamatan} value={kec.kecamatan}>
+                    {kec.kecamatan}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearFilters}
+            disabled={!hasActiveFilters || isLoading}
+            className="p-2"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Data table component (identical structure to toko)
 function PenagihanDataTable({ 
   data, 
@@ -143,7 +296,7 @@ function PenagihanDataTable({
           <div className="text-left">
             <div className="font-mono text-sm font-medium text-gray-900">#{penagihan.id_penagihan}</div>
             <div className="text-xs text-gray-500">
-              {new Date(penagihan.dibuat_pada).toLocaleDateString('id-ID', { 
+              {new Date(penagihan.tanggal_penagihan).toLocaleDateString('id-ID', { 
                 day: '2-digit', 
                 month: 'short',
                 year: 'numeric'
@@ -162,16 +315,15 @@ function PenagihanDataTable({
       header: 'Nama Toko & Lokasi',
       cell: ({ row }) => {
         const penagihan = row.original
-        const toko = penagihan.toko
         return (
           <div className="text-left">
             <div className="text-sm font-medium text-gray-900 truncate">
-              {toko?.nama_toko || '-'}
+              {penagihan.nama_toko || '-'}
             </div>
             <div className="text-xs text-gray-500 truncate">
-              {toko?.kecamatan && toko?.kabupaten 
-                ? `${toko.kecamatan}, ${toko.kabupaten}`
-                : toko?.kabupaten || 'Lokasi tidak tersedia'
+              {penagihan.kecamatan && penagihan.kabupaten 
+                ? `${penagihan.kecamatan}, ${penagihan.kabupaten}`
+                : penagihan.kabupaten || 'Lokasi tidak tersedia'
               }
             </div>
           </div>
@@ -182,20 +334,18 @@ function PenagihanDataTable({
       maxSize: 250,
       meta: { priority: 'high', columnType: 'name' },
     },
+
+
     {
       accessorKey: 'sales_info',
       header: 'Sales',
       cell: ({ row }) => {
         const penagihan = row.original
-        const toko = penagihan.toko
         
         return (
           <div className="text-left">
             <div className="text-sm font-medium text-gray-900 truncate">
-              {toko?.sales?.nama_sales || 'Sales tidak tersedia'}
-            </div>
-            <div className="text-xs text-gray-500">
-              ID: {toko?.sales?.id_sales || '-'}
+              {penagihan.nama_sales || 'Sales tidak tersedia'}
             </div>
           </div>
         )
@@ -210,7 +360,6 @@ function PenagihanDataTable({
       header: 'Total Pembayaran',
       cell: ({ row }) => {
         const penagihan = row.original
-        const potongan = penagihan.potongan_penagihan?.[0]
         return (
           <div className="text-left">
             <div className="text-sm font-medium text-gray-900">
@@ -218,7 +367,7 @@ function PenagihanDataTable({
             </div>
             {penagihan.ada_potongan && (
               <div className="text-xs text-amber-600">
-                Potongan: {formatCurrency(potongan?.jumlah_potongan || 0)}
+                Potongan: {formatCurrency(penagihan.total_potongan || 0)}
               </div>
             )}
           </div>
@@ -229,6 +378,7 @@ function PenagihanDataTable({
       maxSize: 180,
       meta: { priority: 'high', columnType: 'currency' },
     },
+
     {
       accessorKey: 'metode_pembayaran',
       header: 'Metode Bayar',
@@ -256,25 +406,97 @@ function PenagihanDataTable({
       header: 'Detail Produk',
       cell: ({ row }) => {
         const penagihan = row.original
-        const details = penagihan.detail_penagihan || []
-        const totalQuantity = details.reduce((sum: number, detail: any) => sum + detail.jumlah_terjual, 0)
+        const [isHovered, setIsHovered] = useState(false)
+        const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+        
+        // Use detail_terjual and kuantitas_terjual from view
+        const detailTerjual = penagihan.detail_terjual || 'Tidak ada produk terjual'
+        const totalQuantity = penagihan.kuantitas_terjual || 0
+        
+        // Parse detail_terjual untuk mendapatkan array produk
+        const products = detailTerjual !== 'Tidak ada produk terjual' 
+          ? detailTerjual.split(', ').map((item: string) => {
+              const match = item.match(/^(.+) \[(\d+)\]$/)
+              return match ? {
+                nama_produk: match[1],
+                quantity: parseInt(match[2])
+              } : null
+            }).filter(Boolean)
+          : []
+        
+        const handleMouseEnter = (e: React.MouseEvent) => {
+          setIsHovered(true)
+          setMousePos({ x: e.clientX, y: e.clientY })
+        }
+        
+        const handleMouseMove = (e: React.MouseEvent) => {
+          setMousePos({ x: e.clientX, y: e.clientY })
+        }
         
         return (
-          <div className="text-left">
-            <div className="text-sm font-medium text-gray-900">
-              {formatNumber(totalQuantity)} item terjual
+          <div 
+            className="text-left relative"
+            onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex items-center">
+                <Package className="w-4 h-4 text-gray-400 mr-1" />
+                <span className="text-sm font-medium text-gray-900">
+                  {products.length} items
+                </span>
+              </div>
+              <div className="text-xs text-gray-600">
+                ({formatNumber(totalQuantity)} pcs)
+              </div>
             </div>
-            <div className="text-xs text-gray-500">
-              {details.length} jenis produk
-            </div>
+            
+            {/* Hover tooltip */}
+            {isHovered && products.length > 0 && (
+              <div 
+                className="fixed z-[9999] bg-white border rounded-lg shadow-xl p-3 min-w-[280px] max-w-[420px] pointer-events-none"
+                style={{
+                  left: `${Math.min(window.innerWidth - 440, Math.max(10, mousePos.x + 10))}px`,
+                  top: `${Math.max(10, mousePos.y - 150)}px`
+                }}
+              >
+                <div className="text-xs font-medium text-gray-700 mb-2 border-b pb-1">Detail Produk Terjual:</div>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                  {products.map((product: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center text-xs py-1">
+                      <span className="text-gray-700 truncate flex-1 mr-2">{product.nama_produk}</span>
+                      <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        {product.quantity} pcs
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t mt-2 pt-2 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Total Quantity:</span>
+                    <span className="font-medium text-gray-900">
+                      {formatNumber(totalQuantity)} pcs
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Total Nilai:</span>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(penagihan.total_uang_diterima || 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )
       },
-      size: 180,
-      minSize: 160,
-      maxSize: 220,
-      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
+      size: 160,
+      minSize: 140,
+      maxSize: 180,
+      meta: { priority: 'medium', columnType: 'stats' },
     },
+
   ], [])
 
   // Handle pagination (identical to toko)
@@ -354,65 +576,77 @@ export default function PenagihanPage() {
   const { toast } = useToast()
   const deletePenagihanMutation = useDeletePenagihanMutation()
 
-  // Initialize state management (identical to toko)
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    suggestions,
-    suggestionsLoading,
-    filterOptions,
-    params,
-    updateParams
-  } = useOptimizedPenagihanState({
-    page: 1,
-    limit: 20,
+  // Filter and pagination state
+  const [filters, setFilters] = useState<PenagihanFilters>({
     search: '',
-    sortBy: 'dibuat_pada',
-    sortOrder: 'desc'
+    metode_pembayaran: 'all',
+    ada_potongan: 'all',
+    sales_id: 'all',
+    kabupaten: 'all',
+    kecamatan: 'all',
+    date_range: 'all'
   })
+  
+  const [page, setPage] = useState(1)
+  const limit = 30
 
-  // Handle search (identical to toko)
-  const handleSearchChange = useCallback((value: string) => {
-    updateParams({ search: value, page: 1 })
-  }, [updateParams])
-
-  // Handle search suggestion selection (adapted for penagihan)
-  const handleSuggestionSelect = useCallback((suggestion: any) => {
-    if (suggestion.type === 'penagihan') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'toko') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'kabupaten') {
-      updateParams({ kabupaten: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'kecamatan') {
-      updateParams({ kecamatan: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'sales') {
-      updateParams({ 
-        sales: suggestion.metadata?.id_sales?.toString(), 
-        search: '', 
-        page: 1 
-      })
+  // Use new dashboard query with server-side filtering and pagination
+  const { data: dashboardData, isLoading, error, refetch } = useDashboardPenagihanQuery({
+    page,
+    limit,
+    ...filters
+  })
+  
+  // Transform data for compatibility with existing table component
+  const data = {
+    data: dashboardData?.data?.data || [],
+    pagination: dashboardData?.data?.pagination ? {
+      hasNextPage: dashboardData.data.pagination.has_next,
+      hasPrevPage: dashboardData.data.pagination.has_prev,
+      totalPages: dashboardData.data.pagination.total_pages,
+      currentPage: dashboardData.data.pagination.page,
+      pageSize: dashboardData.data.pagination.limit,
+      total: dashboardData.data.pagination.total,
+      totalItems: dashboardData.data.pagination.total,
+      totalRecords: dashboardData.data.pagination.total,
+      limit: dashboardData.data.pagination.limit,
+      page: dashboardData.data.pagination.page,
+      from: ((dashboardData.data.pagination.page - 1) * dashboardData.data.pagination.limit) + 1,
+      to: Math.min(dashboardData.data.pagination.page * dashboardData.data.pagination.limit, dashboardData.data.pagination.total)
+    } : {
+      hasNextPage: false,
+      hasPrevPage: false,
+      totalPages: 1,
+      currentPage: 1,
+      pageSize: 30,
+      total: 0,
+      totalItems: 0,
+      totalRecords: 0,
+      limit: 30,
+      page: 1,
+      from: 0,
+      to: 0
     }
-  }, [updateParams])
+  }
 
-  // Handle filter changes (adapted for penagihan)
-  const handleFilterChange = useCallback((filters: Record<string, string>) => {
-    if (Object.keys(filters).length === 0) {
-      updateParams({
-        sales: '',
-        kabupaten: '',
-        kecamatan: '',
-        metode_pembayaran: '',
-        ada_potongan: '',
-        search: '',
-        page: 1
-      })
-    } else {
-      updateParams({ ...filters, page: 1 })
-    }
-  }, [updateParams])
+  // Filter handlers
+  const handleFiltersChange = useCallback((newFilters: Partial<PenagihanFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }))
+    setPage(1) // Reset to first page when filters change
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      search: '',
+      metode_pembayaran: 'all',
+      ada_potongan: 'all',
+      sales_id: 'all',
+      kabupaten: 'all',
+      kecamatan: 'all',
+      date_range: 'all'
+    })
+    setPage(1) // Reset to first page when clearing filters
+  }, [])
 
   // Handle delete (adapted for penagihan)
   const handleDelete = useCallback((penagihan: any) => {
@@ -470,19 +704,13 @@ export default function PenagihanPage() {
     navigate('/dashboard/penagihan/create')
   }, [navigate])
 
-  // Current filters for display (adapted for penagihan)
-  const currentFilters = useMemo(() => {
-    const filters: Record<string, string> = {}
-    if (params.sales) filters.sales = params.sales
-    if (params.kabupaten) filters.kabupaten = params.kabupaten
-    if (params.kecamatan) filters.kecamatan = params.kecamatan
-    if (params.metode_pembayaran) filters.metode_pembayaran = params.metode_pembayaran
-    if (params.ada_potongan) filters.ada_potongan = params.ada_potongan
-    return filters
-  }, [params])
-
-  // Summary statistics with safe defaults (adapted for penagihan)
-  const summary = filterOptions?.summary
+  // Summary statistics for header display only
+  const summary = {
+    total_billings: data.pagination.total || 0,
+    current_page_count: data.data.length,
+    total_pages: data.pagination.totalPages,
+    total_revenue: data.data.reduce((sum: number, item: any) => sum + (item.total_uang_diterima || 0), 0)
+  }
 
   return (
     <motion.div 
@@ -491,56 +719,65 @@ export default function PenagihanPage() {
       animate="visible" 
       className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
-      {/* Page Header (identical structure to toko) */}
-      <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Daftar Penagihan</h1>
-          <p className="text-gray-600 mt-2">
-            {summary ? 
-              `${formatNumber(summary.total_billings)} penagihan dengan total revenue ${formatCurrency(summary.total_revenue)}` :
-              "Memuat data penagihan..."
-            }
-          </p>
+      {/* Page Header with Enhanced Statistics */}
+      <motion.div variants={cardVariants} className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Daftar Penagihan</h1>
+            <p className="text-gray-600 mt-2">
+              Menampilkan {summary.current_page_count} dari {formatNumber(summary.total_billings)} penagihan 
+              (Halaman {data.pagination.currentPage} dari {summary.total_pages}) dengan total revenue {formatCurrency(summary.total_revenue)}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleExport} variant="outline" size="lg">
+              Export Excel
+            </Button>
+            <Button 
+              onClick={refetch} 
+              variant="outline" 
+              size="lg"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={handleAdd} size="lg">
+              Buat Penagihan
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExport} variant="outline" size="lg">
-            Export Excel
-          </Button>
-          <Button onClick={handleAdd} size="lg">
-            Buat Penagihan
-          </Button>
-        </div>
+
       </motion.div>
 
-      {/* Integrated Data Table Card (identical structure to toko) */}
+      {/* Filter Panel */}
+      <motion.div variants={cardVariants}>
+        <PenagihanFilterPanel
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          isLoading={isLoading}
+        />
+      </motion.div>
+
+      {/* Integrated Data Table Card */}
       <motion.div 
         variants={cardVariants} 
         className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
-        {/* Search and Filter Section (identical to toko) */}
-        <div className="p-6 border-b bg-gray-50">
-          <SearchFilterToko
-            value={params.search || ''}
-            onChange={handleSearchChange}
-            onFilterChange={handleFilterChange}
-            suggestions={suggestions}
-            suggestionsLoading={suggestionsLoading}
-            filterOptions={filterOptions}
-            activeFilters={currentFilters}
-            placeholder="Cari penagihan, toko, sales..."
-            onSuggestionSelect={handleSuggestionSelect}
-          />
-        </div>
-
-        {/* Data Table Section (identical structure to toko) */}
+        {/* Data Table Section with filtering */}
         <div className="w-full">
           <PenagihanDataTable
             data={data}
             isLoading={isLoading}
             error={error}
             refetch={refetch}
-            params={params}
-            updateParams={updateParams}
+            params={{ page }}
+            updateParams={(newParams: any) => {
+              if (newParams.page) {
+                setPage(newParams.page)
+              }
+            }}
             onDelete={handleDelete}
             onView={handleView}
             onEdit={handleEdit}

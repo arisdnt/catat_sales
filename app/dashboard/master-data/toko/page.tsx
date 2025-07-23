@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -19,29 +19,27 @@ import {
   XCircle,
   Truck,
   DollarSign,
-  Warehouse
+  Warehouse,
+  Search,
+  Filter,
+  RefreshCw
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { useSalesOptionsQuery, useKabupatenOptionsQuery, useKecamatanOptionsQuery } from '@/lib/queries/dashboard'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
-import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
-import {
-  useOptimizedTokoState,
-  useInvalidateOptimizedToko,
-  type TokoWithStats
-} from '@/lib/queries/toko-optimized'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useMasterTokoQuery, type MasterToko } from '@/lib/queries/dashboard'
 import { useDeleteTokoMutation } from '@/lib/queries/toko'
 import { exportStoreData } from '@/lib/excel-export'
+import { apiClient } from '@/lib/api-client'
 
 // Page animations
 const pageVariants = {
@@ -101,6 +99,254 @@ function formatNumber(num: number): string {
   return new Intl.NumberFormat('id-ID').format(num)
 }
 
+// Helper function to parse product details
+function parseProductDetails(detailString: string): Array<{name: string, quantity: number}> {
+  if (!detailString) return []
+  
+  try {
+    // Expected format: "Produk A [200], Produk B [300]"
+    const products = detailString.split(', ').map(item => {
+      const match = item.match(/^(.+?)\s*\[(\d+)\]$/)
+      if (match) {
+        return {
+          name: match[1].trim(),
+          quantity: parseInt(match[2])
+        }
+      }
+      return null
+    }).filter(Boolean)
+    
+    return products as Array<{name: string, quantity: number}>
+  } catch (error) {
+    return []
+  }
+}
+
+// Product detail tooltip component
+function ProductDetailTooltip({ 
+  children, 
+  detailString, 
+  title 
+}: { 
+  children: React.ReactNode
+  detailString?: string
+  title: string
+}) {
+  const products = parseProductDetails(detailString || '')
+  
+  if (products.length === 0) {
+    return <>{children}</>
+  }
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="cursor-help">
+          {children}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-2">
+          <div className="font-semibold text-sm">{title}</div>
+          <div className="space-y-1">
+            {products.map((product, index) => (
+              <div key={index} className="flex justify-between text-xs">
+                <span className="text-gray-700">{product.name}</span>
+                <span className="font-medium">{formatNumber(product.quantity)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+// Calculate remaining stock details from shipped and sold details
+function calculateRemainingStockDetails(detailShipped?: string, detailSold?: string): Array<{name: string, quantity: number}> {
+  const shippedProducts = parseProductDetails(detailShipped || '')
+  const soldProducts = parseProductDetails(detailSold || '')
+  
+  // Create a map of product quantities
+  const productMap = new Map<string, number>()
+  
+  // Add shipped quantities
+  shippedProducts.forEach(product => {
+    productMap.set(product.name, (productMap.get(product.name) || 0) + product.quantity)
+  })
+  
+  // Subtract sold quantities
+  soldProducts.forEach(product => {
+    productMap.set(product.name, (productMap.get(product.name) || 0) - product.quantity)
+  })
+  
+  // Convert back to array and filter out zero or negative quantities
+  const remainingStock = Array.from(productMap.entries())
+    .map(([name, quantity]) => ({ name, quantity }))
+    .filter(product => product.quantity > 0)
+    .sort((a, b) => a.name.localeCompare(b.name))
+  
+  return remainingStock
+}
+
+// Remaining stock tooltip component
+function RemainingStockTooltip({ 
+  children, 
+  detailShipped, 
+  detailSold,
+  title 
+}: { 
+  children: React.ReactNode
+  detailShipped?: string
+  detailSold?: string
+  title: string
+}) {
+  const remainingProducts = calculateRemainingStockDetails(detailShipped, detailSold)
+  
+  if (remainingProducts.length === 0) {
+    return <>{children}</>
+  }
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="cursor-help">
+          {children}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-2">
+          <div className="font-semibold text-sm">{title}</div>
+          <div className="space-y-1">
+            {remainingProducts.map((product, index) => (
+              <div key={index} className="flex justify-between text-xs">
+                <span className="text-gray-700">{product.name}</span>
+                <span className="font-medium">{formatNumber(product.quantity)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+// Filter types
+interface TokoFilters {
+  search: string
+  kabupaten: string
+  kecamatan: string
+  status_toko: string
+}
+
+// Filter component
+function TokoFilterPanel({ 
+  filters, 
+  onFiltersChange,
+  onClearFilters,
+  isLoading
+}: {
+  filters: TokoFilters
+  onFiltersChange: (filters: Partial<TokoFilters>) => void
+  onClearFilters: () => void
+  isLoading: boolean
+}) {
+  const { data: kabupatenOptions } = useKabupatenOptionsQuery()
+  const { data: kecamatanOptions } = useKecamatanOptionsQuery(filters.kabupaten)
+  
+  const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Cari toko, sales, lokasi, telepon..."
+                value={filters.search}
+                onChange={(e) => onFiltersChange({ search: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Kabupaten Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.kabupaten}
+              onValueChange={(value) => onFiltersChange({ kabupaten: value, kecamatan: 'all' })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Kabupaten" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                {kabupatenOptions?.data?.map((kab: any) => (
+                  <SelectItem key={kab.kabupaten} value={kab.kabupaten}>
+                    {kab.kabupaten}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Kecamatan Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.kecamatan}
+              onValueChange={(value) => onFiltersChange({ kecamatan: value })}
+              disabled={!filters.kabupaten || filters.kabupaten === 'all'}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Kecamatan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                {kecamatanOptions?.data?.map((kec: any) => (
+                  <SelectItem key={kec.kecamatan} value={kec.kecamatan}>
+                    {kec.kecamatan}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.status_toko}
+              onValueChange={(value) => onFiltersChange({ status_toko: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="true">Aktif</SelectItem>
+                <SelectItem value="false">Tidak Aktif</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearFilters}
+            disabled={!hasActiveFilters || isLoading}
+            className="p-2"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Data table component
 function TokoDataTable({ 
   data, 
@@ -119,12 +365,12 @@ function TokoDataTable({
   refetch: () => void
   params: any
   updateParams: (params: any) => void
-  onDelete: (toko: TokoWithStats) => void
-  onView: (toko: TokoWithStats) => void
-  onEdit: (toko: TokoWithStats) => void
+  onDelete: (toko: MasterToko) => void
+  onView: (toko: MasterToko) => void
+  onEdit: (toko: MasterToko) => void
 }) {
   // Define table columns
-  const columns = useMemo<ColumnDef<TokoWithStats>[]>(() => [
+  const columns = useMemo<ColumnDef<MasterToko>[]>(() => [
     {
       accessorKey: 'nama_toko',
       header: 'Nama Toko',
@@ -190,11 +436,11 @@ function TokoDataTable({
       meta: { priority: 'medium', columnType: 'location' },
     },
     {
-      accessorKey: 'nomor_telepon',
+      accessorKey: 'no_telepon',
       header: 'Nomor Telepon',
       cell: ({ row }) => {
         const toko = row.original
-        const phoneNumber = (toko as any).nomor_telepon || (toko as any).no_telepon || (toko as any).telepon
+        const phoneNumber = toko.no_telepon
         
         return (
           <div className="text-left">
@@ -229,10 +475,10 @@ function TokoDataTable({
         return (
           <div className="text-left">
             <div className="text-sm font-medium text-gray-900 truncate">
-              {(toko as any).nama_sales || 'Sales tidak tersedia'}
+              {toko.nama_sales || 'Sales tidak tersedia'}
             </div>
             <div className="text-xs text-gray-500">
-              ID Sales: {toko.id_sales}
+              {toko.telepon_sales ? `Tel: ${toko.telepon_sales}` : 'Tidak ada telepon'}
             </div>
           </div>
         )
@@ -265,47 +511,27 @@ function TokoDataTable({
       meta: { priority: 'medium', columnType: 'status' },
     },
     {
-      accessorKey: 'barang_terkirim',
-      header: 'Barang Terkirim',
+      accessorKey: 'quantity_shipped',
+      header: 'Barang Dikirim',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = (() => {
-          if (!toko.detail_barang_terkirim || toko.detail_barang_terkirim.length === 0) {
-            return <p className="text-sm text-gray-500">Belum ada barang terkirim</p>
-          }
-          return (
-            <div className="space-y-1">
-              {toko.detail_barang_terkirim.map((item: any, index: number) => (
-                <div key={`${toko.id_toko}-terkirim-${index}`} className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.nama_produk}</span>
-                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
+        return (
+          <ProductDetailTooltip 
+            detailString={toko.detail_shipped} 
+            title="Detail Barang Dikirim"
+          >
+            <div className="text-left flex items-center gap-2">
+              <Truck className="h-4 w-4 text-blue-500" />
+              <div>
+                <div className="text-sm font-medium text-blue-600">
+                  {formatNumber(toko.quantity_shipped || 0)}
                 </div>
-              ))}
-              <div className="border-t pt-1 mt-2">
-                <div className="flex justify-between font-semibold">
-                  <span>Total:</span>
-                  <span>{formatNumber(toko.barang_terkirim)}</span>
+                <div className="text-xs text-gray-500">
+                  total dikirim
                 </div>
               </div>
             </div>
-          )
-        })()
-        
-        return (
-          <Tooltip delayDuration={200}>
-            <TooltipTrigger asChild>
-              <div className="text-left flex items-center gap-2 cursor-help">
-                <Truck className="h-4 w-4 text-blue-500" />
-                <span className="font-medium text-blue-600">{formatNumber(toko.barang_terkirim)}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-xs">
-                <p className="font-semibold mb-2">Barang Terkirim ke {toko.nama_toko}</p>
-                {tooltipContent}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          </ProductDetailTooltip>
         )
       },
       size: 140,
@@ -314,47 +540,27 @@ function TokoDataTable({
       meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
     },
     {
-      accessorKey: 'barang_terbayar',
-      header: 'Barang Terbayar',
+      accessorKey: 'quantity_sold',
+      header: 'Barang Terjual',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = (() => {
-          if (!toko.detail_barang_terbayar || toko.detail_barang_terbayar.length === 0) {
-            return <p className="text-sm text-gray-500">Belum ada barang terbayar</p>
-          }
-          return (
-            <div className="space-y-1">
-              {toko.detail_barang_terbayar.map((item: any, index: number) => (
-                <div key={`${toko.id_toko}-terbayar-${index}`} className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.nama_produk}</span>
-                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
+        return (
+          <ProductDetailTooltip 
+            detailString={toko.detail_sold} 
+            title="Detail Barang Terjual"
+          >
+            <div className="text-left flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-green-500" />
+              <div>
+                <div className="text-sm font-medium text-green-600">
+                  {formatNumber(toko.quantity_sold || 0)}
                 </div>
-              ))}
-              <div className="border-t pt-1 mt-2">
-                <div className="flex justify-between font-semibold">
-                  <span>Total:</span>
-                  <span>{formatNumber(toko.barang_terbayar)}</span>
+                <div className="text-xs text-gray-500">
+                  total terjual
                 </div>
               </div>
             </div>
-          )
-        })()
-        
-        return (
-          <Tooltip delayDuration={200}>
-            <TooltipTrigger asChild>
-              <div className="text-left flex items-center gap-2 cursor-help">
-                <DollarSign className="h-4 w-4 text-green-500" />
-                <span className="font-medium text-green-600">{formatNumber(toko.barang_terbayar)}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-xs">
-                <p className="font-semibold mb-2">Barang Terbayar dari {toko.nama_toko}</p>
-                {tooltipContent}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          </ProductDetailTooltip>
         )
       },
       size: 140,
@@ -363,53 +569,58 @@ function TokoDataTable({
       meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
     },
     {
-      accessorKey: 'sisa_stok',
+      accessorKey: 'remaining_stock',
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const toko = row.original
-        const tooltipContent = (() => {
-          if (!toko.detail_sisa_stok || toko.detail_sisa_stok.length === 0) {
-            return <p className="text-sm text-gray-500">Tidak ada sisa stok</p>
-          }
-          return (
-            <div className="space-y-1">
-              {toko.detail_sisa_stok.map((item: any, index: number) => (
-                <div key={`${toko.id_toko}-stok-${index}`} className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.nama_produk}</span>
-                  <span className="font-medium">{formatNumber(item.jumlah)}</span>
+        return (
+          <RemainingStockTooltip 
+            detailShipped={toko.detail_shipped}
+            detailSold={toko.detail_sold}
+            title="Detail Sisa Stok"
+          >
+            <div className="text-left flex items-center gap-2">
+              <Warehouse className="h-4 w-4 text-orange-500" />
+              <div>
+                <div className="text-sm font-medium text-orange-600">
+                  {formatNumber(toko.remaining_stock || 0)}
                 </div>
-              ))}
-              <div className="border-t pt-1 mt-2">
-                <div className="flex justify-between font-semibold">
-                  <span>Total:</span>
-                  <span>{formatNumber(toko.sisa_stok)}</span>
+                <div className="text-xs text-gray-500">
+                  sisa stok
                 </div>
               </div>
             </div>
-          )
-        })()
-        
-        return (
-          <Tooltip delayDuration={200}>
-            <TooltipTrigger asChild>
-              <div className="text-left flex items-center gap-2 cursor-help">
-                <Warehouse className="h-4 w-4 text-orange-500" />
-                <span className="font-medium text-orange-600">{formatNumber(toko.sisa_stok)}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="max-w-xs">
-                <p className="font-semibold mb-2">Sisa Stok di {toko.nama_toko}</p>
-                {tooltipContent}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          </RemainingStockTooltip>
         )
       },
       size: 120,
       minSize: 100,
       maxSize: 140,
       meta: { priority: 'medium', columnType: 'stats', hideOnMobile: true },
+    },
+    {
+      accessorKey: 'total_revenue',
+      header: 'Total Pendapatan',
+      cell: ({ row }) => {
+        const toko = row.original
+        return (
+          <div className="text-left flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-purple-500" />
+            <div>
+              <div className="text-sm font-medium text-purple-600">
+                Rp {formatNumber(toko.total_revenue || 0)}
+              </div>
+              <div className="text-xs text-gray-500">
+                pendapatan
+              </div>
+            </div>
+          </div>
+        )
+      },
+      size: 150,
+      minSize: 130,
+      maxSize: 170,
+      meta: { priority: 'low', columnType: 'stats', hideOnMobile: true },
     },
   ], [])
 
@@ -489,67 +700,106 @@ export default function TokoPage() {
   const { navigate } = useNavigation()
   const { toast } = useToast()
   const deleteTokoMutation = useDeleteTokoMutation()
-  const invalidate = useInvalidateOptimizedToko()
 
-  // Initialize state management
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    suggestions,
-    suggestionsLoading,
-    filterOptions,
-    params,
-    updateParams
-  } = useOptimizedTokoState({
-    page: 1,
-    limit: 20,
+  // Filter and pagination state
+  const [filters, setFilters] = useState({
     search: '',
-    sortBy: 'nama_toko',
-    sortOrder: 'asc'
+    kabupaten: 'all',
+    kecamatan: 'all',
+    status_toko: 'all'
+  })
+  
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 25
   })
 
-  // Handle search
-  const handleSearchChange = useCallback((value: string) => {
-    updateParams({ search: value, page: 1 })
-  }, [updateParams])
-
-  // Handle search suggestion selection
-  const handleSuggestionSelect = useCallback((suggestion: any) => {
-    if (suggestion.type === 'toko') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'kabupaten') {
-      updateParams({ kabupaten: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'kecamatan') {
-      updateParams({ kecamatan: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'sales') {
-      updateParams({ 
-        id_sales: suggestion.metadata?.id_sales?.toString(), 
-        search: '', 
-        page: 1 
-      })
+  // Query parameters for API
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page: pagination.page,
+      limit: pagination.limit
     }
-  }, [updateParams])
-
-  // Handle filter changes
-  const handleFilterChange = useCallback((filters: Record<string, string>) => {
-    if (Object.keys(filters).length === 0) {
-      updateParams({
-        status: '',
-        id_sales: '',
-        kabupaten: '',
-        kecamatan: '',
-        search: '',
-        page: 1
-      })
-    } else {
-      updateParams({ ...filters, page: 1 })
+    
+    // Only add defined filter values
+    if (filters.search.trim()) {
+      params.search = filters.search.trim()
     }
-  }, [updateParams])
+    if (filters.kabupaten !== 'all') {
+      params.kabupaten = filters.kabupaten
+    }
+    if (filters.kecamatan !== 'all') {
+      params.kecamatan = filters.kecamatan
+    }
+    if (filters.status_toko !== 'all') {
+      params.status_toko = filters.status_toko
+    }
+    
+    return params
+  }, [filters, pagination])
+
+  // Use paginated query
+  const { data: masterData, isLoading, error, refetch } = useMasterTokoQuery(queryParams)
+  
+  // Transform data for compatibility with existing table component
+  const data = {
+    data: masterData?.data?.data || [],
+    pagination: masterData?.data?.pagination ? {
+      hasNextPage: masterData.data.pagination.hasNextPage,
+      hasPrevPage: masterData.data.pagination.hasPrevPage,
+      totalPages: masterData.data.pagination.totalPages,
+      currentPage: masterData.data.pagination.page,
+      pageSize: masterData.data.pagination.limit,
+      total: masterData.data.pagination.total,
+      totalItems: masterData.data.pagination.total,
+      totalRecords: masterData.data.pagination.total,
+      limit: masterData.data.pagination.limit,
+      page: masterData.data.pagination.page,
+      from: masterData.data.pagination.from,
+      to: masterData.data.pagination.to
+    } : {
+      hasNextPage: false,
+      hasPrevPage: false,
+      totalPages: 1,
+      currentPage: 1,
+      pageSize: 25,
+      total: 0,
+      totalItems: 0,
+      totalRecords: 0,
+      limit: 25,
+      page: 1,
+      from: 0,
+      to: 0
+    }
+  }
+
+  // Filter handlers
+  const handleFiltersChange = useCallback((newFilters: Partial<typeof filters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }))
+    // Reset to page 1 when filters change
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      search: '',
+      kabupaten: 'all',
+      kecamatan: 'all', 
+      status_toko: 'all'
+    })
+    // Reset to page 1 when clearing filters
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
+  
+  // Pagination handlers
+  const updateParams = useCallback((newParams: { page?: number }) => {
+    if (newParams.page !== undefined) {
+      setPagination(prev => ({ ...prev, page: newParams.page! }))
+    }
+  }, [])
 
   // Handle delete
-  const handleDelete = useCallback((toko: TokoWithStats) => {
+  const handleDelete = useCallback((toko: MasterToko) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus toko "${toko.nama_toko}"?`)) {
       deleteTokoMutation.mutate(toko.id_toko, {
         onSuccess: () => {
@@ -557,7 +807,7 @@ export default function TokoPage() {
             title: "Berhasil",
             description: `Toko "${toko.nama_toko}" berhasil dihapus`,
           })
-          invalidate.invalidateLists()
+          refetch()
         },
         onError: (error: any) => {
           toast({
@@ -568,54 +818,72 @@ export default function TokoPage() {
         }
       })
     }
-  }, [deleteTokoMutation, toast, invalidate])
+  }, [deleteTokoMutation, toast, refetch])
 
   // Handle view
-  const handleView = useCallback((toko: TokoWithStats) => {
+  const handleView = useCallback((toko: MasterToko) => {
     navigate(`/dashboard/master-data/toko/${toko.id_toko}`)
   }, [navigate])
 
   // Handle edit
-  const handleEdit = useCallback((toko: TokoWithStats) => {
+  const handleEdit = useCallback((toko: MasterToko) => {
     navigate(`/dashboard/master-data/toko/${toko.id_toko}/edit`)
   }, [navigate])
 
-  // Handle export
-  const handleExport = useCallback(() => {
-    if (!data?.data) return
-    
-    const result = exportStoreData(data.data)
-    if (result.success) {
-      toast({
-        title: "Export Berhasil",
-        description: `Data berhasil diexport ke ${result.filename}`,
-      })
-    } else {
+  // Handle export - fetch all data for export
+  const handleExport = useCallback(async () => {
+    try {
+      // Fetch all data with current filters but no pagination limit
+      const exportParams = {
+        ...filters,
+        kabupaten: filters.kabupaten === 'all' ? undefined : filters.kabupaten,
+        kecamatan: filters.kecamatan === 'all' ? undefined : filters.kecamatan,
+        status_toko: filters.status_toko === 'all' ? undefined : filters.status_toko,
+        search: filters.search.trim() || undefined,
+        limit: 10000, // Large limit to get all data
+        page: 1
+      }
+      
+      const exportData = await apiClient.getMasterToko(exportParams)
+      
+      if (exportData?.success && exportData.data?.data) {
+        const result = exportStoreData(exportData.data.data)
+        if (result.success) {
+          toast({
+            title: "Export Berhasil",
+            description: `Data berhasil diexport ke ${result.filename}`,
+          })
+        } else {
+          toast({
+            title: "Export Gagal",
+            description: result.error || "Terjadi kesalahan saat export",
+            variant: "destructive",
+          })
+        }
+      } else {
+        throw new Error('Gagal mengambil data untuk export')
+      }
+    } catch (error: any) {
       toast({
         title: "Export Gagal",
-        description: result.error || "Terjadi kesalahan saat export",
+        description: error.message || "Terjadi kesalahan saat export",
         variant: "destructive",
       })
     }
-  }, [data?.data, toast])
+  }, [filters, toast])
 
   // Handle add new
   const handleAdd = useCallback(() => {
     navigate('/dashboard/master-data/toko/add')
   }, [navigate])
 
-  // Current filters for display
-  const currentFilters = useMemo(() => {
-    const filters: Record<string, string> = {}
-    if (params.status) filters.status_toko = params.status
-    if (params.id_sales) filters.id_sales = params.id_sales
-    if (params.kabupaten) filters.kabupaten = params.kabupaten
-    if (params.kecamatan) filters.kecamatan = params.kecamatan
-    return filters
-  }, [params])
-
-  // Summary statistics with safe defaults
-  const summary = data?.summary
+  // Summary statistics for header display only
+  const summary = {
+    total_stores: data.pagination.total,
+    displayed_stores: data.data.length,
+    unique_kabupaten: new Set(data.data.map(t => t.kabupaten)).size,
+    unique_kecamatan: new Set(data.data.map(t => t.kecamatan)).size
+  }
 
   return (
     <TooltipProvider>
@@ -625,25 +893,45 @@ export default function TokoPage() {
         animate="visible" 
         className="p-6 space-y-6 w-full max-w-full overflow-hidden"
       >
-      {/* Page Header */}
-      <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Daftar Toko</h1>
-          <p className="text-gray-600 mt-2">
-            {summary ? 
-              `${formatNumber(summary.total_stores)} toko tersebar di ${formatNumber(summary.unique_kabupaten)} kabupaten dan ${formatNumber(summary.unique_kecamatan)} kecamatan` :
-              "Memuat data toko..."
-            }
-          </p>
+      {/* Page Header with Enhanced Statistics */}
+      <motion.div variants={cardVariants} className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Daftar Toko</h1>
+            <p className="text-gray-600 mt-2">
+              Menampilkan {formatNumber(data.pagination.from)}-{formatNumber(data.pagination.to)} dari {formatNumber(summary.total_stores)} toko
+              {data.pagination.totalPages > 1 && ` (halaman ${data.pagination.page} dari ${data.pagination.totalPages})`}
+              {summary.displayed_stores > 0 && ` tersebar di ${formatNumber(summary.unique_kabupaten)} kabupaten dan ${formatNumber(summary.unique_kecamatan)} kecamatan`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleExport} variant="outline" size="lg">
+              Export Excel
+            </Button>
+            <Button 
+              onClick={refetch} 
+              variant="outline" 
+              size="lg"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={handleAdd} size="lg">
+              Tambah Toko
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExport} variant="outline" size="lg">
-            Export Excel
-          </Button>
-          <Button onClick={handleAdd} size="lg">
-            Tambah Toko
-          </Button>
-        </div>
+      </motion.div>
+
+      {/* Filter Panel */}
+      <motion.div variants={cardVariants}>
+        <TokoFilterPanel
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          isLoading={isLoading}
+        />
       </motion.div>
 
       {/* Integrated Data Table Card */}
@@ -651,29 +939,14 @@ export default function TokoPage() {
         variants={cardVariants} 
         className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
-        {/* Search and Filter Section */}
-        <div className="p-6 border-b bg-gray-50">
-          <SearchFilterToko
-            value={params.search || ''}
-            onChange={handleSearchChange}
-            onFilterChange={handleFilterChange}
-            suggestions={suggestions}
-            suggestionsLoading={suggestionsLoading}
-            filterOptions={filterOptions}
-            activeFilters={currentFilters}
-            placeholder="Cari toko, lokasi, sales, nomor telepon..."
-            onSuggestionSelect={handleSuggestionSelect}
-          />
-        </div>
-
-        {/* Data Table Section */}
+        {/* Data Table Section with filtering */}
         <div className="w-full">
           <TokoDataTable
             data={data}
             isLoading={isLoading}
             error={error}
             refetch={refetch}
-            params={params}
+            params={pagination}
             updateParams={updateParams}
             onDelete={handleDelete}
             onView={handleView}
@@ -681,7 +954,7 @@ export default function TokoPage() {
           />
         </div>
       </motion.div>
-    </motion.div>
+      </motion.div>
     </TooltipProvider>
   )
 }

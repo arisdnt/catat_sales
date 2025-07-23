@@ -35,7 +35,8 @@ import {
   Store,
   ShoppingCart,
   Activity,
-  TrendingUp
+  TrendingUp,
+  ExternalLink
 } from 'lucide-react'
 import { useSetoranDetailQuery, useDeleteSetoranMutation, type SetoranDetail } from '@/lib/queries/setoran'
 import { formatCurrency } from '@/lib/form-utils'
@@ -121,15 +122,6 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Kembali
-            </Button>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 Detail Setoran #{setoran.id_setoran}
@@ -142,15 +134,25 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border-gray-300 text-gray-700 hover:text-gray-900 transition-all duration-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => router.push(`/dashboard/setoran/${setoranId}/edit`)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-700 hover:text-blue-900 transition-all duration-200"
             >
               <Edit className="w-4 h-4" />
               Edit
             </Button>
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="flex items-center gap-2">
+                <Button variant="destructive" size="sm" className="flex items-center gap-2">
                   <Trash2 className="w-4 h-4" />
                   Hapus
                 </Button>
@@ -241,42 +243,42 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Payment Summary */}
             <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Receipt className="w-5 h-5" />
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Receipt className="w-4 h-4" />
                   Ringkasan Pembayaran
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                    <div className="flex items-center justify-center w-12 h-12 bg-green-500 rounded-lg mx-auto mb-3">
-                      <CreditCard className="w-6 h-6 text-white" />
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-500 rounded-lg mx-auto mb-2">
+                      <CreditCard className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-green-600 mb-1">
+                    <div className="text-xl font-bold text-green-600 mb-1">
                       {formatCurrency(setoran.total_cash_diterima)}
                     </div>
-                    <div className="text-sm font-medium text-green-700">Pembayaran Cash</div>
+                    <div className="text-xs font-medium text-green-700">Pembayaran Cash</div>
                   </div>
                   
-                  <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-center w-12 h-12 bg-blue-500 rounded-lg mx-auto mb-3">
-                      <CreditCard className="w-6 h-6 text-white" />
+                  <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-lg mx-auto mb-2">
+                      <CreditCard className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-blue-600 mb-1">
+                    <div className="text-xl font-bold text-blue-600 mb-1">
                       {formatCurrency(setoran.total_transfer_diterima)}
                     </div>
-                    <div className="text-sm font-medium text-blue-700">Pembayaran Transfer</div>
+                    <div className="text-xs font-medium text-blue-700">Pembayaran Transfer</div>
                   </div>
                   
-                  <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                    <div className="flex items-center justify-center w-12 h-12 bg-purple-500 rounded-lg mx-auto mb-3">
-                      <TrendingUp className="w-6 h-6 text-white" />
+                  <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-center w-8 h-8 bg-purple-500 rounded-lg mx-auto mb-2">
+                      <TrendingUp className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-3xl font-bold text-purple-600 mb-1">
+                    <div className="text-xl font-bold text-purple-600 mb-1">
                       {formatCurrency(setoran.total_payments)}
                     </div>
-                    <div className="text-sm font-medium text-purple-700">Total Pembayaran</div>
+                    <div className="text-xs font-medium text-purple-700">Total Pembayaran</div>
                   </div>
                 </div>
               </CardContent>
@@ -294,7 +296,11 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
                 {setoran.related_payments && setoran.related_payments.length > 0 ? (
                   <div className="space-y-3">
                     {setoran.related_payments.map((payment: any) => (
-                      <div key={payment.id_penagihan} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div 
+                        key={payment.id_penagihan} 
+                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200 group"
+                        onClick={() => router.push(`/dashboard/penagihan/${payment.id_penagihan}`)}
+                      >
                         <div className={`p-2 rounded-full ${
                           payment.metode_pembayaran === 'Cash' 
                             ? 'bg-green-100 text-green-600' 
@@ -304,7 +310,7 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <div className="font-medium text-gray-900">
+                            <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                               {payment.toko.nama_toko}
                             </div>
                             <div className="text-sm text-gray-500">
@@ -318,13 +324,16 @@ export default function SetoranDetailPage({ params }: { params: Promise<{ id: st
                             {formatCurrency(payment.total_uang_diterima)}
                           </div>
                         </div>
-                        <Badge className={`${
-                          payment.metode_pembayaran === 'Cash' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {payment.metode_pembayaran}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={`${
+                            payment.metode_pembayaran === 'Cash' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {payment.metode_pembayaran}
+                          </Badge>
+                          <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        </div>
                       </div>
                     ))}
                   </div>

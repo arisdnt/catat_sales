@@ -104,7 +104,7 @@ export default function AddSetoranPage() {
                     id="total_setoran"
                     type="number"
                     min="1"
-                    step="1000"
+                    step="1"
                     value={totalSetoran || ''}
                     onChange={(e) => setTotalSetoran(parseInt(e.target.value) || 0)}
                     placeholder="Masukkan jumlah setoran"

@@ -1,0 +1,277 @@
+
+# Analisis File db.sql
+
+Berikut adalah analisis mendalam dari file `db.sql`, yang berisi dump database PostgreSQL.
+
+## 1. Struktur Tabel
+
+Database ini memiliki beberapa tabel utama yang saling berhubungan untuk mengelola data penjualan, pengiriman, dan inventaris.
+
+### Tabel Utama:
+
+*   **`sales`**: Menyimpan data master untuk setiap sales/penjual.
+    *   `id_sales` (integer, Primary Key): ID unik untuk setiap sales.
+    *   `nama_sales` (character varying(255)): Nama lengkap sales.
+    *   `nomor_telepon` (character varying(20)): Nomor telepon sales.
+    *   `status_aktif` (boolean): Menandakan apakah sales tersebut aktif atau tidak.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`toko`**: Menyimpan data master untuk setiap toko yang menjadi pelanggan.
+    *   `id_toko` (integer, Primary Key): ID unik untuk setiap toko.
+    *   `id_sales` (integer, Foreign Key): Merujuk ke tabel `sales`.
+    *   `nama_toko` (character varying(255)): Nama toko.
+    *   `kecamatan` (character varying(100)): Informasi kecamatan toko.
+    *   `kabupaten` (character varying(100)): Informasi kabupaten toko.
+    *   `link_gmaps` (text): Tautan ke Google Maps untuk lokasi toko.
+    *   `status_toko` (boolean): Menandakan apakah toko tersebut aktif atau tidak.
+    *   `no_telepon` (character varying(20)): Nomor telepon toko.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`produk`**: Menyimpan data master untuk setiap produk yang dijual.
+    *   `id_produk` (integer, Primary Key): ID unik untuk setiap produk.
+    *   `nama_produk` (character varying(255)): Nama produk.
+    *   `harga_satuan` (numeric(10,2)): Harga per unit produk.
+    *   `status_produk` (boolean): Menandakan apakah produk tersebut aktif atau tidak.
+    *   `is_priority` (boolean): Menandakan produk prioritas.
+    *   `priority_order` (integer): Urutan prioritas produk.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`pengiriman`**: Mencatat setiap proses pengiriman barang ke toko.
+    *   `id_pengiriman` (integer, Primary Key): ID unik untuk setiap pengiriman.
+    *   `id_toko` (integer, Foreign Key): Merujuk ke tabel `toko`.
+    *   `tanggal_kirim` (date): Tanggal barang dikirim.
+    *   `is_autorestock` (boolean): Menandakan apakah pengiriman ini adalah restock otomatis.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`detail_pengiriman`**: Tabel detail untuk `pengiriman`.
+    *   `id_detail_kirim` (integer, Primary Key): ID unik.
+    *   `id_pengiriman` (integer, Foreign Key): Merujuk ke tabel `pengiriman`.
+    *   `id_produk` (integer, Foreign Key): Merujuk ke tabel `produk`.
+    *   `jumlah_kirim` (integer): Jumlah produk yang dikirim.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`penagihan`**: Mencatat setiap transaksi penagihan pembayaran dari toko.
+    *   `id_penagihan` (integer, Primary Key): ID unik untuk setiap penagihan.
+    *   `id_toko` (integer, Foreign Key): Merujuk ke tabel `toko`.
+    *   `total_uang_diterima` (numeric(12,2)): Jumlah uang yang diterima.
+    *   `metode_pembayaran` (character varying(20)): Metode pembayaran (Cash atau Transfer).
+    *   `ada_potongan` (boolean): Menandakan apakah ada potongan dalam penagihan.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`detail_penagihan`**: Tabel detail untuk `penagihan`.
+    *   `id_detail_tagih` (integer, Primary Key): ID unik.
+    *   `id_penagihan` (integer, Foreign Key): Merujuk ke tabel `penagihan`.
+    *   `id_produk` (integer, Foreign Key): Merujuk ke tabel `produk`.
+    *   `jumlah_terjual` (integer): Jumlah produk yang terjual.
+    *   `jumlah_kembali` (integer): Jumlah produk yang dikembalikan.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`potongan_penagihan`**: Mencatat detail potongan yang diberikan saat penagihan.
+    *   `id_potongan` (integer, Primary Key): ID unik.
+    *   `id_penagihan` (integer, Foreign Key): Merujuk ke tabel `penagihan`.
+    *   `jumlah_potongan` (numeric(12,2)): Jumlah potongan yang diberikan.
+    *   `alasan` (text): Alasan pemberian potongan.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`setoran`**: Mencatat setoran uang tunai yang diterima.
+    *   `id_setoran` (integer, Primary Key): ID unik.
+    *   `total_setoran` (numeric(14,2)): Jumlah uang yang disetor.
+    *   `penerima_setoran` (character varying(100)): Nama penerima setoran.
+    *   `dibuat_pada` (timestamp without time zone): Waktu pembuatan data.
+    *   `diperbarui_pada` (timestamp without time zone): Waktu pembaruan data.
+
+*   **`system_logs`**: Tabel untuk mencatat log sistem.
+    *   `id` (integer, Primary Key): ID unik.
+    *   `log_type` (character varying(50)): Jenis log.
+    *   `message` (text): Pesan log.
+    *   `created_at` (timestamp without time zone): Waktu pembuatan log.
+
+## 2. Fungsi (Functions)
+
+Database ini menggunakan banyak fungsi PostgreSQL (`plpgsql`) untuk melakukan operasi yang kompleks, terutama untuk pencarian, agregasi data, dan pelaporan.
+
+### Fungsi Utama:
+
+*   **Pencarian dan Penyaringan (Search and Filtering):**
+    *   `search_sales_optimized`, `count_sales_optimized`: Untuk mencari dan menghitung data sales dengan berbagai filter (nama, status, tanggal, dll.).
+    *   `search_toko_simple`, `get_toko_filter_options_simple`, `get_toko_search_suggestions_simple`: Untuk mencari toko, mendapatkan opsi filter, dan saran pencarian.
+    *   `search_pengiriman_optimized`, `search_pengiriman_simple`: Untuk mencari data pengiriman dengan berbagai filter.
+    *   `search_penagihan_optimized`: Untuk mencari data penagihan dengan filter yang kompleks.
+    *   `rpc_search_products`, `rpc_count_products`: Untuk mencari dan menghitung produk.
+
+*   **Agregasi dan Statistik:**
+    *   `get_setoran_filter_options`: Mendapatkan data agregat untuk setoran.
+    *   `rpc_get_product_statistics`, `rpc_get_product_by_id`: Mendapatkan statistik lengkap untuk produk, termasuk total terkirim, terjual, dan pendapatan.
+
+*   **Penyegaran Data (Data Refresh):**
+    *   `refresh_penagihan_materialized_views`, `trigger_refresh_penagihan_views`: Fungsi dan trigger yang (sebelumnya) digunakan untuk me-refresh materialized view terkait penagihan. Saat ini hanya sebagai placeholder.
+    *   `trigger_refresh_pengiriman_mv`, `trigger_refresh_sales_aggregates`, `trigger_refresh_toko_aggregates`: Trigger yang memanggil fungsi untuk menyegarkan data agregat ketika ada perubahan pada tabel terkait.
+
+## 3. Views
+
+Views digunakan secara ekstensif untuk menyajikan data yang sudah diolah dan diagregasi dari beberapa tabel, sehingga mempermudah pembuatan laporan dan dashboard.
+
+### Views Utama:
+
+*   **Dashboard & Ringkasan:**
+    *   `v_dashboard_overview`: Memberikan ringkasan umum bisnis, termasuk pengiriman, penagihan, pendapatan, dan setoran untuk hari ini dan bulan ini.
+        *   **Contoh Data:**
+            ```json
+            {
+              "tanggal_dashboard": "2025-07-23",
+              "pengiriman_hari_ini": 5,
+              "penagihan_hari_ini": 3,
+              "pendapatan_hari_ini": 1500000.00,
+              "setoran_hari_ini": 1200000.00,
+              "selisih_hari_ini": 300000.00,
+              "total_sales_aktif": 10,
+              "total_toko_aktif": 150,
+              "total_produk_aktif": 25
+            }
+            ```
+
+    *   `v_cash_flow_dashboard`: Menampilkan ringkasan arus kas harian, membandingkan total pembayaran tunai dengan total setoran.
+        *   **Contoh Data:**
+            ```json
+            {
+              "tanggal_laporan": "2025-07-22",
+              "pembayaran_cash_hari_ini": 2500000.00,
+              "total_setoran_hari_ini": 2500000.00,
+              "selisih_harian": 0.00,
+              "status_setoran_harian": "SESUAI",
+              "cash_balance_kumulatif": 5000000.00
+            }
+            ```
+
+    *   `v_setoran_dashboard`: Memberikan tampilan mendetail dari setiap transaksi setoran dan membandingkannya dengan pembayaran tunai pada hari yang sama.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_setoran": 123,
+              "tanggal_setoran": "2025-07-23",
+              "total_setoran": 1200000.00,
+              "penerima_setoran": "Budi",
+              "pembayaran_cash_hari_ini": 1500000.00,
+              "selisih_cash_setoran": 300000.00,
+              "status_setoran": "KURANG_SETOR"
+            }
+            ```
+
+*   **Master Data dengan Agregasi:**
+    *   `v_master_sales`: Menampilkan data sales beserta statistik kinerja mereka.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_sales": 1,
+              "nama_sales": "Agus",
+              "status_aktif": true,
+              "total_stores": 15,
+              "total_revenue": 25000000.00,
+              "quantity_shipped": 500,
+              "quantity_sold": 450,
+              "detail_shipped": "Produk A [200], Produk B [300]",
+              "detail_sold": "Produk A [180], Produk B [270]"
+            }
+            ```
+
+    *   `v_master_toko`: Menampilkan data toko beserta ringkasan stok.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_toko": 101,
+              "nama_toko": "Toko Maju Jaya",
+              "kecamatan": "Cilandak",
+              "kabupaten": "Jakarta Selatan",
+              "nama_sales": "Agus",
+              "quantity_shipped": 100,
+              "quantity_sold": 80,
+              "quantity_returned": 5,
+              "remaining_stock": 15,
+              "total_revenue": 4000000.00
+            }
+            ```
+
+    *   `v_master_produk`: Menampilkan data produk beserta statistik penjualannya.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_produk": 1,
+              "nama_produk": "Produk A",
+              "harga_satuan": 20000.00,
+              "status_produk": true,
+              "total_dikirim": 1000,
+              "total_terjual": 850,
+              "total_dikembalikan": 50,
+              "stok_di_toko": 100,
+              "total_dibayar": 17000000.00
+            }
+            ```
+
+*   **Laporan Operasional:**
+    *   `v_penagihan_dashboard`: Menampilkan daftar transaksi penagihan.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_penagihan": 201,
+              "dibuat_pada": "2025-07-23T10:00:00",
+              "nama_toko": "Toko Maju Jaya",
+              "nama_sales": "Agus",
+              "total_uang_diterima": 500000.00,
+              "metode_pembayaran": "Cash",
+              "kuantitas_terjual": 25,
+              "detail_terjual": "Produk A [10], Produk B [15]"
+            }
+            ```
+
+    *   `v_pengiriman_dashboard`: Menampilkan daftar transaksi pengiriman.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_pengiriman": 301,
+              "tanggal_kirim": "2025-07-22",
+              "nama_toko": "Toko Berkah",
+              "nama_sales": "Budi",
+              "total_quantity": 50,
+              "detail_pengiriman": "Produk C [50]"
+            }
+            ```
+
+    *   `v_rekonsiliasi_setoran`: Membantu proses rekonsiliasi setoran.
+        *   **Contoh Data:**
+            ```json
+            {
+              "id_setoran": 123,
+              "tanggal_setoran": "2025-07-22",
+              "total_setoran": 2500000.00,
+              "penerima_setoran": "Kantor Pusat",
+              "total_penagihan_cash": 2500000.00,
+              "selisih": 0.00
+            }
+            ```
+
+*   **Opsi Filter (Dropdown/Pilihan):**
+    *   `v_kabupaten_options`, `v_kecamatan_options`, `v_sales_options`, `v_toko_options`, `v_produk_options`: Views ini menyediakan daftar unik dari berbagai entitas untuk digunakan dalam filter UI.
+        *   **Contoh Data (`v_sales_options`):**
+            ```json
+            [
+              {"id_sales": 1, "nama_sales": "Agus", "status_aktif": true},
+              {"id_sales": 2, "nama_sales": "Budi", "status_aktif": true}
+            ]
+            ```
+
+## 4. Indeks dan Trigger
+
+*   **Indeks**: Database ini dioptimalkan dengan baik menggunakan berbagai jenis indeks (B-tree, GIN) pada kolom-kolom yang sering digunakan dalam klausa `WHERE`, `JOIN`, dan `ORDER BY`. Ini secara signifikan mempercepat query pencarian dan penyaringan. Terdapat indeks pada foreign key, kolom status, tanggal, dan bahkan indeks full-text search pada nama produk dan nama toko.
+*   **Trigger**: Trigger digunakan untuk secara otomatis memanggil fungsi-fungsi penyegaran data (misalnya, `trigger_refresh_sales_aggregates`) setiap kali ada perubahan (INSERT, UPDATE, DELETE) pada tabel-tabel utama seperti `sales`, `toko`, `pengiriman`, dan `penagihan`. Ini memastikan bahwa data agregat (yang mungkin digunakan oleh views) tetap up-to-date.
+
+## Kesimpulan
+
+Struktur database ini dirancang dengan baik untuk aplikasi manajemen penjualan dan distribusi. Penggunaan fungsi, views, indeks, dan trigger yang ekstensif menunjukkan fokus pada kinerja query dan penyajian data yang efisien untuk keperluan pelaporan dan analisis. Skema ini memungkinkan pelacakan yang mendalam dari siklus hidup produk, mulai dari pengiriman, penjualan di toko, hingga pembayaran dan rekonsiliasi keuangan.

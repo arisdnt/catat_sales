@@ -49,7 +49,7 @@ export default function EditPengirimanPage() {
   const updateMutation = useUpdatePengirimanMutation()
   
   const pengiriman = (response as any)?.data
-  const products = (productsResponse as any)?.data || []
+  const products = (productsResponse as any)?.data?.data || []
 
   useEffect(() => {
     if (pengiriman) {
@@ -266,12 +266,28 @@ export default function EditPengirimanPage() {
                                   <SelectValue placeholder="Pilih produk" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="0">Pilih produk</SelectItem>
-                                  {products.map((product: any) => (
-                                    <SelectItem key={product.id_produk} value={product.id_produk.toString()}>
-                                      {product.nama_produk} - Rp {product.harga_satuan.toLocaleString("id-ID")}
-                                    </SelectItem>
-                                  ))}
+                                  {detail.id_produk === 0 && (
+                                    <SelectItem value="0">Pilih produk</SelectItem>
+                                  )}
+                                  {/* Show currently selected product first */}
+                                  {detail.id_produk !== 0 && (
+                                    (() => {
+                                      const selectedProduct = products.find((p: any) => p.id_produk === detail.id_produk)
+                                      return selectedProduct ? (
+                                        <SelectItem key={selectedProduct.id_produk} value={selectedProduct.id_produk.toString()}>
+                                          {selectedProduct.nama_produk} - Rp {selectedProduct.harga_satuan.toLocaleString("id-ID")} (Terpilih)
+                                        </SelectItem>
+                                      ) : null
+                                    })()
+                                  )}
+                                  {/* Show other products */}
+                                  {products
+                                    .filter((product: any) => product.id_produk !== detail.id_produk)
+                                    .map((product: any) => (
+                                      <SelectItem key={product.id_produk} value={product.id_produk.toString()}>
+                                        {product.nama_produk} - Rp {product.harga_satuan.toLocaleString("id-ID")}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             </div>

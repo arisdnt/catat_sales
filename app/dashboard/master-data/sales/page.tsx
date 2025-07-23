@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { motion } from 'framer-motion'
 import { type ColumnDef } from '@tanstack/react-table'
 import {
@@ -11,7 +11,11 @@ import {
   XCircle,
   DollarSign,
   Store,
-  Package
+  Package,
+  Search,
+  Filter,
+  RefreshCw,
+  Phone
 } from 'lucide-react'
 
 import { useToast } from '@/components/ui/use-toast'
@@ -20,12 +24,11 @@ import { Badge } from '@/components/ui/badge'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
-import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
-import {
-  useOptimizedSalesState,
-  useInvalidateOptimizedSales,
-  type SalesWithStats
-} from '@/lib/queries/sales-optimized'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useMasterSalesQuery, type MasterSales } from '@/lib/queries/dashboard'
 import { useDeleteSalesMutation } from '@/lib/queries/sales'
 import { exportSalesData } from '@/lib/excel-export'
 
@@ -84,6 +87,94 @@ function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+// Filter types
+interface SalesFilters {
+  search: string
+  status_aktif: string
+  telepon_exists: string
+}
+
+// Filter component
+function SalesFilterPanel({ 
+  filters, 
+  onFiltersChange,
+  onClearFilters,
+  isLoading
+}: {
+  filters: SalesFilters
+  onFiltersChange: (filters: Partial<SalesFilters>) => void
+  onClearFilters: () => void
+  isLoading: boolean
+}) {
+  const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all')
+
+  return (
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search Input */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Cari sales, telepon..."
+                value={filters.search}
+                onChange={(e) => onFiltersChange({ search: e.target.value })}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.status_aktif}
+              onValueChange={(value) => onFiltersChange({ status_aktif: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="true">Aktif</SelectItem>
+                <SelectItem value="false">Tidak Aktif</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Phone Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.telepon_exists}
+              onValueChange={(value) => onFiltersChange({ telepon_exists: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Telepon" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="true">Ada Telepon</SelectItem>
+                <SelectItem value="false">Tanpa Telepon</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearFilters}
+            disabled={!hasActiveFilters || isLoading}
+            className="p-2"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 // Data table component (identical structure to toko)
 function SalesDataTable({ 
   data, 
@@ -102,12 +193,12 @@ function SalesDataTable({
   refetch: () => void
   params: any
   updateParams: (params: any) => void
-  onDelete: (sales: SalesWithStats) => void
-  onView: (sales: SalesWithStats) => void
-  onEdit: (sales: SalesWithStats) => void
+  onDelete: (sales: MasterSales) => void
+  onView: (sales: MasterSales) => void
+  onEdit: (sales: MasterSales) => void
 }) {
   // Define table columns with optimized compact layout
-  const columns = useMemo<ColumnDef<SalesWithStats>[]>(() => [
+  const columns = useMemo<ColumnDef<MasterSales>[]>(() => [
     {
       accessorKey: 'nama_sales',
       header: 'Sales',
@@ -131,12 +222,20 @@ function SalesDataTable({
         const sales = row.original
         return (
           <div className="min-w-0 text-left">
-            <div className="text-sm font-medium text-gray-900 truncate">
-              {sales.nomor_telepon || '-'}
-            </div>
-            <div className="text-xs text-gray-500">
-              {sales.nomor_telepon ? 'Verified' : 'No phone'}
-            </div>
+            {sales.nomor_telepon ? (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-green-600" />
+                <a 
+                  href={`tel:${sales.nomor_telepon}`}
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {sales.nomor_telepon}
+                </a>
+              </div>
+            ) : (
+              <span className="text-sm text-gray-400 italic">Tidak tersedia</span>
+            )}
           </div>
         )
       },
@@ -163,18 +262,16 @@ function SalesDataTable({
       maxSize: 120,
     },
     {
-      accessorKey: 'total_toko',
+      accessorKey: 'total_stores',
       header: 'Total Toko',
       cell: ({ row }) => {
         const sales = row.original
-        const totalStores = sales.total_stores || 0
-        
         return (
           <div className="text-left flex items-center gap-2">
             <Store className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-sm font-medium text-blue-600">
-                {formatNumber(totalStores)}
+                {formatNumber(sales.total_stores)}
               </div>
               <div className="text-xs text-gray-500">toko</div>
             </div>
@@ -187,22 +284,36 @@ function SalesDataTable({
       meta: { priority: 'medium', columnType: 'stats' },
     },
     {
-      accessorKey: 'barang_terkirim',
-      header: 'Barang Terkirim',
+      accessorKey: 'quantity_shipped',
+      header: 'Barang Dikirim',
       cell: ({ row }) => {
         const sales = row.original
-        const shipped = sales.total_shipped_items || 0
-        
         return (
-          <div className="text-left flex items-center gap-2">
-            <Package className="h-4 w-4 text-blue-500" />
-            <div>
-              <div className="text-sm font-medium text-blue-600">
-                {formatNumber(shipped)}
-              </div>
-              <div className="text-xs text-gray-500">terkirim</div>
-            </div>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-left flex items-center gap-2 cursor-help">
+                  <Package className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <div className="text-sm font-medium text-blue-600">
+                      {formatNumber(sales.quantity_shipped)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      barang
+                    </div>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="p-2">
+                  <p className="font-semibold text-sm mb-2">Detail Barang Dikirim:</p>
+                  <p className="text-xs whitespace-pre-line">
+                    {sales.detail_shipped || 'Tidak ada detail tersedia'}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       size: 130,
@@ -211,22 +322,36 @@ function SalesDataTable({
       meta: { priority: 'high', columnType: 'stats' },
     },
     {
-      accessorKey: 'barang_terjual',
+      accessorKey: 'quantity_sold',
       header: 'Barang Terjual',
       cell: ({ row }) => {
         const sales = row.original
-        const sold = sales.total_items_sold || 0
-        
         return (
-          <div className="text-left flex items-center gap-2">
-            <Package className="h-4 w-4 text-green-500" />
-            <div>
-              <div className="text-sm font-medium text-green-600">
-                {formatNumber(sold)}
-              </div>
-              <div className="text-xs text-gray-500">terjual</div>
-            </div>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-left flex items-center gap-2 cursor-help">
+                  <Package className="h-4 w-4 text-green-500" />
+                  <div>
+                    <div className="text-sm font-medium text-green-600">
+                      {formatNumber(sales.quantity_sold)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      barang
+                    </div>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="p-2">
+                  <p className="font-semibold text-sm mb-2">Detail Barang Terjual:</p>
+                  <p className="text-xs whitespace-pre-line">
+                    {sales.detail_sold || 'Tidak ada detail tersedia'}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       size: 130,
@@ -235,27 +360,64 @@ function SalesDataTable({
       meta: { priority: 'high', columnType: 'stats' },
     },
     {
-      accessorKey: 'sisa_stok',
+      accessorKey: 'remaining_stock',
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const sales = row.original
-        const shipped = sales.total_shipped_items || 0
-        const sold = sales.total_items_sold || 0
-        const returned = sales.total_items_returned || 0
-        const remainingStock = shipped - sold - returned
+        const remainingStock = (sales.quantity_shipped || 0) - (sales.quantity_sold || 0)
         
+        // Parse detail untuk menghitung sisa per produk
+        const parseDetail = (detail: string) => {
+          if (!detail) return {}
+          const items: { [key: string]: number } = {}
+          const matches = detail.match(/([^[]+)\[(\d+)\]/g)
+          if (matches) {
+            matches.forEach(match => {
+              const [, name, qty] = match.match(/([^[]+)\[(\d+)\]/) || []
+              if (name && qty) {
+                items[name.trim()] = parseInt(qty)
+              }
+            })
+          }
+          return items
+        }
+
+        const shippedItems = parseDetail(sales.detail_shipped || '')
+        const soldItems = parseDetail(sales.detail_sold || '')
+        
+        const remainingDetails = Object.keys(shippedItems).map(product => {
+          const shipped = shippedItems[product] || 0
+          const sold = soldItems[product] || 0
+          const remaining = shipped - sold
+          return `${product} [${remaining}]`
+        }).join(', ')
+
         return (
-          <div className="text-left flex items-center gap-2">
-            <Package className="h-4 w-4 text-orange-500" />
-            <div>
-              <div className="text-sm font-medium text-orange-600">
-                {formatNumber(remainingStock)}
-              </div>
-              <div className="text-xs text-gray-500">
-                sisa stok
-              </div>
-            </div>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-left flex items-center gap-2 cursor-help">
+                  <Package className="h-4 w-4 text-orange-500" />
+                  <div>
+                    <div className="text-sm font-medium text-orange-600">
+                      {formatNumber(remainingStock)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      sisa stok
+                    </div>
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <div className="p-2">
+                  <p className="font-semibold text-sm mb-2">Detail Sisa Stok:</p>
+                  <p className="text-xs whitespace-pre-line">
+                    {remainingDetails || 'Tidak ada detail tersedia'}
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       size: 120,
@@ -268,16 +430,16 @@ function SalesDataTable({
       header: 'Total Revenue',
       cell: ({ row }) => {
         const sales = row.original
-        const totalRevenue = sales.total_revenue || 0
-        
         return (
           <div className="text-left flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-purple-500" />
             <div>
               <div className="text-sm font-medium text-purple-600">
-                {formatCurrency(totalRevenue)}
+                {formatCurrency(sales.total_revenue)}
               </div>
-              <div className="text-xs text-gray-500">revenue</div>
+              <div className="text-xs text-gray-500">
+                revenue
+              </div>
             </div>
           </div>
         )
@@ -386,65 +548,83 @@ export default function SalesPage() {
   const { navigate } = useNavigation()
   const { toast } = useToast()
   const deleteSalesMutation = useDeleteSalesMutation()
-  const invalidate = useInvalidateOptimizedSales()
 
-  // Initialize state management (identical to toko)
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-    suggestions,
-    suggestionsLoading,
-    filterOptions,
-    params,
-    updateParams
-  } = useOptimizedSalesState({
-    page: 1,
-    limit: 20,
+  // Use new dashboard query
+  const { data: masterData, isLoading, error, refetch } = useMasterSalesQuery()
+  
+  // Filter state
+  const [filters, setFilters] = useState<SalesFilters>({
     search: '',
-    sortBy: 'nama_sales',
-    sortOrder: 'asc'
+    status_aktif: 'all',
+    telepon_exists: 'all'
   })
-
-  // Handle search (identical to toko)
-  const handleSearchChange = useCallback((value: string) => {
-    updateParams({ search: value, page: 1 })
-  }, [updateParams])
-
-  // Handle search suggestion selection (adapted for sales)
-  const handleSuggestionSelect = useCallback((suggestion: any) => {
-    if (suggestion.type === 'sales') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'telepon') {
-      updateParams({ search: suggestion.value, page: 1 })
-    } else if (suggestion.type === 'status') {
-      updateParams({ status_aktif: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'telepon_exists') {
-      updateParams({ telepon_exists: suggestion.value, search: '', page: 1 })
-    } else if (suggestion.type === 'tanggal') {
-      updateParams({ date_from: suggestion.value, search: '', page: 1 })
+  
+  // Apply filters to data
+  const filteredData = useMemo(() => {
+    if (!masterData?.data) return []
+    
+    let filtered = [...masterData.data]
+    
+    // Search filter
+    if (filters.search.trim()) {
+      const searchTerm = filters.search.toLowerCase().trim()
+      filtered = filtered.filter(item => 
+        item.nama_sales?.toLowerCase().includes(searchTerm) ||
+        item.nomor_telepon?.includes(searchTerm) ||
+        item.id_sales?.toString().includes(searchTerm)
+      )
     }
-  }, [updateParams])
-
-  // Handle filter changes (adapted for sales)
-  const handleFilterChange = useCallback((filters: Record<string, string>) => {
-    if (Object.keys(filters).length === 0) {
-      updateParams({
-        status_aktif: '',
-        telepon_exists: '',
-        date_from: '',
-        date_to: '',
-        search: '',
-        page: 1
-      })
-    } else {
-      updateParams({ ...filters, page: 1 })
+    
+    // Status filter
+    if (filters.status_aktif !== 'all') {
+      const isActive = filters.status_aktif === 'true'
+      filtered = filtered.filter(item => item.status_aktif === isActive)
     }
-  }, [updateParams])
+    
+    // Phone filter
+    if (filters.telepon_exists !== 'all') {
+      const hasPhone = filters.telepon_exists === 'true'
+      filtered = filtered.filter(item => hasPhone ? !!item.nomor_telepon : !item.nomor_telepon)
+    }
+    
+    return filtered
+  }, [masterData?.data, filters])
+  
+  // Transform data for compatibility with existing table component
+  const dataLength = filteredData?.length || 0
+  const data = {
+    data: filteredData || [],
+    pagination: {
+      hasNextPage: false,
+      hasPrevPage: false,
+      totalPages: 1,
+      currentPage: 1,
+      pageSize: dataLength || 50,
+      total: dataLength,
+      totalItems: dataLength,
+      totalRecords: dataLength,
+      limit: dataLength || 50,
+      page: 1,
+      from: dataLength > 0 ? 1 : 0,
+      to: dataLength
+    }
+  }
 
-  // Handle delete (adapted for sales)
-  const handleDelete = useCallback((sales: SalesWithStats) => {
+  // Filter handlers
+  const handleFiltersChange = useCallback((newFilters: Partial<SalesFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }))
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      search: '',
+      status_aktif: 'all',
+      telepon_exists: 'all'
+    })
+  }, [])
+
+  // Handle delete
+  const handleDelete = useCallback((sales: MasterSales) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus sales "${sales.nama_sales}"?`)) {
       deleteSalesMutation.mutate(sales.id_sales, {
         onSuccess: () => {
@@ -452,7 +632,7 @@ export default function SalesPage() {
             title: "Berhasil",
             description: `Sales "${sales.nama_sales}" berhasil dihapus`,
           })
-          invalidate.invalidateLists()
+          refetch()
         },
         onError: (error: any) => {
           toast({
@@ -463,15 +643,15 @@ export default function SalesPage() {
         }
       })
     }
-  }, [deleteSalesMutation, toast, invalidate])
+  }, [deleteSalesMutation, toast, refetch])
 
   // Handle view
-  const handleView = useCallback((sales: SalesWithStats) => {
+  const handleView = useCallback((sales: MasterSales) => {
     navigate(`/dashboard/master-data/sales/${sales.id_sales}`)
   }, [navigate])
 
   // Handle edit
-  const handleEdit = useCallback((sales: SalesWithStats) => {
+  const handleEdit = useCallback((sales: MasterSales) => {
     navigate(`/dashboard/master-data/sales/${sales.id_sales}/edit`)
   }, [navigate])
 
@@ -499,18 +679,14 @@ export default function SalesPage() {
     navigate('/dashboard/master-data/sales/add')
   }, [navigate])
 
-  // Current filters for display (adapted for sales)
-  const currentFilters = useMemo(() => {
-    const filters: Record<string, string> = {}
-    if (params.status_aktif) filters.status_aktif = params.status_aktif
-    if (params.telepon_exists) filters.telepon_exists = params.telepon_exists
-    if (params.date_from) filters.date_from = params.date_from
-    if (params.date_to) filters.date_to = params.date_to
-    return filters
-  }, [params])
-
-  // Summary statistics with safe defaults (adapted for sales)
-  const summary = filterOptions?.summary
+  // Summary statistics for header display only
+  const summary = {
+    total_sales: filteredData.length,
+    active_sales: filteredData.filter(s => s.status_aktif).length,
+    total_shipped_items: filteredData.reduce((sum, s) => sum + (s.quantity_shipped || 0), 0),
+    total_items_sold: filteredData.reduce((sum, s) => sum + (s.quantity_sold || 0), 0),
+    total_remaining_stock: filteredData.reduce((sum, s) => sum + ((s.quantity_shipped || 0) - (s.quantity_sold || 0)), 0)
+  }
 
   return (
     <motion.div 
@@ -519,56 +695,62 @@ export default function SalesPage() {
       animate="visible" 
       className="p-6 space-y-6 w-full max-w-full overflow-hidden"
     >
-      {/* Page Header (identical structure to toko) */}
-      <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Daftar Sales</h1>
-          <p className="text-gray-600 mt-2">
-            {summary ? 
-              `${formatNumber(summary.total_sales)} sales dengan ${formatNumber(summary.active_sales)} aktif, ${formatNumber(summary.total_shipped_items)} barang terkirim, ${formatNumber(summary.total_items_sold)} terjual, dan sisa stok ${formatNumber(summary.total_remaining_stock)}` :
-              "Memuat data sales..."
-            }
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleExport} variant="outline" size="lg">
-            Export Excel
-          </Button>
-          <Button onClick={handleAdd} size="lg">
-            Tambah Sales
-          </Button>
+      {/* Page Header with Enhanced Statistics */}
+      <motion.div variants={cardVariants} className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">Daftar Sales</h1>
+            <p className="text-gray-600 mt-2">
+              Menampilkan {formatNumber(summary.total_sales)} sales 
+              {masterData?.data && summary.total_sales !== masterData.data.length && 
+                ` dari ${formatNumber(masterData.data.length)} total`
+              } dengan {formatNumber(summary.active_sales)} aktif, {formatNumber(summary.total_shipped_items)} barang terkirim, {formatNumber(summary.total_items_sold)} terjual, dan sisa stok {formatNumber(summary.total_remaining_stock)}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button onClick={handleExport} variant="outline" size="lg">
+              Export Excel
+            </Button>
+            <Button 
+              onClick={refetch} 
+              variant="outline" 
+              size="lg"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={handleAdd} size="lg">
+              Tambah Sales
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      {/* Integrated Data Table Card (identical structure to toko) */}
+      {/* Filter Panel */}
+      <motion.div variants={cardVariants}>
+        <SalesFilterPanel
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+          isLoading={isLoading}
+        />
+      </motion.div>
+
+      {/* Integrated Data Table Card */}
       <motion.div 
         variants={cardVariants} 
         className="bg-white rounded-lg border shadow-sm w-full max-w-full overflow-hidden"
       >
-        {/* Search and Filter Section (identical to toko) */}
-        <div className="p-6 border-b bg-gray-50">
-          <SearchFilterToko
-            value={params.search || ''}
-            onChange={handleSearchChange}
-            onFilterChange={handleFilterChange}
-            suggestions={suggestions}
-            suggestionsLoading={suggestionsLoading}
-            filterOptions={filterOptions}
-            activeFilters={currentFilters}
-            placeholder="Cari sales, telepon, status..."
-            onSuggestionSelect={handleSuggestionSelect}
-          />
-        </div>
-
-        {/* Data Table Section (identical structure to toko) */}
+        {/* Data Table Section with filtering */}
         <div className="w-full">
           <SalesDataTable
             data={data}
             isLoading={isLoading}
             error={error}
             refetch={refetch}
-            params={params}
-            updateParams={updateParams}
+            params={{}}
+            updateParams={() => {}}
             onDelete={handleDelete}
             onView={handleView}
             onEdit={handleEdit}

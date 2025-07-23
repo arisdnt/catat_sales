@@ -35,7 +35,8 @@
       "Bash(psql:*)",
       "Bash(true)",
       "Bash(taskkill:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx kill-port:*)"
     ],
     "deny": []
   }

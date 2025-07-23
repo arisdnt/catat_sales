@@ -102,7 +102,10 @@ export function useCreatePenagihanMutation() {
   return useMutation({
     mutationFn: (data: CreatePenagihanData) => apiClient.createBilling(data),
     onSuccess: () => {
+      // Invalidate both regular penagihan queries and dashboard queries
       queryClient.invalidateQueries({ queryKey: penagihanKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'penagihan'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'overview'] })
       toast({
         title: 'Berhasil',
         description: 'Penagihan berhasil ditambahkan',
@@ -126,8 +129,11 @@ export function useUpdatePenagihanMutation() {
     mutationFn: ({ id, data }: { id: number; data: UpdatePenagihanData }) =>
       apiClient.updateBilling(id, data),
     onSuccess: (_, { id }) => {
+      // Invalidate both regular penagihan queries and dashboard queries
       queryClient.invalidateQueries({ queryKey: penagihanKeys.lists() })
       queryClient.invalidateQueries({ queryKey: penagihanKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'penagihan'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'overview'] })
       toast({
         title: 'Berhasil',
         description: 'Penagihan berhasil diperbarui',
@@ -150,7 +156,10 @@ export function useDeletePenagihanMutation() {
   return useMutation({
     mutationFn: (id: number) => apiClient.deleteBilling(id),
     onSuccess: () => {
+      // Invalidate both regular penagihan queries and dashboard queries
       queryClient.invalidateQueries({ queryKey: penagihanKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'penagihan'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'overview'] })
       toast({
         title: 'Berhasil',
         description: 'Penagihan berhasil dihapus',

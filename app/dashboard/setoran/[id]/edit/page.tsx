@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,9 +9,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { 
   ArrowLeft, 
   Save, 
-  Banknote, 
-  User, 
-  DollarSign
+  DollarSign,
+  User
 } from 'lucide-react'
 import { useSetoranDetailQuery, useUpdateSetoranMutation, type SetoranDetail, type UpdateSetoranData } from '@/lib/queries/setoran'
 import { formatCurrency } from '@/lib/form-utils'
@@ -29,11 +27,11 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Initialize setoran ID from params
-  useState(() => {
+  useEffect(() => {
     params.then(({ id }) => {
       setSetoranId(parseInt(id))
     })
-  })
+  }, [params])
 
   const { data: response, isLoading, error } = useSetoranDetailQuery(setoranId!)
   const updateSetoranMutation = useUpdateSetoranMutation()
@@ -41,14 +39,14 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
   const setoran = (response as any)?.data as SetoranDetail
 
   // Initialize form data when setoran data is loaded
-  useState(() => {
+  useEffect(() => {
     if (setoran && !isLoading) {
       setFormData({
         total_setoran: parseFloat(setoran.total_setoran.toString()),
         penerima_setoran: setoran.penerima_setoran
       })
     }
-  })
+  }, [setoran, isLoading])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -115,11 +113,11 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
-        <div className="w-full max-w-4xl mx-auto animate-pulse">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-10 w-10 bg-gray-200 rounded"></div>
+      <div className="w-full min-h-screen bg-white">
+        <div className="w-full max-w-full mx-auto p-4 sm:p-6 lg:p-8 animate-pulse">
+          <div className="flex items-center justify-between mb-6">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-10 w-24 bg-gray-200 rounded"></div>
           </div>
           <div className="h-96 bg-gray-200 rounded-lg"></div>
         </div>
@@ -129,8 +127,8 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
 
   if (error || !setoran) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
-        <div className="w-full max-w-4xl mx-auto text-center">
+      <div className="w-full min-h-screen bg-white">
+        <div className="w-full max-w-full mx-auto p-4 sm:p-6 lg:p-8 text-center">
           <div className="text-red-600 mb-4">
             {error ? 'Error loading setoran data' : 'Data setoran tidak ditemukan'}
           </div>
@@ -143,19 +141,10 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen">
-      <div className="w-full space-y-6">
+    <div className="w-full min-h-screen bg-white">
+      <div className="w-full max-w-full mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </Button>
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Edit Setoran #{setoran.id_setoran}
@@ -164,19 +153,25 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
               Perbarui informasi setoran
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
+          </Button>
         </div>
 
-        {/* Form Card */}
-        <Card className="w-full border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Banknote className="w-5 h-5" />
-              Form Edit Setoran
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Main Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Form - Left Side */}
+          <div className="xl:col-span-3">
+            <div className="bg-gray-50 rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">Form Edit Setoran</h3>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Total Setoran */}
                 <div className="space-y-2">
                   <Label htmlFor="total_setoran" className="flex items-center gap-2">
@@ -221,68 +216,65 @@ export default function EditSetoranPage({ params }: { params: Promise<{ id: stri
                     <p className="text-sm text-red-600">{errors.penerima_setoran}</p>
                   )}
                 </div>
-              </div>
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={isSubmitting}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !formData.total_setoran || !formData.penerima_setoran}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-6 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    disabled={isSubmitting}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !formData.total_setoran || !formData.penerima_setoran}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
 
-        {/* Current Data Preview */}
-        <Card className="w-full border-0 shadow-lg bg-gradient-to-r from-gray-50 to-slate-50">
-          <CardHeader>
-            <CardTitle className="text-gray-900">
-              Data Saat Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">Total Setoran Saat Ini</label>
-                <p className="text-lg font-semibold text-gray-900">
-                  {formatCurrency(setoran.total_setoran)}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-600">Penerima Saat Ini</label>
-                <p className="text-lg font-semibold text-gray-900">
-                  {setoran.penerima_setoran}
-                </p>
+          {/* Current Data - Right Side */}
+          <div className="xl:col-span-1">
+            <div className="bg-gray-50 rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Saat Ini</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Total Setoran</label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {formatCurrency(setoran.total_setoran)}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Penerima Setoran</label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {setoran.penerima_setoran}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Card */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-white text-xs font-bold">!</span>
-            </div>
-            <div className="text-sm text-yellow-800">
-              <p className="font-medium mb-1">Perhatian</p>
-              <p>
-                Pastikan data yang Anda masukkan sudah benar sebelum menyimpan. 
-                Perubahan data setoran akan mempengaruhi laporan rekonsiliasi kas.
-              </p>
+            
+            {/* Info */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">!</span>
+                </div>
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-1">Perhatian</p>
+                  <p>
+                    Pastikan data yang Anda masukkan sudah benar sebelum menyimpan. 
+                    Perubahan data setoran akan mempengaruhi laporan rekonsiliasi kas.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

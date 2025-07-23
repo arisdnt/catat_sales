@@ -1,0 +1,19 @@
+Setelah menganalisis file `1.sql`, tidak ditemukan Remote Procedure Call (RPC) yang secara khusus dibuat untuk memberikan statistik produk.
+
+Namun, fungsionalitas untuk mendapatkan statistik produk secara implisit ada melalui penggunaan *views*. View ini menggabungkan data dari beberapa tabel untuk menyajikan informasi yang sudah terstruktur.
+
+Berikut adalah view yang relevan untuk mendapatkan statistik produk:
+
+1.  **`v_laporan_pengiriman`**:
+    *   **Tujuan**: Memberikan laporan pengiriman barang.
+    *   **Statistik yang bisa didapat**: Jumlah total produk yang dikirim.
+    *   **Cara**: Anda bisa menjalankan query SQL seperti `SELECT nama_produk, SUM(jumlah_kirim) FROM v_laporan_pengiriman GROUP BY nama_produk;` untuk mendapatkan total pengiriman per produk.
+
+2.  **`v_laporan_penagihan`**:
+    *   **Tujuan**: Memberikan laporan penagihan.
+    *   **Statistik yang bisa didapat**: Jumlah produk terjual, jumlah produk yang dikembalikan, dan nilai penjualan.
+    *   **Cara**: Anda bisa menjalankan query SQL seperti `SELECT nama_produk, SUM(jumlah_terjual) as total_terjual, SUM(jumlah_kembali) as total_kembali FROM v_laporan_penagihan GROUP BY nama_produk;` untuk mendapatkan statistik penjualan per produk.
+
+**Kesimpulan:**
+
+Tidak ada RPC khusus untuk statistik produk, tetapi Anda dapat memperoleh data statistik yang dibutuhkan dengan melakukan query terhadap view `v_laporan_pengiriman` dan `v_laporan_penagihan`. Ini adalah pendekatan yang umum dalam database untuk menyediakan akses ke data agregat tanpa harus membuat fungsi khusus.

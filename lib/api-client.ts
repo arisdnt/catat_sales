@@ -444,6 +444,199 @@ class ApiClient {
   async searchSales(_searchTerm: string) {
     return this.request('/mv/sales')
   }
+
+  // Dashboard Views API
+  async getDashboardPenagihan(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    metode_pembayaran?: string
+    ada_potongan?: string
+    sales_id?: string
+    kabupaten?: string
+    kecamatan?: string
+    date_range?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.metode_pembayaran && params.metode_pembayaran !== 'all') {
+      searchParams.set('metode_pembayaran', params.metode_pembayaran)
+    }
+    if (params?.ada_potongan && params.ada_potongan !== 'all') {
+      searchParams.set('ada_potongan', params.ada_potongan)
+    }
+    if (params?.sales_id && params.sales_id !== 'all') {
+      searchParams.set('sales_id', params.sales_id)
+    }
+    if (params?.kabupaten && params.kabupaten !== 'all') {
+      searchParams.set('kabupaten', params.kabupaten)
+    }
+    if (params?.kecamatan && params.kecamatan !== 'all') {
+      searchParams.set('kecamatan', params.kecamatan)
+    }
+    if (params?.date_range && params.date_range !== 'all') {
+      searchParams.set('date_range', params.date_range)
+    }
+
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/dashboard/penagihan?${queryString}` : '/dashboard/penagihan'
+    
+    return this.request(endpoint)
+  }
+
+  async getDashboardPengiriman(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    is_autorestock?: string
+    sales_id?: string
+    kabupaten?: string
+    kecamatan?: string
+    date_range?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.search) queryParams.append('search', params.search)
+    if (params?.is_autorestock && params.is_autorestock !== 'all') {
+      queryParams.append('is_autorestock', params.is_autorestock)
+    }
+    if (params?.sales_id && params.sales_id !== 'all') {
+      queryParams.append('sales_id', params.sales_id)
+    }
+    if (params?.kabupaten && params.kabupaten !== 'all') {
+      queryParams.append('kabupaten', params.kabupaten)
+    }
+    if (params?.kecamatan && params.kecamatan !== 'all') {
+      queryParams.append('kecamatan', params.kecamatan)
+    }
+    if (params?.date_range && params.date_range !== 'all') {
+      queryParams.append('date_range', params.date_range)
+    }
+    
+    const queryString = queryParams.toString()
+    return this.request(`/dashboard/pengiriman${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getDashboardSetoran(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    status_setoran?: string
+    date_range?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.search) queryParams.append('search', params.search)
+    if (params?.status_setoran && params.status_setoran !== 'all') {
+      queryParams.append('status_setoran', params.status_setoran)
+    }
+    if (params?.date_range && params.date_range !== 'all') {
+      queryParams.append('date_range', params.date_range)
+    }
+    
+    const queryString = queryParams.toString()
+    return this.request(`/dashboard/setoran${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getDashboardOverview() {
+    return this.request('/dashboard/overview')
+  }
+
+  async getMasterProduk(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    status_produk?: string
+    is_priority?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.status_produk && params.status_produk !== 'all') {
+      searchParams.set('status_produk', params.status_produk)
+    }
+    if (params?.is_priority && params.is_priority !== 'all') {
+      searchParams.set('is_priority', params.is_priority)
+    }
+
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/dashboard/master/produk?${queryString}` : '/dashboard/master/produk'
+    
+    return this.request(endpoint)
+  }
+
+  async getMasterToko(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    kabupaten?: string
+    kecamatan?: string
+    status_toko?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    
+    // Always set page and limit
+    searchParams.set('page', (params?.page || 1).toString())
+    searchParams.set('limit', (params?.limit || 25).toString())
+    
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.kabupaten && params.kabupaten !== 'all') {
+      searchParams.set('kabupaten', params.kabupaten)
+    }
+    if (params?.kecamatan && params.kecamatan !== 'all') {
+      searchParams.set('kecamatan', params.kecamatan)
+    }
+    if (params?.status_toko && params.status_toko !== 'all') {
+      searchParams.set('status_toko', params.status_toko)
+    }
+
+    const queryString = searchParams.toString()
+    const endpoint = `/dashboard/master/toko?${queryString}`
+    
+    return this.request(endpoint)
+  }
+
+  async getMasterSales() {
+    return this.request('/dashboard/master/sales')
+  }
+
+  // Filter Options API
+  async getFilterOptions() {
+    return this.request('/dashboard/filters')
+  }
+
+  async getSalesOptions() {
+    return this.request('/dashboard/filters/sales')
+  }
+
+  async getKabupatenOptions() {
+    return this.request('/dashboard/filters/kabupaten')
+  }
+
+  async getKecamatanOptions(kabupaten?: string) {
+    const params = kabupaten ? `?kabupaten=${encodeURIComponent(kabupaten)}` : ''
+    return this.request(`/dashboard/filters/kecamatan${params}`)
+  }
+
+  async getTokoOptions(filters?: { sales_id?: number; kabupaten?: string; kecamatan?: string }) {
+    const params = new URLSearchParams()
+    if (filters?.sales_id) params.append('sales_id', filters.sales_id.toString())
+    if (filters?.kabupaten) params.append('kabupaten', filters.kabupaten)
+    if (filters?.kecamatan) params.append('kecamatan', filters.kecamatan)
+    const queryString = params.toString()
+    return this.request(`/dashboard/filters/toko${queryString ? `?${queryString}` : ''}`)
+  }
+
+  async getProdukOptions() {
+    return this.request('/dashboard/filters/produk')
+  }
 }
 
 export const apiClient = new ApiClient()
