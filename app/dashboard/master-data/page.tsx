@@ -30,7 +30,7 @@ export default function MasterDataPage() {
   const { data: tokoResponse } = useTokoQuery('active', true)
   
   const salesData: Sales[] = salesResponse?.data || []
-  const produkData: Produk[] = produkResponse?.data || []
+  const produkData: Produk[] = produkResponse?.data?.data || []
   const tokoData: Toko[] = tokoResponse?.data || []
 
   const modules: MasterDataModule[] = [

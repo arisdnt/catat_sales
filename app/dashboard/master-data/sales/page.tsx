@@ -271,7 +271,7 @@ function SalesDataTable({
             <Store className="h-4 w-4 text-blue-500" />
             <div>
               <div className="text-sm font-medium text-blue-600">
-                {formatNumber(sales.total_stores)}
+                {formatNumber(sales.total_toko)}
               </div>
               <div className="text-xs text-gray-500">toko</div>
             </div>
@@ -296,7 +296,7 @@ function SalesDataTable({
                   <Package className="h-4 w-4 text-blue-500" />
                   <div>
                     <div className="text-sm font-medium text-blue-600">
-                      {formatNumber(sales.quantity_shipped)}
+                      {formatNumber(sales.total_quantity_dikirim)}
                     </div>
                     <div className="text-xs text-gray-500">
                       barang
@@ -308,7 +308,7 @@ function SalesDataTable({
                 <div className="p-2">
                   <p className="font-semibold text-sm mb-2">Detail Barang Dikirim:</p>
                   <p className="text-xs whitespace-pre-line">
-                    {sales.detail_shipped || 'Tidak ada detail tersedia'}
+                    {'Detail pengiriman tidak tersedia untuk data sales'}
                   </p>
                 </div>
               </TooltipContent>
@@ -334,7 +334,7 @@ function SalesDataTable({
                   <Package className="h-4 w-4 text-green-500" />
                   <div>
                     <div className="text-sm font-medium text-green-600">
-                      {formatNumber(sales.quantity_sold)}
+                      {formatNumber(sales.total_quantity_terjual)}
                     </div>
                     <div className="text-xs text-gray-500">
                       barang
@@ -346,7 +346,7 @@ function SalesDataTable({
                 <div className="p-2">
                   <p className="font-semibold text-sm mb-2">Detail Barang Terjual:</p>
                   <p className="text-xs whitespace-pre-line">
-                    {sales.detail_sold || 'Tidak ada detail tersedia'}
+                    {'Detail penjualan tidak tersedia untuk data sales'}
                   </p>
                 </div>
               </TooltipContent>
@@ -364,7 +364,7 @@ function SalesDataTable({
       header: 'Sisa Stok',
       cell: ({ row }) => {
         const sales = row.original
-        const remainingStock = (sales.quantity_shipped || 0) - (sales.quantity_sold || 0)
+        const remainingStock = (sales.total_quantity_dikirim || 0) - (sales.total_quantity_terjual || 0)
         
         // Parse detail untuk menghitung sisa per produk
         const parseDetail = (detail: string) => {
@@ -382,15 +382,8 @@ function SalesDataTable({
           return items
         }
 
-        const shippedItems = parseDetail(sales.detail_shipped || '')
-        const soldItems = parseDetail(sales.detail_sold || '')
-        
-        const remainingDetails = Object.keys(shippedItems).map(product => {
-          const shipped = shippedItems[product] || 0
-          const sold = soldItems[product] || 0
-          const remaining = shipped - sold
-          return `${product} [${remaining}]`
-        }).join(', ')
+        // Sales summary data doesn't include detailed product breakdown
+        const remainingDetails = 'Detail stok tidak tersedia untuk data sales'
 
         return (
           <TooltipProvider>
@@ -435,7 +428,7 @@ function SalesDataTable({
             <DollarSign className="h-4 w-4 text-purple-500" />
             <div>
               <div className="text-sm font-medium text-purple-600">
-                {formatCurrency(sales.total_revenue)}
+                {formatCurrency(sales.total_uang_diterima)}
               </div>
               <div className="text-xs text-gray-500">
                 revenue
@@ -683,9 +676,9 @@ export default function SalesPage() {
   const summary = {
     total_sales: filteredData.length,
     active_sales: filteredData.filter(s => s.status_aktif).length,
-    total_shipped_items: filteredData.reduce((sum, s) => sum + (s.quantity_shipped || 0), 0),
-    total_items_sold: filteredData.reduce((sum, s) => sum + (s.quantity_sold || 0), 0),
-    total_remaining_stock: filteredData.reduce((sum, s) => sum + ((s.quantity_shipped || 0) - (s.quantity_sold || 0)), 0)
+    total_shipped_items: filteredData.reduce((sum, s) => sum + (s.total_quantity_dikirim || 0), 0),
+    total_items_sold: filteredData.reduce((sum, s) => sum + (s.total_quantity_terjual || 0), 0),
+    total_remaining_stock: filteredData.reduce((sum, s) => sum + ((s.total_quantity_dikirim || 0) - (s.total_quantity_terjual || 0)), 0)
   }
 
   return (
@@ -712,8 +705,8 @@ export default function SalesPage() {
               Export Excel
             </Button>
             <Button 
-              onClick={refetch} 
-              variant="outline" 
+              onClick={() => refetch()}
+              variant="outline"
               size="lg"
               disabled={isLoading}
             >

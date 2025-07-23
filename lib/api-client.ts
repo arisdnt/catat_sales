@@ -441,8 +441,12 @@ class ApiClient {
     return this.request(`/mv/produk?${params.toString()}`)
   }
 
-  async searchSales(_searchTerm: string) {
-    return this.request('/mv/sales')
+  async searchSales(searchTerm: string) {
+    const params = new URLSearchParams()
+    if (searchTerm) {
+      params.append('search', searchTerm)
+    }
+    return this.request(`/mv/sales?${params.toString()}`)
   }
 
   // Dashboard Views API

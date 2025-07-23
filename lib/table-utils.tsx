@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { type ColumnDef } from '@tanstack/react-table'
 import React from 'react'
 
@@ -276,10 +275,10 @@ export function calculateColumnWidths<T>(
   const flexColumnWidth = Math.max(120, remainingWidth / flexColumns.length)
 
   columns.forEach(col => {
-    const key = col.accessorKey as string
-    if (col.size && typeof col.size === 'number') {
+    const key = (col as any).accessorKey as string
+    if (key && col.size && typeof col.size === 'number') {
       baseWidths[key] = col.size
-    } else {
+    } else if (key) {
       baseWidths[key] = flexColumnWidth
     }
   })

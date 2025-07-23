@@ -20,7 +20,7 @@ interface FormData {
 }
 
 interface ProdukEditPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default function EditProdukPage({ params }: ProdukEditPageProps) {
@@ -28,7 +28,15 @@ export default function EditProdukPage({ params }: ProdukEditPageProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const productId = parseInt(params.id)
+  const [productId, setProductId] = useState<number | null>(null)
+
+  useEffect(() => {
+    const initializeParams = async () => {
+      const resolvedParams = await params
+      setProductId(parseInt(resolvedParams.id))
+    }
+    initializeParams()
+  }, [params])
 
   const {
     register,

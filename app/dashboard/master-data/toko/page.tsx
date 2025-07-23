@@ -844,9 +844,9 @@ export default function TokoPage() {
         page: 1
       }
       
-      const exportData = await apiClient.getMasterToko(exportParams)
+      const exportData = await apiClient.getMasterToko(exportParams) as any
       
-      if (exportData?.success && exportData.data?.data) {
+      if (exportData?.data?.data) {
         const result = exportStoreData(exportData.data.data)
         if (result.success) {
           toast({
@@ -909,7 +909,7 @@ export default function TokoPage() {
               Export Excel
             </Button>
             <Button 
-              onClick={refetch} 
+              onClick={() => refetch()} 
               variant="outline" 
               size="lg"
               disabled={isLoading}

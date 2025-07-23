@@ -42,8 +42,8 @@ export default function AddPenagihanPage() {
   const { data: tokoResponse } = useTokoQuery()
   const { data: produkResponse } = useProdukQuery()
   
-  const tokoData = (tokoResponse as { data: any[] })?.data || []
-  const produkData = (produkResponse as { data: any[] })?.data || []
+  const tokoData = ((tokoResponse as any)?.data || []) as Array<{ id_toko: number; nama_toko: string }>
+  const produkData = ((produkResponse as any)?.data?.data || []) as Array<{ id_produk: number; nama_produk: string; harga_satuan: number }>
   
   const tokoOptions = tokoData.length > 0 
     ? tokoData.map(toko => ({

@@ -543,7 +543,7 @@ export default function ProdukPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Data</h2>
           <p className="text-red-700 mb-4">{error.message || 'Failed to load product data'}</p>
-          <Button onClick={refetch} variant="outline">
+          <Button onClick={() => refetch()} variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
@@ -574,7 +574,7 @@ export default function ProdukPage() {
               Export Excel
             </Button>
             <Button 
-              onClick={refetch} 
+              onClick={() => refetch()} 
               variant="outline" 
               size="lg"
               disabled={isLoading}

@@ -43,11 +43,11 @@ export async function searchProduk({
       is_priority: priority !== 'semua' ? priority : undefined
     });
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       return [];
     }
 
-    return response.data.data || [];
+    return (response as any).data.data || [];
   } catch (error) {
     console.error('Error searching produk:', error);
     throw error;
@@ -64,11 +64,11 @@ export async function countProduk({ search = '', status = 'semua', priority = 's
       is_priority: priority !== 'semua' ? priority : undefined
     });
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       return 0;
     }
 
-    return response.data.pagination?.total || 0;
+    return (response as any).data.pagination?.total || 0;
   } catch (error) {
     console.error('Error counting produk:', error);
     throw error;
@@ -79,11 +79,11 @@ export async function getProdukById(id: number) {
   try {
     const response = await apiClient.getProductById(id);
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       return null;
     }
 
-    return response.data;
+    return (response as any).data;
   } catch (error) {
     console.error('Error getting produk by ID:', error);
     throw error;
@@ -104,11 +104,11 @@ export async function createProduk(data: {
       priority_order: data.priority_order
     });
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       throw new Error('Failed to create product');
     }
 
-    return response.data;
+    return (response as any).data;
   } catch (error) {
     console.error('Error creating produk:', error);
     throw error;
@@ -129,11 +129,11 @@ export async function updateProduk(id: number, data: {
       status_produk: data.status_produk
     });
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       throw new Error('Failed to update product');
     }
 
-    return response.data;
+    return (response as any).data;
   } catch (error) {
     console.error('Error updating produk:', error);
     throw error;
@@ -144,11 +144,11 @@ export async function deleteProduk(id: number) {
   try {
     const response = await apiClient.deleteProduct(id);
 
-    if (!response.success) {
+    if (!(response as any).success) {
       throw new Error('Failed to delete product');
     }
 
-    return response.data;
+    return (response as any).data;
   } catch (error) {
     console.error('Error deleting produk:', error);
     throw error;
@@ -159,11 +159,11 @@ export async function getProdukStats() {
   try {
     const response = await apiClient.getProductStats();
 
-    if (!response.success || !response.data) {
+    if (!(response as any).success || !(response as any).data) {
       throw new Error('Failed to get product stats');
     }
 
-    return response.data;
+    return (response as any).data;
   } catch (error) {
     console.error('Error getting produk stats:', error);
     throw error;
@@ -209,6 +209,21 @@ export const produkKeys = {
 };
 
 // React Query hooks untuk kompatibilitas dengan file lama
+export interface PaginatedProdukResponse {
+  success: boolean;
+  data: {
+    data: Produk[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      has_next: boolean;
+      has_prev: boolean;
+    };
+  };
+}
+
 export function useProdukQuery(status: 'active' | 'inactive' | 'all' = 'active') {
   return useQuery({
     queryKey: produkKeys.list(status),
@@ -216,7 +231,7 @@ export function useProdukQuery(status: 'active' | 'inactive' | 'all' = 'active')
       page: 1,
       limit: 1000,
       status_produk: status === 'active' ? 'true' : status === 'inactive' ? 'false' : undefined
-    })
+    }) as Promise<PaginatedProdukResponse>
   });
 }
 

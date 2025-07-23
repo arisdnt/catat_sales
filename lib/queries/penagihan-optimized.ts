@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -95,7 +94,7 @@ export function useOptimizedPenagihanQuery(params: PenagihanParams) {
       })
       
       const response = await apiClient.get(`/penagihan/optimized?${searchParams.toString()}`)
-      return response.data
+      return response as OptimizedPenagihanResponse
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -125,7 +124,7 @@ export function usePenagihanSearchSuggestions(query: string, enabled: boolean = 
       })
       
       const response = await apiClient.get(`/penagihan/search-suggestions?${searchParams.toString()}`)
-      return response.data
+      return { suggestions: Array.isArray(response) ? response : [] }
     },
     enabled: enabled && query.length >= 1,
     staleTime: 30 * 1000, // 30 seconds
@@ -139,7 +138,7 @@ export function usePenagihanFilterOptions() {
     queryKey: penagihanOptimizedKeys.filterOptions(),
     queryFn: async (): Promise<FilterOptions> => {
       const response = await apiClient.get('/penagihan/filter-options')
-      return response.data
+      return response as FilterOptions
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -242,7 +241,8 @@ export function useOptimizedPenagihanState(initialParams: PenagihanParams) {
         title: "Data Diperbarui",
         description: "Data penagihan berhasil diperbarui",
       })
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error refreshing penagihan data:', error)
       toast({
         title: "Error",
         description: "Gagal memperbarui data penagihan",
@@ -265,7 +265,7 @@ export function useOptimizedPenagihanState(initialParams: PenagihanParams) {
             }
           })
           const response = await apiClient.get(`/penagihan/optimized?${searchParams.toString()}`)
-          return response.data
+          return response as OptimizedPenagihanResponse
         },
         staleTime: 2 * 60 * 1000,
       })
@@ -307,11 +307,11 @@ export function useOptimizedPenagihanState(initialParams: PenagihanParams) {
   return {
     // Data - return object with data and pagination structure like toko
     data: {
-      data: response?.data?.data || response?.data || [],
-      pagination: response?.data?.pagination || response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 }
+      data: response?.data || [],
+      pagination: response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 }
     },
     // Legacy compatibility
-    pagination: response?.data?.pagination || response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 },
+    pagination: response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 },
     
     // Loading states
     isLoading,
@@ -323,10 +323,10 @@ export function useOptimizedPenagihanState(initialParams: PenagihanParams) {
     error,
     
     // Search suggestions - handle wrapped response
-    suggestions: suggestionsResponse?.data?.suggestions || suggestionsResponse?.suggestions || [],
+    suggestions: suggestionsResponse?.suggestions || [],
     
     // Filter options - handle wrapped response
-    filterOptions: filterOptions?.data || filterOptions,
+    filterOptions: filterOptions,
     
     // Parameters and search
     params,
@@ -363,7 +363,7 @@ export const penagihanOptimizedUtils = {
       queryKey: penagihanOptimizedKeys.filterOptions(),
       queryFn: async () => {
         const response = await apiClient.get('/penagihan/filter-options')
-        return response.data
+        return response as FilterOptions
       },
       staleTime: 5 * 60 * 1000,
     })

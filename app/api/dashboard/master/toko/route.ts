@@ -78,7 +78,7 @@ export async function GET(request: Request) {
           totalPages,
           hasNextPage,
           hasPrevPage,
-          from: count > 0 ? offset + 1 : 0,
+          from: (count || 0) > 0 ? offset + 1 : 0,
           to: Math.min(offset + limit, count || 0)
         }
       }

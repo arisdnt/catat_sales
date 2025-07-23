@@ -734,7 +734,7 @@ export default function PenagihanPage() {
               Export Excel
             </Button>
             <Button 
-              onClick={refetch} 
+              onClick={() => refetch()} 
               variant="outline" 
               size="lg"
               disabled={isLoading}

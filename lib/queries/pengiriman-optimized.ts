@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -152,15 +151,8 @@ export function useOptimizedPengirimanQuery(params: PengirimanQueryParams = {}) 
 
         const response = await apiClient.get(`/pengiriman/optimized?${searchParams.toString()}`)
         
-        console.log('Pengiriman API response:', {
-          hasData: !!response,
-          dataLength: response?.data?.length || 0,
-          pagination: response?.pagination,
-          responseStructure: Object.keys(response || {})
-        })
-        
         // The API client returns the response directly, not wrapped in .data
-        if (!response || (!response.data && !Array.isArray(response))) {
+        if (!response) {
           return {
             data: [],
             pagination: {
@@ -205,7 +197,7 @@ export function useOptimizedPengirimanQuery(params: PengirimanQueryParams = {}) 
           }
         }
         
-        return response
+        return response as OptimizedPengirimanResponse
       } catch (error) {
         console.error('Optimized pengiriman query error:', error)
         
@@ -254,8 +246,8 @@ export function useOptimizedPengirimanSearchSuggestions(query: string, enabled: 
       }
 
       try {
-        const response = await apiClient.get(`/pengiriman/search-suggestions?q=${encodeURIComponent(query)}&limit=10`)
-        return response.data?.suggestions || []
+        const response = await apiClient.get(`/pengiriman/search-suggestions?q=${encodeURIComponent(query)}&limit=10`) as { suggestions: SearchSuggestion[] }
+        return response.suggestions || []
       } catch (error) {
         console.error('Pengiriman search suggestions error:', error)
         return []
@@ -288,10 +280,10 @@ export function useOptimizedPengirimanFilterOptions() {
           throw new Error('No authenticated session found')
         }
         
-        const response = await apiClient.get('/pengiriman/filter-options')
+        const response = await apiClient.get('/pengiriman/filter-options') as FilterOptionsResponse
         
         // Ensure we always return a valid structure
-        if (!response?.data || typeof response.data !== 'object' || !response.data.summary) {
+        if (!response || typeof response !== 'object' || !response.summary) {
           console.warn('Pengiriman filter options API returned invalid data, using fallback')
           return {
             sales: [],
@@ -309,7 +301,7 @@ export function useOptimizedPengirimanFilterOptions() {
           }
         }
         
-        return response.data
+        return response as FilterOptionsResponse
       } catch (error) {
         console.error('Pengiriman filter options error:', error)
         
@@ -396,8 +388,8 @@ export function usePrefetchOptimizedPengiriman() {
               searchParams.set(key, value.toString())
             }
           })
-          const response = await apiClient.get(`/pengiriman/optimized?${searchParams.toString()}`)
-          return response.data
+          const response = await apiClient.get(`/pengiriman/optimized?${searchParams.toString()}`) as OptimizedPengirimanResponse
+          return response
         },
         staleTime: 2 * 60 * 1000,
       })
@@ -408,8 +400,8 @@ export function usePrefetchOptimizedPengiriman() {
       queryClient.prefetchQuery({
         queryKey: optimizedPengirimanKeys.filterOptions(),
         queryFn: async () => {
-          const response = await apiClient.get('/pengiriman/filter-options')
-          return response.data
+          const response = await apiClient.get('/pengiriman/filter-options') as FilterOptionsResponse
+          return response
         },
         staleTime: 10 * 60 * 1000,
       })
@@ -422,8 +414,8 @@ export function usePrefetchOptimizedPengiriman() {
           queryClient.prefetchQuery({
             queryKey: optimizedPengirimanKeys.suggestion(query),
             queryFn: async () => {
-              const response = await apiClient.get(`/pengiriman/search-suggestions?q=${encodeURIComponent(query)}&limit=10`)
-              return response.data.suggestions || []
+              const response = await apiClient.get(`/pengiriman/search-suggestions?q=${encodeURIComponent(query)}&limit=10`) as { suggestions: SearchSuggestion[] }
+              return response.suggestions || []
             },
             staleTime: 5 * 60 * 1000,
           })
@@ -506,12 +498,12 @@ export function useOptimizedPengirimanState(initialParams: PengirimanQueryParams
     error: query.error,
     refetch: query.refetch,
     
-    // Suggestions - handle wrapped response
-    suggestions: suggestions.data?.data?.suggestions || suggestions.data?.suggestions || suggestions.data || [],
+    // Suggestions - direct access since query returns data directly
+    suggestions: suggestions.data || [],
     suggestionsLoading: suggestions.isLoading,
-    
-    // Filter options - handle wrapped response
-    filterOptions: filterOptions.data?.data || filterOptions.data,
+
+    // Filter options - direct access since query returns data directly
+    filterOptions: filterOptions.data,
     filterOptionsLoading: filterOptions.isLoading,
     
     // Parameters

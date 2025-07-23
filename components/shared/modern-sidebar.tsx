@@ -2,22 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+
 import { useSidebar } from '@/components/providers/sidebar-provider'
 import { 
   Home, 
-  Package, 
   CreditCard, 
   Banknote, 
-  FileText, 
   Users, 
   Store, 
   ShoppingCart,
   LogOut,
   Menu,
   X,
-  BarChart3,
-  Bell,
   Truck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -109,11 +105,12 @@ export function ModernSidebar() {
         title: 'Berhasil',
         description: 'Logout berhasil',
       })
-    } catch (error) {
+    } catch (logoutError) {
+      console.error('Logout error:', logoutError)
       toast({
         title: 'Error',
-        description: 'Gagal logout',
-        variant: 'destructive',
+        description: 'Gagal logout. Silakan coba lagi.',
+        variant: 'destructive'
       })
     }
   }
@@ -166,7 +163,6 @@ export function ModernSidebar() {
         {flatMenuItems.map((item, index) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-          const isParent = item.level === 0 && !item.href
 
           if (item.href) {
             return (

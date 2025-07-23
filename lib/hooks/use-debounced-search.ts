@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -42,14 +41,15 @@ export function useDebounceStoreSearch(searchTerm: string, filters?: {
 
   return useQuery({
     queryKey: ['store-search', debouncedSearchTerm, filters],
-    queryFn: () => {
+    queryFn: async (): Promise<any[]> => {
       const params = new URLSearchParams()
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
       if (filters?.sales_id) params.append('sales_id', filters.sales_id.toString())
       if (filters?.kabupaten) params.append('kabupaten', filters.kabupaten)
       if (filters?.kecamatan) params.append('kecamatan', filters.kecamatan)
       
-      return apiClient.get(`/mv/toko?${params.toString()}`)
+      const response = await apiClient.get(`/mv/toko?${params.toString()}`)
+      return Array.isArray(response) ? response : []
     },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 5, // Cache search results for 5 minutes
@@ -62,12 +62,13 @@ export function useDebounceProductSearch(searchTerm: string, priorityOnly: boole
 
   return useQuery({
     queryKey: ['product-search', debouncedSearchTerm, priorityOnly],
-    queryFn: () => {
+    queryFn: async (): Promise<any[]> => {
       const params = new URLSearchParams()
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
       if (priorityOnly) params.append('priority_only', 'true')
       
-      return apiClient.get(`/mv/produk?withStats=true&${params.toString()}`)
+      const response = await apiClient.get(`/mv/produk?withStats=true&${params.toString()}`)
+      return Array.isArray(response) ? response : []
     },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 5,
@@ -85,8 +86,9 @@ export function useDebouncesSalesSearch(searchTerm: string, activeOnly: boolean 
 
   return useQuery({
     queryKey: ['sales-search', debouncedSearchTerm, activeOnly],
-    queryFn: () => {
-      return apiClient.get('/mv/sales')
+    queryFn: async (): Promise<any[]> => {
+      const response = await apiClient.get('/mv/sales')
+      return Array.isArray(response) ? response : []
     },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 5,
@@ -106,7 +108,10 @@ export function useDebounceMultiSearch(searchTerm: string) {
 
   const storeResults = useQuery({
     queryKey: ['multi-search-stores', debouncedSearchTerm],
-    queryFn: () => apiClient.get(`/mv/toko?search=${debouncedSearchTerm}`),
+    queryFn: async (): Promise<any[]> => {
+      const response = await apiClient.get(`/mv/toko?search=${debouncedSearchTerm}`)
+      return Array.isArray(response) ? response : []
+    },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 3,
     select: (data: any[]) => data.slice(0, 5).map((item: any) => ({
@@ -119,7 +124,10 @@ export function useDebounceMultiSearch(searchTerm: string) {
 
   const productResults = useQuery({
     queryKey: ['multi-search-products', debouncedSearchTerm],
-    queryFn: () => apiClient.get(`/mv/produk?withStats=true`),
+    queryFn: async (): Promise<any[]> => {
+      const response = await apiClient.get(`/mv/produk?withStats=true`)
+      return Array.isArray(response) ? response : []
+    },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 3,
     select: (data: any[]) => data
@@ -137,7 +145,10 @@ export function useDebounceMultiSearch(searchTerm: string) {
 
   const salesResults = useQuery({
     queryKey: ['multi-search-sales', debouncedSearchTerm],
-    queryFn: () => apiClient.get('/mv/sales'),
+    queryFn: async (): Promise<any[]> => {
+      const response = await apiClient.get('/mv/sales')
+      return Array.isArray(response) ? response : []
+    },
     enabled: shouldSearch,
     staleTime: 1000 * 60 * 3,
     select: (data: any[]) => data

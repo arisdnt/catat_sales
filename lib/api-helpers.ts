@@ -24,7 +24,8 @@ export async function authenticateRequest(request: NextRequest) {
     }
     
     return { error: null, user }
-  } catch (_error) {
+  } catch (error) {
+    console.error('Authentication error:', error)
     return { error: 'Authentication failed', user: null }
   }
 }

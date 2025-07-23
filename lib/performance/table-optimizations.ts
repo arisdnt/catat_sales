@@ -66,11 +66,11 @@ export function useMemoizedTableData<T extends RowData>(
 }
 
 // Optimized column definition with memoization
-export function useMemoizedColumns<T extends RowData>(
+export function useMemoizedColumns(
   columnFactory: () => any[],
   dependencies: any[] = []
 ) {
-  return useMemo(columnFactory, dependencies)
+  return useMemo(() => columnFactory(), [columnFactory, ...dependencies])
 }
 
 // Optimized action handlers

@@ -798,9 +798,9 @@ export default function DepositsPage() {
           <Button onClick={handleExport} variant="outline" size="lg">
             Export Excel
           </Button>
-          <Button 
-            onClick={refetch} 
-            variant="outline" 
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
             size="lg"
             disabled={isLoading}
           >

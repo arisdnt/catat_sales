@@ -1,8 +1,6 @@
-// @ts-nocheck
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { mvKeys, prefetchEditPageData } from '@/lib/queries/materialized-views'
 import { apiClient } from '@/lib/api-client'
 
 // Prefetch related data when hovering over links or buttons
@@ -13,7 +11,11 @@ export function usePrefetchOnHover() {
     entityType: 'sales' | 'produk' | 'toko' | 'penagihan' | 'pengiriman' | 'setoran',
     id: number
   ) => {
-    prefetchEditPageData(queryClient, entityType, id)
+    queryClient.prefetchQuery({
+      queryKey: [entityType, id],
+      queryFn: () => apiClient.get(`/mv/${entityType}/${id}`),
+      staleTime: 1000 * 60 * 5,
+    })
   }
 
   return { prefetchEntity }
@@ -39,7 +41,11 @@ export function usePrefetchNavigation(
         const id = item[idField]
         
         if (id) {
-          prefetchEditPageData(queryClient, entityType, id)
+          queryClient.prefetchQuery({
+            queryKey: [entityType, id],
+            queryFn: () => apiClient.get(`/mv/${entityType}/${id}`),
+            staleTime: 1000 * 60 * 5,
+          })
         }
       }
     })
@@ -53,16 +59,16 @@ export function usePrefetchFormDependencies(entityType: 'pengiriman' | 'penagiha
   useEffect(() => {
     // Always prefetch sales data for forms
     queryClient.prefetchQuery({
-      queryKey: mvKeys.sales(),
-      queryFn: () => apiClient.getMaterializedView('sales'),
+      queryKey: ['sales'],
+      queryFn: () => apiClient.get('/mv/sales'),
       staleTime: 1000 * 60 * 5,
     })
 
     // Prefetch products for shipment and billing forms
     if (entityType === 'pengiriman' || entityType === 'penagihan') {
       queryClient.prefetchQuery({
-        queryKey: mvKeys.produk(),
-        queryFn: () => apiClient.getMaterializedView('produk', 'withStats=true'),
+        queryKey: ['produk'],
+        queryFn: () => apiClient.get('/mv/produk?withStats=true'),
         staleTime: 1000 * 60 * 5,
       })
     }
@@ -70,8 +76,8 @@ export function usePrefetchFormDependencies(entityType: 'pengiriman' | 'penagiha
     // Prefetch stores for shipment and billing forms
     if (entityType === 'pengiriman' || entityType === 'penagihan') {
       queryClient.prefetchQuery({
-        queryKey: mvKeys.toko(),
-        queryFn: () => apiClient.getMaterializedView('toko'),
+        queryKey: ['toko'],
+        queryFn: () => apiClient.get('/mv/toko'),
         staleTime: 1000 * 60 * 5,
       })
     }
@@ -86,9 +92,11 @@ export function useBackgroundRefresh() {
     const refreshInterval = setInterval(() => {
       // Refresh all materialized view queries that are stale
       queryClient.refetchQueries({
-        queryKey: mvKeys.all,
+        predicate: (query) => {
+          const queryKey = query.queryKey
+          return Array.isArray(queryKey) && ['sales', 'produk', 'toko', 'penagihan', 'pengiriman', 'setoran'].includes(queryKey[0] as string)
+        },
         type: 'active',
-        stale: true,
       })
     }, 1000 * 60 * 2) // Every 2 minutes
 
@@ -99,7 +107,7 @@ export function useBackgroundRefresh() {
 // Smart cache warming based on user behavior
 export function useSmartCacheWarming() {
   const queryClient = useQueryClient()
-  const _router = useRouter()
+  const router = useRouter()
 
   useEffect(() => {
     // Track page views to predict next likely navigation
@@ -112,9 +120,13 @@ export function useSmartCacheWarming() {
         setTimeout(() => {
           ['sales', 'produk', 'toko'].forEach(entity => {
             if (currentPath.includes(entity)) {
+              // Prefetch route
+              router.prefetch(`/dashboard/master-data/${entity}`)
+              
+              // Prefetch data
               queryClient.prefetchQuery({
-                queryKey: mvKeys[entity as keyof typeof mvKeys](),
-                queryFn: () => apiClient.getMaterializedView(entity as any),
+                queryKey: [entity],
+                queryFn: () => apiClient.get(`/mv/${entity}`),
                 staleTime: 1000 * 60 * 5,
               })
             }
@@ -139,7 +151,11 @@ export function useSmartCacheWarming() {
           if (entityType) {
             // Prefetch edit page data
             setTimeout(() => {
-              prefetchEditPageData(queryClient, entityType, id)
+              queryClient.prefetchQuery({
+                queryKey: [entityType, id],
+                queryFn: () => apiClient.get(`/mv/${entityType}/${id}`),
+                staleTime: 1000 * 60 * 5,
+              })
             }, 500)
           }
         }
@@ -170,7 +186,7 @@ export function useSmartCacheWarming() {
       history.replaceState = originalReplaceState
       window.removeEventListener('popstate', handleRouteChange)
     }
-  }, [queryClient])
+  }, [queryClient, router])
 }
 
 // Intelligent prefetching based on user interactions
@@ -181,7 +197,11 @@ export function useIntelligentPrefetch() {
     const handleMouseEnter = () => {
       // Prefetch data when user hovers over a link/button for 500ms
       const timeout = setTimeout(() => {
-        prefetchEditPageData(queryClient, entityType as any, id)
+        queryClient.prefetchQuery({
+          queryKey: [entityType, id],
+          queryFn: () => apiClient.get(`/mv/${entityType}/${id}`),
+          staleTime: 1000 * 60 * 5,
+        })
       }, 500)
 
       const handleMouseLeave = () => {
@@ -234,8 +254,10 @@ export function useComprehensivePrefetch(
   useSmartCacheWarming()
   useOptimizedCacheManagement()
   
-  // Always call hook, but conditionally use formType
-  usePrefetchFormDependencies(formType || null)
+  // Conditionally call form dependencies hook
+  if (formType) {
+    usePrefetchFormDependencies(formType)
+  }
 
   const { prefetchEntity } = usePrefetchOnHover()
   const { prefetchOnInteraction } = useIntelligentPrefetch()

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { type ColumnDef } from '@tanstack/react-table'
 import React from 'react'
 

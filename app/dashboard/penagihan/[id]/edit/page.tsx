@@ -62,7 +62,10 @@ export default function EditPenagihanPage() {
   const updatePenagihan = useUpdatePenagihanMutation()
   
   const penagihan = (response as { data: any })?.data
-  const products = useMemo(() => (productsResponse as { data: any[] })?.data || [], [productsResponse])
+  const products = useMemo(() => {
+    const data = (productsResponse as any)?.data?.data || []
+    return data as Array<{ id_produk: number; nama_produk: string; harga_satuan: number }>
+  }, [productsResponse])
 
   const [formData, setFormData] = useState<FormData>({
     total_uang_diterima: 0,

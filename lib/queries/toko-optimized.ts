@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -136,12 +135,12 @@ export function useOptimizedTokoQuery(params: TokoQueryParams = {}) {
         if (sortBy) searchParams.set('sortBy', sortBy)
         if (sortOrder) searchParams.set('sortOrder', sortOrder)
 
-        const response = await apiClient.get(`/toko/optimized?${searchParams.toString()}`)
+        const response = await apiClient.get(`/toko/optimized?${searchParams.toString()}`) as OptimizedTokoResponse
         
         
         
         // The API client returns the response directly, not wrapped in .data
-        if (!response || (!response.data && !Array.isArray(response))) {
+        if (!response || !Array.isArray(response.data)) {
           
           return {
             data: [],
@@ -187,8 +186,8 @@ export function useOptimizedTokoQuery(params: TokoQueryParams = {}) {
         }
         
         return response
-      } catch (_error) {
-        
+      } catch (error) {
+        console.error('Error fetching toko data:', error)
         
         // Return fallback data structure
         return {
@@ -234,10 +233,10 @@ export function useOptimizedTokoSearchSuggestions(query: string, enabled: boolea
       }
 
       try {
-        const response = await apiClient.get(`/toko/search-suggestions/optimized?q=${encodeURIComponent(query)}&limit=10`)
-        return response.data?.suggestions || []
-      } catch (_error) {
-        
+        const response = await apiClient.get(`/toko/search-suggestions/optimized?q=${encodeURIComponent(query)}&limit=10`) as { suggestions: SearchSuggestion[] }
+        return response.suggestions || []
+      } catch (error) {
+        console.error('Error fetching toko search suggestions:', error)
         return []
       }
     },
@@ -270,7 +269,7 @@ export function useOptimizedTokoFilterOptions() {
           throw new Error('No authenticated session found')
         }
         
-        const response = await apiClient.get('/toko/filter-options/optimized')
+        const response = await apiClient.get('/toko/filter-options/optimized') as FilterOptionsResponse
         
         
         // Ensure we always return a valid structure
@@ -294,8 +293,8 @@ export function useOptimizedTokoFilterOptions() {
         
         
         return response
-      } catch (_error) {
-        
+      } catch (error) {
+        console.error('Error fetching toko filter options:', error)
         
         // Return fallback data structure
         return {
@@ -383,8 +382,8 @@ export function usePrefetchOptimizedToko() {
               searchParams.set(key, value.toString())
             }
           })
-          const response = await apiClient.get(`/toko/optimized?${searchParams.toString()}`)
-          return response.data
+          const response = await apiClient.get(`/toko/optimized?${searchParams.toString()}`) as OptimizedTokoResponse
+          return response
         },
         staleTime: 2 * 60 * 1000,
       })
@@ -395,8 +394,8 @@ export function usePrefetchOptimizedToko() {
       queryClient.prefetchQuery({
         queryKey: optimizedTokoKeys.filterOptions(),
         queryFn: async () => {
-          const response = await apiClient.get('/toko/filter-options/optimized')
-          return response.data
+          const response = await apiClient.get('/toko/filter-options/optimized') as FilterOptionsResponse
+          return response
         },
         staleTime: 10 * 60 * 1000,
       })
@@ -409,8 +408,8 @@ export function usePrefetchOptimizedToko() {
           queryClient.prefetchQuery({
             queryKey: optimizedTokoKeys.suggestion(query),
             queryFn: async () => {
-              const response = await apiClient.get(`/toko/search-suggestions/optimized?q=${encodeURIComponent(query)}&limit=10`)
-              return response.data.suggestions || []
+              const response = await apiClient.get(`/toko/search-suggestions/optimized?q=${encodeURIComponent(query)}&limit=10`) as { suggestions: SearchSuggestion[] }
+              return response.suggestions || []
             },
             staleTime: 5 * 60 * 1000,
           })

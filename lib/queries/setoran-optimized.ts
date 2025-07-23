@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -95,8 +94,8 @@ export function useOptimizedSetoranQuery(params: SetoranParams) {
         }
       })
       
-      const response = await apiClient.get(`/setoran/optimized?${searchParams.toString()}`)
-      return response.data
+      const response = await apiClient.get(`/setoran/optimized?${searchParams.toString()}`) as OptimizedSetoranResponse
+      return response
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -125,8 +124,8 @@ export function useSetoranSearchSuggestions(query: string, enabled: boolean = tr
         limit: '10'
       })
       
-      const response = await apiClient.get(`/setoran/search-suggestions?${searchParams.toString()}`)
-      return response.data
+      const response = await apiClient.get(`/setoran/search-suggestions?${searchParams.toString()}`) as { suggestions: SearchSuggestion[] }
+      return response
     },
     enabled: enabled && query.length >= 1,
     staleTime: 30 * 1000, // 30 seconds
@@ -139,8 +138,8 @@ export function useSetoranFilterOptions() {
   return useQuery({
     queryKey: setoranOptimizedKeys.filterOptions(),
     queryFn: async (): Promise<FilterOptions> => {
-      const response = await apiClient.get('/setoran/filter-options')
-      return response.data
+      const response = await apiClient.get('/setoran/filter-options') as FilterOptions
+      return response
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -239,7 +238,8 @@ export function useOptimizedSetoranState(initialParams: SetoranParams) {
         title: "Data Diperbarui",
         description: "Data setoran berhasil diperbarui",
       })
-    } catch (_error) {
+    } catch (error) {
+      console.error('Error refreshing setoran data:', error)
       toast({
         title: "Error",
         description: "Gagal memperbarui data setoran",
@@ -261,8 +261,8 @@ export function useOptimizedSetoranState(initialParams: SetoranParams) {
               searchParams.append(key, value.toString())
             }
           })
-          const response = await apiClient.get(`/setoran/optimized?${searchParams.toString()}`)
-          return response.data
+          const response = await apiClient.get(`/setoran/optimized?${searchParams.toString()}`) as OptimizedSetoranResponse
+          return response
         },
         staleTime: 2 * 60 * 1000,
       })
@@ -300,11 +300,11 @@ export function useOptimizedSetoranState(initialParams: SetoranParams) {
   return {
     // Data - return object with data and pagination structure like toko
     data: {
-      data: response?.data?.data || response?.data || [],
-      pagination: response?.data?.pagination || response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 }
+      data: response?.data || [],
+      pagination: response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 }
     },
     // Legacy compatibility
-    pagination: response?.data?.pagination || response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 },
+    pagination: response?.pagination || { page: 1, limit: 20, total: 0, total_pages: 0 },
     
     // Loading states
     isLoading,
@@ -316,10 +316,10 @@ export function useOptimizedSetoranState(initialParams: SetoranParams) {
     error,
     
     // Search suggestions - handle wrapped response
-    suggestions: suggestionsResponse?.data?.suggestions || suggestionsResponse?.suggestions || [],
+    suggestions: suggestionsResponse?.suggestions || [],
     
     // Filter options - handle wrapped response
-    filterOptions: filterOptions?.data || filterOptions,
+    filterOptions: filterOptions,
     
     // Parameters and search
     params,
@@ -355,8 +355,8 @@ export const setoranOptimizedUtils = {
     queryClient.prefetchQuery({
       queryKey: setoranOptimizedKeys.filterOptions(),
       queryFn: async () => {
-        const response = await apiClient.get('/setoran/filter-options')
-        return response.data
+        const response = await apiClient.get('/setoran/filter-options') as FilterOptions
+        return response
       },
       staleTime: 5 * 60 * 1000,
     })
