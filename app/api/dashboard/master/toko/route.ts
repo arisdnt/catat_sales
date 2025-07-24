@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     // Apply search filter
     if (search.trim()) {
       query = query.or(
-        `nama_toko.ilike.%${search}%,nama_sales.ilike.%${search}%,kabupaten.ilike.%${search}%,kecamatan.ilike.%${search}%,no_telepon.ilike.%${search}%,telepon_sales.ilike.%${search}%`
+        `nama_toko.ilike.%${search}%,nama_sales.ilike.%${search}%,kabupaten.ilike.%${search}%,kecamatan.ilike.%${search}%,no_telepon.ilike.%${search}%`
       )
     }
 
