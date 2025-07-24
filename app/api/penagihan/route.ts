@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
         
         if (restockDetails.length > 0) {
           // Prepare shipment data with payment date
-          const shipmentInsertData = {
+          const shipmentInsertData: any = {
             id_toko: parseInt(id_toko),
             tanggal_kirim: shipmentDate,
             is_autorestock: true
@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Prepare additional shipment data with payment date
-        const additionalShipmentInsertData = {
+        const additionalShipmentInsertData: any = {
           id_toko: parseInt(id_toko),
           tanggal_kirim: additionalShipmentDate
         }
