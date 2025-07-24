@@ -147,39 +147,53 @@ export default function AddSalesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        <Card className="w-full border-0 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Users className="w-6 h-6" />
-              Form Tambah Sales
-            </CardTitle>
-            <div className="flex gap-2">
+    <div className="min-h-screen bg-white">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header Section */}
+        <div className="border-b border-gray-200 pb-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Users className="w-6 h-6 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">Tambah Sales</h1>
+                <p className="text-sm text-gray-600 mt-1">Tambahkan data sales baru secara bulk dengan mudah</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
                 disabled={isSubmitting}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4" />
                 Batal
+              </Button>
+              <Button
+                type="button"
+                onClick={addSalesRow}
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 px-4 py-2"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Sales
               </Button>
               <Button
                 type="submit"
                 form="sales-form"
                 disabled={isSubmitting || salesRows.length === 0 || !salesRows.every(row => row.isValid)}
-                className="bg-white text-cyan-600 hover:bg-gray-100"
+                className="bg-blue-600 hover:bg-blue-700 px-6"
               >
                 <Save className="w-4 h-4 mr-2" />
                 {isSubmitting ? 'Menyimpan...' : `Simpan ${salesRows.length} Sales`}
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-6">
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-8">
+          {/* Error Alert */}
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
@@ -187,112 +201,110 @@ export default function AddSalesPage() {
             </Alert>
           )}
           
-          <form id="sales-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="sales-form" onSubmit={handleSubmit} className="space-y-8">
             {/* Sales Input Section */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4 lg:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Data Sales ({salesRows.length})
                 </h3>
-                <Button
-                  type="button"
-                  onClick={addSalesRow}
-                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Tambah Sales
-                </Button>
               </div>
               
               {salesRows.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
                   <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-medium mb-2">Belum ada data sales</p>
                   <p className="text-sm">Klik tombol &quot;Tambah Sales&quot; untuk menambah data sales baru</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {salesRows.map((row, index) => (
-                    <Card key={row.id} className={`border-2 ${row.isValid ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'}`}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <Building2 className="w-4 h-4" />
-                            Sales #{index + 1}
-                            {row.isValid && <span className="text-green-600 text-sm">(✓ Valid)</span>}
-                            {!row.isValid && Object.keys(row.errors).length > 0 && <span className="text-red-600 text-sm">(✗ Error)</span>}
-                          </CardTitle>
-                          {salesRows.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeSalesRow(row.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Sales Information - Sesuai Database Schema */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`nama_sales_${row.id}`} className="text-sm font-medium">Nama Sales *</Label>
-                            <Input
-                              id={`nama_sales_${row.id}`}
-                              value={row.nama_sales}
-                              onChange={(e) => updateSalesRow(row.id, 'nama_sales', e.target.value)}
-                              placeholder="Masukkan nama sales"
-                              className={row.errors.nama_sales ? 'border-red-500' : ''}
-                            />
-                            {row.errors.nama_sales && (
-                              <p className="text-sm text-red-600">{row.errors.nama_sales}</p>
+                    <div key={row.id} className="border border-gray-200 rounded-lg p-6 bg-white">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-medium text-gray-900">Sales #{index + 1}</h4>
+                            {row.isValid ? (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full mt-1 inline-block">Valid</span>
+                            ) : (
+                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full mt-1 inline-block">Belum lengkap</span>
                             )}
                           </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor={`nomor_telepon_${row.id}`} className="text-sm font-medium">Nomor Telepon</Label>
+                        </div>
+                        {salesRows.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSalesRow(row.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="space-y-6">
+                        {/* Sales Information */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <label htmlFor={`nama_sales_${row.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                              Nama Sales *
+                            </label>
+                            <Input
+                              id={`nama_sales_${row.id}`}
+                              type="text"
+                              value={row.nama_sales}
+                              onChange={(e) => updateSalesRow(row.id, 'nama_sales', e.target.value)}
+                              className={`${row.errors.nama_sales ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'} rounded-lg`}
+                              placeholder="Masukkan nama sales"
+                            />
+                            {row.errors.nama_sales && (
+                              <p className="text-red-500 text-sm mt-1">{row.errors.nama_sales}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label htmlFor={`nomor_telepon_${row.id}`} className="block text-sm font-medium text-gray-700 mb-2">
+                              Nomor Telepon
+                            </label>
                             <Input
                               id={`nomor_telepon_${row.id}`}
                               type="tel"
                               value={row.nomor_telepon}
                               onChange={(e) => updateSalesRow(row.id, 'nomor_telepon', e.target.value)}
-                              placeholder="08123456789 (opsional)"
-                              className={row.errors.nomor_telepon ? 'border-red-500' : ''}
+                              className={`${row.errors.nomor_telepon ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'} rounded-lg`}
+                              placeholder="Contoh: 08123456789"
                             />
                             {row.errors.nomor_telepon && (
-                              <p className="text-sm text-red-600">{row.errors.nomor_telepon}</p>
+                              <p className="text-red-500 text-sm mt-1">{row.errors.nomor_telepon}</p>
                             )}
                           </div>
                         </div>
-                        
-                        {/* Status Sales */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Status Sales</Label>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              checked={row.status_aktif}
-                              onCheckedChange={(checked) => updateSalesRow(row.id, 'status_aktif', checked)}
-                            />
-                            <Label className="text-sm">Sales Aktif</Label>
-                          </div>
-                          {row.errors.status_aktif && (
-                            <p className="text-sm text-red-600">{row.errors.status_aktif}</p>
-                          )}
+
+                        <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                          <Checkbox
+                            id={`status_sales_${row.id}`}
+                            checked={row.status_aktif}
+                            onCheckedChange={(checked) => updateSalesRow(row.id, 'status_aktif', checked as boolean)}
+                          />
+                          <label htmlFor={`status_sales_${row.id}`} className="text-sm font-medium text-gray-700">
+                            Status Sales Aktif
+                          </label>
                         </div>
-                      </CardContent>
-                    </Card>
+                       </div>
+                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </form>
-        </CardContent>
-        </Card>
+
+            </form>
+          </div>
+        </div>
       </div>
-    </div>
   )
 }

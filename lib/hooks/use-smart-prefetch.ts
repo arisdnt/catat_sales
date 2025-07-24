@@ -53,10 +53,13 @@ export function usePrefetchNavigation(
 }
 
 // Prefetch related entities for edit forms
-export function usePrefetchFormDependencies(entityType: 'pengiriman' | 'penagihan' | 'setoran') {
+export function usePrefetchFormDependencies(entityType: 'pengiriman' | 'penagihan' | 'setoran' | null | undefined) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    // Only prefetch if entityType is provided
+    if (!entityType) return
+
     // Always prefetch sales data for forms
     queryClient.prefetchQuery({
       queryKey: ['sales'],
@@ -254,10 +257,8 @@ export function useComprehensivePrefetch(
   useSmartCacheWarming()
   useOptimizedCacheManagement()
   
-  // Conditionally call form dependencies hook
-  if (formType) {
-    usePrefetchFormDependencies(formType)
-  }
+  // Always call form dependencies hook, but pass formType as parameter
+  usePrefetchFormDependencies(formType)
 
   const { prefetchEntity } = usePrefetchOnHover()
   const { prefetchOnInteraction } = useIntelligentPrefetch()

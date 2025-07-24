@@ -79,11 +79,12 @@ export async function getProdukById(id: number) {
   try {
     const response = await apiClient.getProductById(id);
 
-    if (!(response as any).success || !(response as any).data) {
+    // API client returns the data directly, not wrapped in success/data
+    if (!response) {
       return null;
     }
 
-    return (response as any).data;
+    return response;
   } catch (error) {
     console.error('Error getting produk by ID:', error);
     throw error;
@@ -245,7 +246,7 @@ export function useProdukDetailQuery(id: number) {
 export function usePriorityProdukQuery() {
   return useQuery({
     queryKey: produkKeys.priority(),
-    queryFn: () => apiClient.get('/api/produk?priority=priority')
+    queryFn: () => apiClient.get('/produk/priority')
   });
 }
 

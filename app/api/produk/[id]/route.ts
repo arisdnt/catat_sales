@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProdukById, updateProduk, deleteProduk } from '@/lib/queries/produk';
+import { supabase } from '@/lib/supabase';
+import { updateProduk, deleteProduk } from '@/lib/queries/produk';
 
 export async function GET(
   request: NextRequest,
@@ -16,8 +17,21 @@ export async function GET(
       );
     }
 
-    const product = await getProdukById(id);
+    // Direct Supabase query instead of using apiClient
+    const { data: product, error } = await supabase
+      .from('produk')
+      .select('*')
+      .eq('id_produk', id)
+      .single();
     
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { error: 'Product not found' },
+        { status: 404 }
+      );
+    }
+
     if (!product) {
       return NextResponse.json(
         { error: 'Product not found' },
