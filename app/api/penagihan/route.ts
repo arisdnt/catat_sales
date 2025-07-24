@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
-    const { id_toko, total_uang_diterima, metode_pembayaran, details, potongan, auto_restock, additional_shipment } = body
+    const { id_toko, total_uang_diterima, metode_pembayaran, details, potongan, auto_restock, additional_shipment, tanggal_pembayaran } = body
 
     if (!id_toko || total_uang_diterima === undefined || !metode_pembayaran || !details || !Array.isArray(details) || details.length === 0) {
       return createErrorResponse('id_toko, total_uang_diterima, metode_pembayaran, and details are required')
@@ -133,14 +133,21 @@ export async function POST(request: NextRequest) {
     const ada_potongan = !!(potongan && potongan.jumlah_potongan > 0)
 
     // Create billing
+    const insertData: any = {
+      id_toko: parseInt(id_toko),
+      total_uang_diterima: parseFloat(total_uang_diterima),
+      metode_pembayaran,
+      ada_potongan
+    }
+    
+    // Use tanggal_pembayaran as dibuat_pada if provided
+    if (tanggal_pembayaran) {
+      insertData.dibuat_pada = tanggal_pembayaran + 'T00:00:00'
+    }
+    
     const { data: penagihanData, error: penagihanError } = await supabaseAdmin
       .from('penagihan')
-      .insert([{
-        id_toko: parseInt(id_toko),
-        total_uang_diterima: parseFloat(total_uang_diterima),
-        metode_pembayaran,
-        ada_potongan
-      }])
+      .insert([insertData])
       .select()
       .single()
 
@@ -195,21 +202,29 @@ export async function POST(request: NextRequest) {
     let shipmentData = null
     if (auto_restock) {
       try {
-        // Get today's date for shipment
-        const today = new Date().toISOString().split('T')[0]
+        // Use payment date for shipment, fallback to today if not provided
+        const shipmentDate = tanggal_pembayaran || new Date().toISOString().split('T')[0]
         
         // Filter details that have jumlah_terjual > 0 for auto-restock
         const restockDetails = details.filter(detail => detail.jumlah_terjual > 0)
         
         if (restockDetails.length > 0) {
+          // Prepare shipment data with payment date
+          const shipmentInsertData = {
+            id_toko: parseInt(id_toko),
+            tanggal_kirim: shipmentDate,
+            is_autorestock: true
+          }
+          
+          // Add dibuat_pada if payment date is provided
+          if (tanggal_pembayaran) {
+            shipmentInsertData.dibuat_pada = `${tanggal_pembayaran}T00:00:00`
+          }
+          
           // Create shipment for auto-restock
           const { data: newShipmentData, error: shipmentError } = await supabaseAdmin
             .from('pengiriman')
-            .insert([{
-              id_toko: parseInt(id_toko),
-              tanggal_kirim: today,
-              is_autorestock: true
-            }])
+            .insert([shipmentInsertData])
             .select()
             .single()
 
@@ -254,7 +269,8 @@ export async function POST(request: NextRequest) {
     let additionalShipmentData = null
     if (additional_shipment && additional_shipment.enabled && additional_shipment.details && additional_shipment.details.length > 0) {
       try {
-        const today = new Date().toISOString().split('T')[0]
+        // Use payment date for additional shipment, fallback to today if not provided
+        const additionalShipmentDate = tanggal_pembayaran || new Date().toISOString().split('T')[0]
         
         // Validate additional shipment details
         for (const detail of (additional_shipment as AdditionalShipment).details) {
@@ -263,13 +279,21 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Prepare additional shipment data with payment date
+        const additionalShipmentInsertData = {
+          id_toko: parseInt(id_toko),
+          tanggal_kirim: additionalShipmentDate
+        }
+        
+        // Add dibuat_pada if payment date is provided
+        if (tanggal_pembayaran) {
+          additionalShipmentInsertData.dibuat_pada = `${tanggal_pembayaran}T00:00:00`
+        }
+
         // Create additional shipment
         const { data: additionalShipment, error: additionalShipmentError } = await supabaseAdmin
           .from('pengiriman')
-          .insert([{
-            id_toko: parseInt(id_toko),
-            tanggal_kirim: today
-          }])
+          .insert([additionalShipmentInsertData])
           .select()
           .single()
 

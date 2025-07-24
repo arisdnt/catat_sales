@@ -67,6 +67,7 @@ interface StoreRow {
   ada_potongan: boolean
   jumlah_potongan: number
   alasan_potongan: string
+  tanggal_pembayaran: string // Format: YYYY-MM-DD
 }
 
 interface FormData {
@@ -261,7 +262,8 @@ export default function CreatePenagihanPage() {
       metode_pembayaran: 'Cash' as const,
       ada_potongan: false,
       jumlah_potongan: 0,
-      alasan_potongan: ''
+      alasan_potongan: '',
+      tanggal_pembayaran: new Date().toISOString().split('T')[0] // Default ke tanggal hari ini
     }
 
     setStoreRows(prev => [...prev, newStoreRow])
@@ -308,7 +310,7 @@ export default function CreatePenagihanPage() {
   }
 
   // Update billing info
-  const updateBillingInfo = (storeIndex: number, field: keyof Pick<StoreRow, 'total_uang_diterima' | 'metode_pembayaran' | 'ada_potongan' | 'jumlah_potongan' | 'alasan_potongan'>, value: any) => {
+  const updateBillingInfo = (storeIndex: number, field: keyof Pick<StoreRow, 'total_uang_diterima' | 'metode_pembayaran' | 'ada_potongan' | 'jumlah_potongan' | 'alasan_potongan' | 'tanggal_pembayaran'>, value: any) => {
     setStoreRows(prev => {
       const newRows = [...prev]
       const updatedRow = {
@@ -534,6 +536,7 @@ export default function CreatePenagihanPage() {
           id_toko: row.id_toko,
           total_uang_diterima: row.total_uang_diterima,
           metode_pembayaran: row.metode_pembayaran,
+          tanggal_pembayaran: row.tanggal_pembayaran,
           details,
           potongan: row.ada_potongan ? {
             jumlah_potongan: row.jumlah_potongan,
@@ -994,7 +997,7 @@ export default function CreatePenagihanPage() {
                       </div>
                       
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <Label className="text-sm">Metode Bayar</Label>
                             <Select
@@ -1009,6 +1012,16 @@ export default function CreatePenagihanPage() {
                                 <SelectItem value="Transfer">Transfer</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm">Tanggal Pembayaran</Label>
+                            <Input
+                              type="date"
+                              value={row.tanggal_pembayaran}
+                              onChange={(e) => updateBillingInfo(storeIndex, 'tanggal_pembayaran', e.target.value)}
+                              className="text-sm h-8"
+                            />
                           </div>
                           
                           <div>
