@@ -346,6 +346,7 @@ export function useMasterTokoQuery(params?: {
   kabupaten?: string
   kecamatan?: string
   status_toko?: string
+  sales_id?: string
 }) {
   return useQuery({
     queryKey: [...dashboardKeys.masterToko(), params],

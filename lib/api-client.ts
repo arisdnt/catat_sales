@@ -583,6 +583,7 @@ class ApiClient {
     kabupaten?: string
     kecamatan?: string
     status_toko?: string
+    sales_id?: string
   }) {
     const searchParams = new URLSearchParams()
     
@@ -599,6 +600,9 @@ class ApiClient {
     }
     if (params?.status_toko && params.status_toko !== 'all') {
       searchParams.set('status_toko', params.status_toko)
+    }
+    if (params?.sales_id && params.sales_id !== 'all') {
+      searchParams.set('sales_id', params.sales_id)
     }
 
     const queryString = searchParams.toString()

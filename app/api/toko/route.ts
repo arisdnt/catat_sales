@@ -262,21 +262,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRequest(request, async () => {
     const body = await request.json()
+    console.log('Received POST data:', body) // Debug log
     const { nama_toko, id_sales, kecamatan, kabupaten, no_telepon, link_gmaps, hasInitialStock, initialStock } = body
 
     if (!nama_toko || !id_sales) {
       return createErrorResponse('Nama toko and id_sales are required')
     }
 
+    // Validate id_sales is a number
+    const salesId = typeof id_sales === 'string' ? parseInt(id_sales) : id_sales
+    if (isNaN(salesId)) {
+      return createErrorResponse('Invalid id_sales format')
+    }
+
     // Verify sales exists and is active
     const { data: salesData, error: salesError } = await supabaseAdmin
       .from('sales')
       .select('id_sales')
-      .eq('id_sales', id_sales)
+      .eq('id_sales', salesId)
       .eq('status_aktif', true)
       .single()
 
     if (salesError || !salesData) {
+      console.log('Sales verification error:', salesError) // Debug log
       return createErrorResponse('Sales not found or inactive')
     }
 
@@ -285,7 +293,7 @@ export async function POST(request: NextRequest) {
       .from('toko')
       .insert([{
         nama_toko,
-        id_sales: parseInt(id_sales),
+        id_sales: salesId,
         kecamatan: kecamatan || null,
         kabupaten: kabupaten || null,
         no_telepon: no_telepon || null,
@@ -304,6 +312,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (tokoError) {
+      console.log('Toko creation error:', tokoError) // Debug log
       return createErrorResponse(tokoError.message)
     }
 

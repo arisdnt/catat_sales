@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const kabupaten = searchParams.get('kabupaten')
     const kecamatan = searchParams.get('kecamatan')
     const status_toko = searchParams.get('status_toko')
+    const sales_id = searchParams.get('sales_id')
 
     // Calculate offset for pagination
     const offset = (page - 1) * limit
@@ -39,6 +40,11 @@ export async function GET(request: Request) {
     if (status_toko && status_toko !== 'all') {
       const isActive = status_toko === 'true'
       query = query.eq('status_toko', isActive)
+    }
+
+    // Apply sales filter
+    if (sales_id && sales_id !== 'all') {
+      query = query.eq('id_sales', parseInt(sales_id))
     }
 
     // Apply ordering and pagination
