@@ -173,7 +173,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
+                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
                     type="select"
                     options={salesOptions}
                     placeholder="Pilih sales"
@@ -195,7 +195,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
+                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
                     placeholder="Masukkan nama kecamatan"
                     required
                   />
@@ -215,8 +215,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
-                    placeholder="Masukkan nama kabupaten"
+                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
+                      placeholder="Masukkan nama kabupaten"
                     required
                   />
                 )}
@@ -232,8 +232,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
-                    placeholder="Contoh: 081234567890"
+                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
+                      placeholder="Contoh: 081234567890"
                     type="tel"
                   />
                 )}
@@ -267,8 +267,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
-                    type="select"
+                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
+                      type="select"
                     options={statusOptions}
                     required
                   />
