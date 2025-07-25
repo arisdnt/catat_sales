@@ -194,11 +194,33 @@ export default function AddTokoPage() {
         })
         
         results.push(tokoResult)
+        
+        // Handle initial stock if enabled
+        if (row.hasInitialStock && row.initialStock.length > 0) {
+          // Filter out products with zero quantity
+          const stockWithQuantity = row.initialStock.filter(stock => stock.jumlah > 0)
+          
+          if (stockWithQuantity.length > 0) {
+            // Create shipment for initial stock
+            const shipmentData = {
+              id_toko: (tokoResult as any).data.id_toko,
+              tanggal_kirim: new Date().toISOString().split('T')[0], // Today's date
+              details: stockWithQuantity.map(stock => ({
+                id_produk: stock.id_produk,
+                jumlah_kirim: stock.jumlah
+              }))
+            }
+            
+            await apiClient.createShipment(shipmentData)
+          }
+        }
       }
 
+      const totalWithStock = tokoRows.filter(row => row.hasInitialStock && row.initialStock.some(stock => stock.jumlah > 0)).length
+      
       toast({
         title: 'Berhasil',
-        description: `${tokoRows.length} toko berhasil disimpan`
+        description: `${tokoRows.length} toko berhasil disimpan${totalWithStock > 0 ? ` dengan ${totalWithStock} pengiriman stok awal` : ''}`
       })
 
       router.push('/dashboard/master-data/toko')

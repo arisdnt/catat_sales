@@ -10,8 +10,8 @@ import { useTokoDetailQuery, useUpdateTokoMutation, useSalesQuery } from '@/lib/
 import { Save } from 'lucide-react'
 
 const statusOptions = [
-  { value: 'true', label: 'Aktif' },
-  { value: 'false', label: 'Non-aktif' }
+  { value: 'aktif', label: 'Aktif' },
+  { value: 'nonaktif', label: 'Non-aktif' }
 ]
 
 export default function EditTokoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -41,13 +41,13 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       no_telepon: toko?.no_telepon || '',
       link_gmaps: toko?.link_gmaps || '',
       sales_id: toko?.sales_id || '',
-      status_toko: toko?.status_toko ?? true
+      status: toko?.status_toko ? 'aktif' : 'nonaktif'
     },
     onSubmit: async ({ value }) => {
       if (tokoId) {
         const updateData = {
           ...value,
-          status_toko: Boolean(value.status_toko),
+          status_toko: value.status === 'aktif',
           id_sales: parseInt(value.sales_id as string)
         }
         updateToko.mutate(
@@ -71,7 +71,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
       form.setFieldValue('no_telepon', toko.no_telepon || '')
       form.setFieldValue('link_gmaps', toko.link_gmaps || '')
       form.setFieldValue('sales_id', toko.sales_id.toString())
-      form.setFieldValue('status_toko', Boolean(toko.status_toko))
+      form.setFieldValue('status', toko.status_toko ? 'aktif' : 'nonaktif')
     }
   })
 
@@ -173,7 +173,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0] as any}
+                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
                     type="select"
                     options={salesOptions}
                     placeholder="Pilih sales"
@@ -195,7 +195,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0] as any}
+                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
                     placeholder="Masukkan nama kecamatan"
                     required
                   />
@@ -215,7 +215,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0] as any}
+                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
                     placeholder="Masukkan nama kabupaten"
                     required
                   />
@@ -232,7 +232,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0] as any}
+                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
                     placeholder="Contoh: 081234567890"
                     type="tel"
                   />
@@ -255,7 +255,10 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
               </form.Field>
 
               <form.Field
-                name="status_toko"
+                name="status"
+                validators={{
+                  onChange: tokoSchema.shape.status
+                }}
               >
                 {(field) => (
                   <FormField
@@ -264,6 +267,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
+                    error={field.state.meta.errors?.[0]?.message || field.state.meta.errors?.[0]}
                     type="select"
                     options={statusOptions}
                     required
