@@ -49,8 +49,8 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
           nama_toko: value.nama_toko,
           kecamatan: value.kecamatan,
           kabupaten: value.kabupaten,
-          no_telepon: value.no_telepon || null,
-          link_gmaps: value.link_gmaps || null,
+          no_telepon: value.no_telepon || undefined,
+          link_gmaps: value.link_gmaps || undefined,
           status_toko: value.status_toko,
           id_sales: parseInt(value.sales_id as string)
         }

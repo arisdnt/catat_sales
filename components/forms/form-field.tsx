@@ -23,7 +23,7 @@ interface FormFieldProps {
   disabled?: boolean
   className?: string
   children?: ReactNode
-  options?: { value: string; label: string }[]
+  options?: { value: string | boolean; label: string }[]
   rows?: number
   min?: number
   max?: number
@@ -60,7 +60,14 @@ export function FormField({
   }
 
   const handleSelectChange = (newValue: string) => {
-    onChange(newValue)
+    // Handle boolean values for status fields
+    if (newValue === 'true') {
+      onChange(true)
+    } else if (newValue === 'false') {
+      onChange(false)
+    } else {
+      onChange(newValue)
+    }
   }
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -90,7 +97,7 @@ export function FormField({
       case 'select':
         return (
           <Select
-            value={value || ''}
+            value={value !== null && value !== undefined ? String(value) : ''}
             onValueChange={handleSelectChange}
             disabled={disabled}
           >
@@ -105,7 +112,7 @@ export function FormField({
             </SelectTrigger>
             <SelectContent>
               {options.filter(option => option.value !== '').map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={String(option.value)} value={String(option.value)}>
                   {option.label}
                 </SelectItem>
               ))}
