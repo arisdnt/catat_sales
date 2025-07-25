@@ -190,6 +190,7 @@ export default function AddTokoPage() {
           id_sales: parseInt(row.sales_id),
           kecamatan: row.kecamatan,
           kabupaten: row.kabupaten,
+          no_telepon: row.no_telepon,
           link_gmaps: row.link_gmaps
         })
         

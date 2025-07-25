@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,8 @@ import { useTokoDetailQuery, useUpdateTokoMutation, useSalesQuery } from '@/lib/
 import { Save } from 'lucide-react'
 
 const statusOptions = [
-  { value: 'aktif', label: 'Aktif' },
-  { value: 'nonaktif', label: 'Non-aktif' }
+  { value: true, label: 'Aktif' },
+  { value: false, label: 'Non-aktif' }
 ]
 
 export default function EditTokoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,35 +19,39 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
   const [tokoId, setTokoId] = useState<number | null>(null)
 
   // Initialize params
-  useState(() => {
+  useEffect(() => {
     params.then(({ id }) => {
       setTokoId(parseInt(id))
     })
-  })
+  }, [params])
 
   const { data: tokoResponse, isLoading } = useTokoDetailQuery(tokoId!)
   const { data: salesResponse } = useSalesQuery()
   const updateToko = useUpdateTokoMutation()
 
-  const toko: { id_toko: number; nama_toko: string; kecamatan: string; kabupaten: string; status_toko: boolean; sales_id: number; no_telepon?: string; link_gmaps?: string } = (tokoResponse as { data: any })?.data
+  const toko: { id_toko: number; nama_toko: string; kecamatan: string; kabupaten: string; status_toko: boolean; id_sales: number; no_telepon?: string; link_gmaps?: string } = (tokoResponse as { data: any })?.data
   const salesData: { id_sales: number; nama_sales: string }[] = (salesResponse as { data: any[] })?.data || []
   const salesOptions = salesData.map(s => ({ value: s.id_sales.toString(), label: s.nama_sales }))
 
   const form = useForm({
     defaultValues: {
-      nama_toko: toko?.nama_toko || '',
-      kecamatan: toko?.kecamatan || '',
-      kabupaten: toko?.kabupaten || '',
-      no_telepon: toko?.no_telepon || '',
-      link_gmaps: toko?.link_gmaps || '',
-      sales_id: toko?.sales_id || '',
-      status: toko?.status_toko ? 'aktif' : 'nonaktif'
+      nama_toko: '',
+      kecamatan: '',
+      kabupaten: '',
+      no_telepon: '',
+      link_gmaps: '',
+      sales_id: '',
+      status_toko: true
     },
     onSubmit: async ({ value }) => {
       if (tokoId) {
         const updateData = {
-          ...value,
-          status_toko: value.status === 'aktif',
+          nama_toko: value.nama_toko,
+          kecamatan: value.kecamatan,
+          kabupaten: value.kabupaten,
+          no_telepon: value.no_telepon || null,
+          link_gmaps: value.link_gmaps || null,
+          status_toko: value.status_toko,
           id_sales: parseInt(value.sales_id as string)
         }
         updateToko.mutate(
@@ -63,17 +67,17 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
   })
 
   // Update form values when toko data loads
-  useState(() => {
-    if (toko) {
-      form.setFieldValue('nama_toko', toko.nama_toko)
-      form.setFieldValue('kecamatan', toko.kecamatan)
-      form.setFieldValue('kabupaten', toko.kabupaten)
+  useEffect(() => {
+    if (toko && toko.id_sales !== undefined) {
+      form.setFieldValue('nama_toko', toko.nama_toko || '')
+      form.setFieldValue('kecamatan', toko.kecamatan || '')
+      form.setFieldValue('kabupaten', toko.kabupaten || '')
       form.setFieldValue('no_telepon', toko.no_telepon || '')
       form.setFieldValue('link_gmaps', toko.link_gmaps || '')
-      form.setFieldValue('sales_id', toko.sales_id.toString())
-      form.setFieldValue('status', toko.status_toko ? 'aktif' : 'nonaktif')
+      form.setFieldValue('sales_id', toko.id_sales.toString())
+      form.setFieldValue('status_toko', toko.status_toko)
     }
-  })
+  }, [toko, form])
 
   if (isLoading) {
     return (
@@ -255,10 +259,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
               </form.Field>
 
               <form.Field
-                name="status"
-                validators={{
-                  onChange: tokoSchema.shape.status
-                }}
+                name="status_toko"
               >
                 {(field) => (
                   <FormField
@@ -267,8 +268,7 @@ export default function EditTokoPage({ params }: { params: Promise<{ id: string 
                     value={field.state.value}
                     onChange={field.handleChange}
                     onBlur={field.handleBlur}
-                    error={field.state.meta.errors?.[0] ? (typeof field.state.meta.errors[0] === 'string' ? field.state.meta.errors[0] : (field.state.meta.errors[0] as any)?.message) : undefined}
-                      type="select"
+                    type="select"
                     options={statusOptions}
                     required
                   />

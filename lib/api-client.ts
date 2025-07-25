@@ -140,6 +140,7 @@ class ApiClient {
     desa?: string
     kecamatan?: string
     kabupaten?: string
+    no_telepon?: string
     link_gmaps?: string
   }) {
     return this.request('/toko', {
@@ -155,6 +156,7 @@ class ApiClient {
     desa?: string
     kecamatan?: string
     kabupaten?: string
+    no_telepon?: string
     link_gmaps?: string
     status_toko?: boolean
   }) {
@@ -419,13 +421,13 @@ class ApiClient {
 
   // Optimized search methods
   async searchStores(searchTerm: string, filters?: {
-    sales_id?: number
+    id_sales?: number
     kabupaten?: string
     kecamatan?: string
   }) {
     const params = new URLSearchParams()
     if (searchTerm) params.append('search', searchTerm)
-    if (filters?.sales_id) params.append('sales_id', filters.sales_id.toString())
+    if (filters?.id_sales) params.append('id_sales', filters.id_sales.toString())
     if (filters?.kabupaten) params.append('kabupaten', filters.kabupaten)
     if (filters?.kecamatan) params.append('kecamatan', filters.kecamatan)
     
@@ -456,7 +458,7 @@ class ApiClient {
     search?: string
     metode_pembayaran?: string
     ada_potongan?: string
-    sales_id?: string
+    id_sales?: string
     kabupaten?: string
     kecamatan?: string
     date_range?: string
@@ -472,8 +474,8 @@ class ApiClient {
     if (params?.ada_potongan && params.ada_potongan !== 'all') {
       searchParams.set('ada_potongan', params.ada_potongan)
     }
-    if (params?.sales_id && params.sales_id !== 'all') {
-      searchParams.set('sales_id', params.sales_id)
+    if (params?.id_sales && params.id_sales !== 'all') {
+      searchParams.set('id_sales', params.id_sales)
     }
     if (params?.kabupaten && params.kabupaten !== 'all') {
       searchParams.set('kabupaten', params.kabupaten)
@@ -496,7 +498,7 @@ class ApiClient {
     limit?: number
     search?: string
     is_autorestock?: string
-    sales_id?: string
+    id_sales?: string
     kabupaten?: string
     kecamatan?: string
     date_range?: string
@@ -508,8 +510,8 @@ class ApiClient {
     if (params?.is_autorestock && params.is_autorestock !== 'all') {
       queryParams.append('is_autorestock', params.is_autorestock)
     }
-    if (params?.sales_id && params.sales_id !== 'all') {
-      queryParams.append('sales_id', params.sales_id)
+    if (params?.id_sales && params.id_sales !== 'all') {
+      queryParams.append('id_sales', params.id_sales)
     }
     if (params?.kabupaten && params.kabupaten !== 'all') {
       queryParams.append('kabupaten', params.kabupaten)
@@ -583,7 +585,7 @@ class ApiClient {
     kabupaten?: string
     kecamatan?: string
     status_toko?: string
-    sales_id?: string
+    id_sales?: string
   }) {
     const searchParams = new URLSearchParams()
     
@@ -601,8 +603,8 @@ class ApiClient {
     if (params?.status_toko && params.status_toko !== 'all') {
       searchParams.set('status_toko', params.status_toko)
     }
-    if (params?.sales_id && params.sales_id !== 'all') {
-      searchParams.set('sales_id', params.sales_id)
+    if (params?.id_sales && params.id_sales !== 'all') {
+      searchParams.set('id_sales', params.id_sales)
     }
 
     const queryString = searchParams.toString()

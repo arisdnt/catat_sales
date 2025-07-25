@@ -66,6 +66,7 @@ export interface Database {
           nama_toko: string
           kecamatan: string | null
           kabupaten: string | null
+          no_telepon: string | null
           link_gmaps: string | null
           status_toko: boolean
           dibuat_pada: string
@@ -77,6 +78,7 @@ export interface Database {
           nama_toko: string
           kecamatan?: string | null
           kabupaten?: string | null
+          no_telepon?: string | null
           link_gmaps?: string | null
           status_toko?: boolean
           dibuat_pada?: string
@@ -88,6 +90,7 @@ export interface Database {
           nama_toko?: string
           kecamatan?: string | null
           kabupaten?: string | null
+          no_telepon?: string | null
           link_gmaps?: string | null
           status_toko?: boolean
           dibuat_pada?: string

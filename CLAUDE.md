@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Essential commands for working with this codebase:
 
 ```bash
-# Development server
+# Development server (starts on http://localhost:3000)
 npm run dev
 
 # Production build
@@ -23,17 +23,35 @@ npm run type-check
 npm run lint
 ```
 
-Always run `npm run type-check` and `npm run lint` before committing changes to ensure code quality.
+**CRITICAL**: Always run `npm run type-check` and `npm run lint` before committing changes to ensure code quality.
+
+### Testing Commands
+The project doesn't have formal unit tests configured yet. Manual testing should focus on:
+- Database queries and mutations
+- Form validation and submission
+- Authentication flows
+- Data table performance with large datasets
 
 ## Database Setup
 
-The project uses Supabase (PostgreSQL) with the schema defined in `db.sql`. Key environment variables required:
+The project uses Supabase (PostgreSQL) with the schema defined in `db.sql`. 
+
+### Environment Variables
+Create a `.env.local` file with these required variables:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
+
+### Database Schema
+Key files:
+- `db.sql` - Main schema with tables, functions, views
+- `dashboard_functions.sql` - Additional dashboard functions
+- `types/database.ts` - TypeScript interfaces matching the schema
+
+The database includes optimized count functions and materialized views for performance.
 
 ## Architecture Overview
 
@@ -117,7 +135,23 @@ Choose the appropriate table component based on your needs:
 
 The codebase uses centralized exports:
 - `components/data-tables/index.ts` - All table components
+- `components/forms/index.ts` - Form utilities and components
+- `components/layout/index.ts` - Layout components
+- `components/navigation/index.ts` - Navigation components
 - `lib/queries/index.ts` - All query hooks and types
 - Feature-specific query files (`sales.ts`, `produk.ts`, etc.)
+
+### File Naming Conventions
+- API routes: Follow Next.js App Router conventions (`route.ts`)
+- Components: Use kebab-case for files, PascalCase for component names  
+- Queries: Named by feature (e.g., `sales-optimized.ts`, `penagihan.ts`)
+- Types: Centralized in `types/database.ts`
+
+### Key Patterns to Follow
+- Always use TypeScript interfaces from `types/database.ts`
+- Prefer optimized query variants for better performance
+- Use TanStack Query for all server state management
+- Follow established component patterns (Basic/Optimized/Advanced variants)
+- Maintain consistent API route structure with filter options and search suggestions endpoints
 
 When adding new features, follow the established patterns for queries, components, and API routes.

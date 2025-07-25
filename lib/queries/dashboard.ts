@@ -416,3 +416,170 @@ export function useProdukOptionsQuery() {
     staleTime: 1000 * 60 * 10, // 10 minutes for options data
   })
 }
+
+// ====================================================================
+// NEW DASHBOARD ANALYTICS QUERIES
+// ====================================================================
+// These queries use the new dashboard analytics functions from catatan.txt
+// All functions are safe additions that don't conflict with existing system
+
+// Dashboard Analytics Types
+export interface DashboardMainStats {
+  total_barang_terkirim: number
+  total_barang_terjual: number
+  total_stok_di_toko: number
+  total_pendapatan: number
+  estimasi_aset_di_toko: number
+  period: {
+    start_date: string
+    end_date: string
+  }
+}
+
+export interface DashboardSalesPerformance {
+  id_sales: number
+  nama_sales: string
+  jumlah_toko: number
+  total_pendapatan: number
+  total_barang_terjual: number
+}
+
+export interface DashboardTokoPerformance {
+  id_toko: number
+  nama_toko: string
+  kabupaten: string
+  kecamatan: string
+  nama_sales: string
+  total_pendapatan: number
+  jumlah_transaksi: number
+  tanggal_transaksi_terakhir: string
+}
+
+export interface DashboardProdukPerformance {
+  id_produk: number
+  nama_produk: string
+  harga_satuan: number
+  total_terjual: number
+  total_kembali: number
+  total_terkirim: number
+  total_pendapatan: number
+  tingkat_konversi_penjualan: number
+}
+
+export interface DashboardRegionalPerformance {
+  kabupaten: string
+  jumlah_toko: number
+  total_pendapatan: number
+  total_barang_terjual: number
+}
+
+export interface DashboardRecentTransaction {
+  id_transaksi: number
+  tanggal: string
+  tipe_transaksi: 'Pengiriman' | 'Penagihan'
+  nama_toko: string
+  nama_sales: string
+  nilai: number
+}
+
+// Analytics Query Keys - extending existing pattern
+export const analyticsKeys = {
+  all: ['analytics'] as const,
+  mainStats: (startDate: string, endDate: string) => [...analyticsKeys.all, 'main-stats', { startDate, endDate }] as const,
+  salesPerformance: (startDate: string, endDate: string) => [...analyticsKeys.all, 'sales-performance', { startDate, endDate }] as const,
+  tokoPerformance: (startDate: string, endDate: string) => [...analyticsKeys.all, 'toko-performance', { startDate, endDate }] as const,
+  produkPerformance: (startDate: string, endDate: string) => [...analyticsKeys.all, 'produk-performance', { startDate, endDate }] as const,
+  regionalPerformance: (startDate: string, endDate: string) => [...analyticsKeys.all, 'regional-performance', { startDate, endDate }] as const,
+  recentTransactions: (startDate: string, endDate: string) => [...analyticsKeys.all, 'recent-transactions', { startDate, endDate }] as const,
+}
+
+// New Analytics Query Hooks
+export function useDashboardMainStatsQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.mainStats(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardMainStats>> => {
+      const response = await fetch(`/api/dashboard/analytics/main-stats?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch main stats')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes - fresh data for KPIs
+    enabled: !!startDate && !!endDate,
+  })
+}
+
+export function useDashboardSalesPerformanceQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.salesPerformance(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardSalesPerformance[]>> => {
+      const response = await fetch(`/api/dashboard/analytics/sales-performance?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch sales performance')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes for chart data
+    enabled: !!startDate && !!endDate,
+  })
+}
+
+export function useDashboardTokoPerformanceQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.tokoPerformance(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardTokoPerformance[]>> => {
+      const response = await fetch(`/api/dashboard/analytics/toko-performance?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch store performance')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes for chart data
+    enabled: !!startDate && !!endDate,
+  })
+}
+
+export function useDashboardProdukPerformanceQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.produkPerformance(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardProdukPerformance[]>> => {
+      const response = await fetch(`/api/dashboard/analytics/produk-performance?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch product performance')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes for chart data
+    enabled: !!startDate && !!endDate,
+  })
+}
+
+export function useDashboardRegionalPerformanceQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.regionalPerformance(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardRegionalPerformance[]>> => {
+      const response = await fetch(`/api/dashboard/analytics/regional-performance?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch regional performance')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes for chart data
+    enabled: !!startDate && !!endDate,
+  })
+}
+
+export function useDashboardRecentTransactionsQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: analyticsKeys.recentTransactions(startDate, endDate),
+    queryFn: async (): Promise<ApiResponse<DashboardRecentTransaction[]>> => {
+      const response = await fetch(`/api/dashboard/analytics/recent-transactions?start_date=${startDate}&end_date=${endDate}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent transactions')
+      }
+      return response.json()
+    },
+    staleTime: 1000 * 60 * 1, // 1 minute for real-time transaction feed
+    enabled: !!startDate && !!endDate,
+  })
+}

@@ -33,7 +33,7 @@ export function useDebounceSearch(
 
 // Specialized hooks for different entity searches
 export function useDebounceStoreSearch(searchTerm: string, filters?: {
-  sales_id?: number
+  id_sales?: number
   kabupaten?: string
   kecamatan?: string
 }) {
@@ -44,7 +44,7 @@ export function useDebounceStoreSearch(searchTerm: string, filters?: {
     queryFn: async (): Promise<any[]> => {
       const params = new URLSearchParams()
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
-      if (filters?.sales_id) params.append('sales_id', filters.sales_id.toString())
+      if (filters?.id_sales) params.append('id_sales', filters.id_sales.toString())
       if (filters?.kabupaten) params.append('kabupaten', filters.kabupaten)
       if (filters?.kecamatan) params.append('kecamatan', filters.kecamatan)
       

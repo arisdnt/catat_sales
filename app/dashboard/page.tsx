@@ -1,41 +1,78 @@
 'use client'
 
-import { Construction, BarChart3 } from 'lucide-react'
+import { useState } from 'react'
+import { BarChart3, TrendingUp } from 'lucide-react'
+import { AnalyticsKPICards } from '@/components/dashboard/analytics-kpi-cards'
+import { DateRangePicker } from '@/components/dashboard/date-range-picker'
+import { PerformanceCharts } from '@/components/dashboard/performance-charts'
+import { RecentTransactions } from '@/components/dashboard/recent-transactions'
 
 export default function DashboardPage() {
+  // Default to last 7 days
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 6) // 7 days ago (including today)
+    return date.toISOString().split('T')[0]
+  })
+  
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0]
+  })
+
+  const handleDateRangeChange = (newStartDate: string, newEndDate: string) => {
+    setStartDate(newStartDate)
+    setEndDate(newEndDate)
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] text-center">
-          {/* Icon Section */}
-          <div className="mb-8">
-            <div className="flex justify-center mb-6">
-              <Construction className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 text-gray-400" />
+      <div className="w-full px-4 py-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <BarChart3 className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">
+              Dashboard Analytics
+            </h1>
+          </div>
+          <p className="text-gray-600">
+            Monitoring performa penjualan dan analisis bisnis real-time
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {/* Date Range Filter */}
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onDateRangeChange={handleDateRangeChange}
+          />
+
+          {/* KPI Cards */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-900">
+                Statistik Utama
+              </h2>
             </div>
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <BarChart3 className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-700">
-                Dashboard
-              </h1>
-            </div>
+            <AnalyticsKPICards startDate={startDate} endDate={endDate} />
           </div>
 
-          {/* Content Section */}
-          <div className="max-w-2xl mx-auto space-y-6">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-600">
-              Masih Dalam Pengembangan
-            </h2>
-            
-            <p className="text-base sm:text-lg text-gray-500 leading-relaxed px-4">
-              Dashboard statistik dan analitik sedang dalam tahap pengembangan. 
-              Fitur ini akan segera tersedia dengan tampilan yang lebih lengkap dan informatif.
-            </p>
-            
-            <div className="pt-4">
-              <p className="text-sm text-gray-400">
-                Terima kasih atas kesabaran Anda
-              </p>
+          {/* Performance Charts */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-900">
+                Analisis Performa
+              </h2>
             </div>
+            <PerformanceCharts startDate={startDate} endDate={endDate} />
+          </div>
+
+          {/* Recent Transactions */}
+          <div>
+            <RecentTransactions startDate={startDate} endDate={endDate} />
           </div>
         </div>
       </div>
