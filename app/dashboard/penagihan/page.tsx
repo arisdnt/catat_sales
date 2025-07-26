@@ -315,27 +315,29 @@ function PenagihanFilterPanel({
   )
 }
 
-// Data table component (identical structure to toko)
+// Data table component (simplified - no pagination handlers here)
 function PenagihanDataTable({ 
   data, 
   isLoading, 
   error, 
   refetch, 
-  params, 
-  updateParams, 
   onDelete, 
   onView, 
-  onEdit 
+  onEdit,
+  onPageChange,
+  onNextPage,
+  onPrevPage
 }: {
   data: any
   isLoading: boolean
   error: any
   refetch: () => void
-  params: any
-  updateParams: (params: any) => void
   onDelete: (penagihan: any) => void
   onView: (penagihan: any) => void
   onEdit: (penagihan: any) => void
+  onPageChange: (page: number) => void
+  onNextPage: () => void
+  onPrevPage: () => void
 }) {
   // Define responsive columns with balanced sizing and left alignment
   const columns = useMemo<ColumnDef<any>[]>(() => [
@@ -609,23 +611,6 @@ function PenagihanDataTable({
 
   ], [])
 
-  // Handle pagination (identical to toko)
-  const handleNextPage = useCallback(() => {
-    if (data?.pagination?.hasNextPage) {
-      updateParams({ page: (params.page || 1) + 1 })
-    }
-  }, [data?.pagination?.hasNextPage, params.page, updateParams])
-
-  const handlePrevPage = useCallback(() => {
-    if (data?.pagination?.hasPrevPage) {
-      updateParams({ page: (params.page || 1) - 1 })
-    }
-  }, [data?.pagination?.hasPrevPage, params.page, updateParams])
-
-  const handlePageChange = useCallback((page: number) => {
-    updateParams({ page })
-  }, [updateParams])
-
   // Table actions (identical to toko)
   const tableActions = useMemo(() => [
     {
@@ -657,15 +642,15 @@ function PenagihanDataTable({
       onRefresh={refetch}
       actions={tableActions}
       pagination={data?.pagination ? {
-        currentPage: data.pagination.page,
-        totalPages: data.pagination.total_pages,
+        currentPage: data.pagination.currentPage,
+        totalPages: data.pagination.totalPages,
         total: data.pagination.total,
-        hasNextPage: data.pagination.page < data.pagination.total_pages,
-        hasPrevPage: data.pagination.page > 1,
-        onPageChange: handlePageChange,
-        onNextPage: handleNextPage,
-        onPrevPage: handlePrevPage,
-        pageSize: data.pagination.limit,
+        hasNextPage: data.pagination.hasNextPage,
+        hasPrevPage: data.pagination.hasPrevPage,
+        onPageChange: onPageChange,
+        onNextPage: onNextPage,
+        onPrevPage: onPrevPage,
+        pageSize: data.pagination.pageSize,
       } : undefined}
       enableVirtualization={false}
       enableRowSelection={false}
@@ -814,12 +799,29 @@ export default function PenagihanPage() {
     navigate('/dashboard/penagihan/create')
   }, [navigate])
 
+  // Pagination handlers - these directly update the main page state
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage)
+  }, [])
+
+  const handleNextPage = useCallback(() => {
+    if (data?.pagination?.hasNextPage) {
+      setPage(prevPage => prevPage + 1)
+    }
+  }, [data?.pagination?.hasNextPage])
+
+  const handlePrevPage = useCallback(() => {
+    if (data?.pagination?.hasPrevPage) {
+      setPage(prevPage => Math.max(1, prevPage - 1))
+    }
+  }, [data?.pagination?.hasPrevPage])
+
   // Summary statistics for header display only
   const summary = {
     total_billings: data.pagination.total || 0,
     current_page_count: data.data.length,
     total_pages: data.pagination.totalPages,
-    total_revenue: data.data.reduce((sum: number, item: any) => sum + (item.total_uang_diterima || 0), 0)
+    total_revenue: dashboardData?.data?.metadata?.totalRevenue || 0
   }
 
   return (
@@ -882,15 +884,12 @@ export default function PenagihanPage() {
             isLoading={isLoading}
             error={error}
             refetch={refetch}
-            params={{ page }}
-            updateParams={(newParams: any) => {
-              if (newParams.page) {
-                setPage(newParams.page)
-              }
-            }}
             onDelete={handleDelete}
             onView={handleView}
             onEdit={handleEdit}
+            onPageChange={handlePageChange}
+            onNextPage={handleNextPage}
+            onPrevPage={handlePrevPage}
           />
         </div>
       </motion.div>

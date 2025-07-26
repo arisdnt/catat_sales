@@ -5,7 +5,7 @@
 [![Built with Next.js](https://img.shields.io/badge/built%20with-Next.js%2015-000000.svg?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Powered by Supabase](https://img.shields.io/badge/powered%20by-Supabase-3ECF8E.svg?style=flat-square&logo=supabase)](https://supabase.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Deployed on Netlify](https://img.shields.io/badge/deployed%20on-Netlify-00C7B7?style=flat-square&logo=netlify)](https://netlify.com)
+[![Deployed on Vercel](https://img.shields.io/badge/deployed%20on-Vercel-000000?style=flat-square&logo=vercel)](https://vercel.com)
 
 ## 📋 Deskripsi
 
@@ -104,15 +104,9 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ### 3. Database Setup
 
 1. Buat project baru di [Supabase](https://supabase.com)
-2. Jalankan SQL schema (database-schema.sql) di SQL Editor
+2. Setup database schema sesuai dengan struktur yang diperlukan
 3. Setup authentication policies
-4. Buat user pertama:
-
-```bash
-curl -X POST http://localhost:3000/api/auth/create-user \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password123"}'
-```
+4. Konfigurasi Row Level Security (RLS)
 
 ### 4. Development
 
@@ -131,6 +125,47 @@ npm run build
 ```
 
 Aplikasi akan tersedia di `http://localhost:3000`
+
+## 🚀 Deployment ke Vercel
+
+### 1. Persiapan
+
+```bash
+# Build untuk memastikan tidak ada error
+npm run build
+
+# Install Vercel CLI (opsional)
+npm i -g vercel
+```
+
+### 2. Deploy ke Vercel
+
+**Option A: Via Vercel Dashboard**
+1. Push code ke GitHub repository
+2. Connect repository di [Vercel Dashboard](https://vercel.com)
+3. Set environment variables di Vercel project settings
+4. Deploy otomatis akan berjalan
+
+**Option B: Via Vercel CLI**
+```bash
+vercel --prod
+```
+
+### 3. Environment Variables di Vercel
+
+Set environment variables berikut di Vercel project settings:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+### 4. Custom Domain (Opsional)
+
+1. Buka project settings di Vercel
+2. Tambahkan custom domain
+3. Update DNS records sesuai instruksi Vercel
 
 ## 📁 Struktur Project
 

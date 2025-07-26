@@ -1,1 +1,0 @@
-ALTER TABLE public.toko ADD COLUMN IF NOT EXISTS no_telepon VARCHAR(20);

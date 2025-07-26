@@ -533,6 +533,7 @@ class ApiClient {
     search?: string
     status_setoran?: string
     date_range?: string
+    event_type?: string
   }) {
     const queryParams = new URLSearchParams()
     if (params?.page) queryParams.append('page', params.page.toString())
@@ -543,6 +544,9 @@ class ApiClient {
     }
     if (params?.date_range && params.date_range !== 'all') {
       queryParams.append('date_range', params.date_range)
+    }
+    if (params?.event_type && params.event_type !== 'all') {
+      queryParams.append('event_type', params.event_type)
     }
     
     const queryString = queryParams.toString()

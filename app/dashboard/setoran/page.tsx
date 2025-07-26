@@ -85,32 +85,41 @@ interface SetoranFilters {
   search: string
   status_setoran: string
   date_range: 'today' | 'week' | 'month' | 'all'
-  event_type: 'all' | 'PEMBAYARAN_CASH' | 'SETORAN'
+  event_type: 'all' | 'PEMBAYARAN_CASH' | 'PEMBAYARAN_TRANSFER' | 'SETORAN'
 }
 
-// Cash Flow Summary Component
-function CashFlowSummary({ data }: { data: any[] }) {
-  // Calculate aggregated statistics based on filtered data
+// Cash Flow Summary Component - FIXED to show proper setoran count
+function CashFlowSummary({ summary, recordCount, currentFilter }: { 
+  summary: any, 
+  recordCount: number,
+  currentFilter: string 
+}) {
   const stats = useMemo(() => {
-    const totalCash = data.reduce((sum, item) => sum + (item.pembayaran_cash_hari_ini || 0), 0)
-    const totalTransfer = data.reduce((sum, item) => sum + (item.pembayaran_transfer_hari_ini || 0), 0)
-    const totalSetoran = data.reduce((sum, item) => sum + (item.total_setoran || 0), 0)
-    
-    // Cash balance calculation
-    const cashBalance = totalCash - totalSetoran
-    const totalTransactionsCash = data.reduce((sum, item) => sum + (item.jumlah_transaksi_cash || 0), 0)
-    const totalTransactionsTransfer = data.reduce((sum, item) => sum + (item.jumlah_transaksi_transfer || 0), 0)
-    
-    return {
-      totalCash,
-      totalTransfer,
-      totalSetoran,
-      cashBalance,
-      totalTransactionsCash,
-      totalTransactionsTransfer,
-      totalRecords: data.length
+    if (!summary) {
+      return {
+        totalCash: 0,
+        totalTransfer: 0,
+        totalSetoran: 0,
+        cashBalance: 0,
+        totalTransactionsCash: 0,
+        totalTransactionsTransfer: 0,
+        totalSetoranTransactions: 0,
+        totalRecords: recordCount || 0
+      }
     }
-  }, [data])
+
+    // Use the accurate summary data from database function
+    return {
+      totalCash: summary.total_cash_in || 0,
+      totalTransfer: summary.total_transfer_in || 0,
+      totalSetoran: summary.total_setoran || 0,
+      cashBalance: summary.net_cash_flow || 0, // This is already calculated correctly as cash_in - setoran
+      totalTransactionsCash: summary.total_cash_transactions || 0,
+      totalTransactionsTransfer: summary.total_transfer_transactions || 0,
+      totalSetoranTransactions: summary.total_setoran_transactions || 0,
+      totalRecords: recordCount || 0
+    }
+  }, [summary, recordCount])
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -162,7 +171,9 @@ function CashFlowSummary({ data }: { data: any[] }) {
               <div>
                 <p className="text-sm font-medium text-purple-700">Total Setoran</p>
                 <p className="text-2xl font-bold text-purple-900">{formatCurrency(stats.totalSetoran)}</p>
-                <p className="text-xs text-purple-600 mt-1">{stats.totalRecords} setoran</p>
+                <p className="text-xs text-purple-600 mt-1">
+                  {stats.totalSetoranTransactions} setoran
+                </p>
               </div>
               <div className="p-3 bg-purple-200 rounded-full">
                 <ArrowUpCircle className="w-6 h-6 text-purple-700" />
@@ -240,7 +251,7 @@ function SetoranFilterPanel({
     filters.search || 
     (filters.date_range && filters.date_range !== 'all') ||
     (filters.status_setoran && filters.status_setoran !== 'all') ||
-    (filters.event_type && filters.event_type !== 'all')
+    (filters.event_type && filters.event_type !== 'all')  // 'all' is now the default, so only show as active if different
   )
 
   return (
@@ -288,11 +299,12 @@ function SetoranFilterPanel({
               onValueChange={(value) => onFiltersChange({ event_type: value as any })}
             >
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Semua transaksi" />
+                <SelectValue placeholder="Setoran saja" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Transaksi</SelectItem>
                 <SelectItem value="PEMBAYARAN_CASH">💰 Cash Masuk</SelectItem>
+                <SelectItem value="PEMBAYARAN_TRANSFER">💳 Transfer Masuk</SelectItem>
                 <SelectItem value="SETORAN">📤 Setoran</SelectItem>
               </SelectContent>
             </Select>
@@ -348,7 +360,8 @@ function SetoranFilterPanel({
               )}
               {filters.event_type && filters.event_type !== 'all' && (
                 <Badge variant="secondary">
-                  Jenis: {filters.event_type === 'PEMBAYARAN_CASH' ? 'Cash Masuk' : 'Setoran'}
+                  Jenis: {filters.event_type === 'PEMBAYARAN_CASH' ? 'Cash Masuk' : 
+                         filters.event_type === 'PEMBAYARAN_TRANSFER' ? 'Transfer Masuk' : 'Setoran'}
                 </Badge>
               )}
               {filters.status_setoran && filters.status_setoran !== 'all' && (
@@ -397,17 +410,24 @@ function SetoranDataTable({
       header: 'ID & Jenis Transaksi',
       cell: ({ row }) => {
         const setoran = row.original
-        const isPayment = setoran.event_type === 'PEMBAYARAN_CASH'
+        const eventType = setoran.event_type
+        const getEventDisplay = (type: string) => {
+          switch (type) {
+            case 'PEMBAYARAN_CASH': return { icon: '💰', text: 'Cash Masuk', color: 'text-green-600' }
+            case 'PEMBAYARAN_TRANSFER': return { icon: '💳', text: 'Transfer Masuk', color: 'text-blue-600' }
+            case 'SETORAN': return { icon: '📤', text: 'Setoran', color: 'text-purple-600' }
+            default: return { icon: '📊', text: 'Transaksi', color: 'text-gray-600' }
+          }
+        }
+        const display = getEventDisplay(eventType)
         return (
           <div className="text-left">
             <div className="font-mono text-sm font-medium text-gray-900">
               #{setoran.id_setoran}
             </div>
             <div className="text-xs text-gray-500">{setoran.tanggal_setoran}</div>
-            <div className={`text-xs font-medium mt-1 ${
-              isPayment ? 'text-green-600' : 'text-blue-600'
-            }`}>
-              {isPayment ? '💰 Cash Masuk' : '📤 Setoran'}
+            <div className={`text-xs font-medium mt-1 ${display.color}`}>
+              {display.icon} {display.text}
             </div>
           </div>
         )
@@ -422,12 +442,18 @@ function SetoranDataTable({
       header: 'Jumlah & Deskripsi',
       cell: ({ row }) => {
         const setoran = row.original
-        const isPayment = setoran.event_type === 'PEMBAYARAN_CASH'
+        const eventType = setoran.event_type
+        const getAmountColor = (type: string) => {
+          switch (type) {
+            case 'PEMBAYARAN_CASH': return 'text-green-900'
+            case 'PEMBAYARAN_TRANSFER': return 'text-blue-900'
+            case 'SETORAN': return 'text-purple-900'
+            default: return 'text-gray-900'
+          }
+        }
         return (
           <div className="text-left">
-            <div className={`text-sm font-medium ${
-              isPayment ? 'text-green-900' : 'text-blue-900'
-            }`}>
+            <div className={`text-sm font-medium ${getAmountColor(eventType)}`}>
               {formatCurrency(setoran.total_setoran)}
             </div>
             <div className="text-xs text-gray-600 mt-1 max-w-[180px] truncate" title={setoran.description}>
@@ -480,7 +506,7 @@ function SetoranDataTable({
     },
     {
       accessorKey: 'waktu_setoran',
-      header: 'Waktu Setoran',
+      header: 'Waktu Transaksi',
       cell: ({ row }) => {
         const setoran = row.original
         const date = new Date(setoran.waktu_setoran)
@@ -516,14 +542,23 @@ function SetoranDataTable({
         const getEventTypeColor = (type: string) => {
           switch (type) {
             case 'PEMBAYARAN_CASH': return 'bg-green-100 text-green-800'
-            case 'SETORAN': return 'bg-blue-100 text-blue-800'
+            case 'PEMBAYARAN_TRANSFER': return 'bg-blue-100 text-blue-800'
+            case 'SETORAN': return 'bg-purple-100 text-purple-800'
             default: return 'bg-gray-100 text-gray-800'
+          }
+        }
+        const getEventTypeLabel = (type: string) => {
+          switch (type) {
+            case 'PEMBAYARAN_CASH': return 'Cash In'
+            case 'PEMBAYARAN_TRANSFER': return 'Transfer In'
+            case 'SETORAN': return 'Cash Out'
+            default: return 'Unknown'
           }
         }
         return (
           <div className="text-left">
             <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getEventTypeColor(eventType)}`}>
-              {eventType === 'PEMBAYARAN_CASH' ? 'Cash In' : 'Cash Out'}
+              {getEventTypeLabel(eventType)}
             </span>
             <div className="text-xs text-gray-500 mt-1">
               {setoran.transaction_category}
@@ -620,7 +655,7 @@ export default function DepositsPage() {
   const { toast } = useToast()
   const deleteSetoranMutation = useDeleteSetoranMutation()
 
-  // Filter and pagination state
+  // Filter and pagination state - DEFAULT to show all transactions
   const [filters, setFilters] = useState<SetoranFilters>({
     search: '',
     status_setoran: 'all',
@@ -708,13 +743,23 @@ export default function DepositsPage() {
       search: '',
       status_setoran: 'all',
       date_range: 'all',
-      event_type: 'all'
+      event_type: 'all'  // Reset to show all transactions when clearing
     })
     setPage(1) // Reset to first page when clearing filters
   }, [])
 
   // Handle delete (adapted for setoran)
   const handleDelete = useCallback((setoran: any) => {
+    // Only allow delete for SETORAN type transactions
+    if (setoran.event_type !== 'SETORAN') {
+      toast({
+        title: "Error",
+        description: "Hanya transaksi setoran yang dapat dihapus",
+        variant: "destructive",
+      })
+      return
+    }
+    
     if (window.confirm(`Apakah Anda yakin ingin menghapus setoran #${setoran.id_setoran}?`)) {
       deleteSetoranMutation.mutate(setoran.id_setoran, {
         onSuccess: () => {
@@ -737,13 +782,31 @@ export default function DepositsPage() {
 
   // Handle view
   const handleView = useCallback((setoran: any) => {
+    // Only allow view for SETORAN type transactions
+    if (setoran.event_type !== 'SETORAN') {
+      toast({
+        title: "Info",
+        description: "Detail view hanya tersedia untuk transaksi setoran",
+        variant: "default",
+      })
+      return
+    }
     navigate(`/dashboard/setoran/${setoran.id_setoran}`)
-  }, [navigate])
+  }, [navigate, toast])
 
   // Handle edit
   const handleEdit = useCallback((setoran: any) => {
+    // Only allow edit for SETORAN type transactions
+    if (setoran.event_type !== 'SETORAN') {
+      toast({
+        title: "Info",
+        description: "Edit hanya tersedia untuk transaksi setoran",
+        variant: "default",
+      })
+      return
+    }
     navigate(`/dashboard/setoran/${setoran.id_setoran}/edit`)
-  }, [navigate])
+  }, [navigate, toast])
 
   // Handle export
   const handleExport = useCallback(() => {
@@ -786,12 +849,14 @@ export default function DepositsPage() {
       {/* Page Header */}
       <motion.div variants={cardVariants} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Ledger Arus Kas Harian</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {filters.event_type === 'SETORAN' ? 'Data Setoran' : 'Ledger Arus Kas Harian'}
+          </h1>
           <p className="text-gray-600 mt-2">
-            Monitoring transaksi-level arus kas dengan running balance. Setiap pembayaran cash dan setoran 
-            ditampilkan secara kronologis dengan saldo berjalan real-time.
-            Menampilkan {summary.current_page_count} dari {formatNumber(summary.total_deposits)} transaksi 
-            (Halaman {data.pagination.currentPage} dari {summary.total_pages})
+            {filters.event_type === 'SETORAN' 
+              ? `Daftar setoran yang dilakukan sales ke kantor pusat. Menampilkan ${summary.current_page_count} dari ${formatNumber(summary.total_deposits)} setoran (Halaman ${data.pagination.currentPage} dari ${summary.total_pages})`
+              : `Monitoring transaksi-level arus kas dengan running balance. Setiap pembayaran cash dan setoran ditampilkan secara kronologis dengan saldo berjalan real-time. Menampilkan ${summary.current_page_count} dari ${formatNumber(summary.total_deposits)} transaksi (Halaman ${data.pagination.currentPage} dari ${summary.total_pages})`
+            }
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -825,7 +890,11 @@ export default function DepositsPage() {
 
       {/* Cash Flow Summary */}
       <motion.div variants={cardVariants}>
-        <CashFlowSummary data={data?.data || []} />
+        <CashFlowSummary 
+          summary={dashboardData?.data?.summary} 
+          recordCount={data?.data?.length || 0}
+          currentFilter={filters.event_type}
+        />
       </motion.div>
 
       {/* Integrated Data Table Card */}

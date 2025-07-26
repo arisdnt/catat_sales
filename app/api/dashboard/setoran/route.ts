@@ -16,7 +16,41 @@ export async function GET(request: Request) {
     const dateRange = searchParams.get('date_range')
     const eventType = searchParams.get('event_type')
 
-    // Build the query
+    // Calculate date range for summary function
+    let startDate = '1900-01-01'
+    const endDate = new Date().toISOString().split('T')[0]
+    
+    if (dateRange && dateRange !== 'all') {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      switch (dateRange) {
+        case 'today':
+          startDate = today.toISOString().split('T')[0]
+          break
+        case 'week':
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          startDate = weekAgo.toISOString().split('T')[0]
+          break
+        case 'month':
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          startDate = monthAgo.toISOString().split('T')[0]
+          break
+      }
+    }
+
+    // Get cash flow summary using database function
+    const { data: summaryData, error: summaryError } = await supabase
+      .rpc('get_cash_flow_summary', {
+        start_date: startDate,
+        end_date: endDate
+      })
+
+    if (summaryError) {
+      console.error('Error fetching cash flow summary:', summaryError)
+    }
+
+    // Build the query - menggunakan view yang ada
     let query = supabase
       .from('v_setoran_dashboard')
       .select('*', { count: 'exact' })
@@ -24,9 +58,10 @@ export async function GET(request: Request) {
 
     // Apply filters
     if (search && search.trim()) {
-      // Build search conditions
+      // Build search conditions - use field names from view
       const searchConditions = [
-        `penerima_setoran.ilike.%${search}%`
+        `penerima_setoran.ilike.%${search}%`,
+        `description.ilike.%${search}%`
       ]
       
       // Only add id_setoran search if the search term is a valid number
@@ -43,7 +78,14 @@ export async function GET(request: Request) {
     }
 
     if (eventType && eventType !== 'all') {
-      query = query.eq('event_type', eventType)
+      // Handle the updated event types from the new view
+      if (eventType === 'PEMBAYARAN_CASH') {
+        query = query.eq('event_type', 'PEMBAYARAN_CASH')
+      } else if (eventType === 'PEMBAYARAN_TRANSFER') {
+        query = query.eq('event_type', 'PEMBAYARAN_TRANSFER')
+      } else if (eventType === 'SETORAN') {
+        query = query.eq('event_type', 'SETORAN')
+      }
     }
 
     if (dateRange && dateRange !== 'all') {
@@ -95,6 +137,17 @@ export async function GET(request: Request) {
           total_pages: totalPages,
           has_next: page < totalPages,
           has_prev: page > 1
+        },
+        // Include accurate summary from database function
+        summary: summaryData || {
+          total_cash_in: 0,
+          total_transfer_in: 0,
+          total_setoran: 0,
+          net_cash_flow: 0,
+          total_cash_transactions: 0,
+          total_transfer_transactions: 0,
+          total_setoran_transactions: 0,
+          total_events: 0
         }
       }
     })

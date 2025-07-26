@@ -49,19 +49,18 @@ export interface DashboardSetoran {
   pembayaran_cash_hari_ini: number
   pembayaran_transfer_hari_ini: number
   total_pembayaran_hari_ini: number
+  total_setoran_hari_ini: number
   selisih_cash_setoran: number
   status_setoran: 'SESUAI' | 'KURANG_SETOR' | 'LEBIH_SETOR'
-  jumlah_transaksi_cash?: number
-  jumlah_transaksi_transfer?: number
   cash_balance_kumulatif?: number
-  status_arus_kas?: string
-  // New transaction-level fields
-  event_type: 'PEMBAYARAN_CASH' | 'SETORAN'
+  // New transaction-level fields from v_setoran_dashboard_fixed
+  event_type: 'PEMBAYARAN_CASH' | 'PEMBAYARAN_TRANSFER' | 'SETORAN'
   description: string
-  transaction_category: 'Cash' | 'Deposit'
+  transaction_category: string
   nama_toko?: string
   kecamatan?: string
   kabupaten?: string
+  nama_sales?: string
 }
 
 export interface DashboardOverview {
@@ -247,6 +246,12 @@ export function useDashboardPenagihanQuery(params?: {
         has_next: boolean
         has_prev: boolean
       }
+      metadata?: {
+        totalItems: number
+        totalRevenue: number
+        totalPages: number
+        currentPage: number
+      }
     }>>,
     staleTime: 0, // Always consider data stale to ensure fresh data
     refetchOnWindowFocus: true, // Refetch when window gains focus
@@ -287,6 +292,7 @@ export function useDashboardSetoranQuery(params?: {
   search?: string
   status_setoran?: string
   date_range?: string
+  event_type?: string
 }) {
   return useQuery({
     queryKey: [...dashboardKeys.setoran(), params],
@@ -299,6 +305,16 @@ export function useDashboardSetoranQuery(params?: {
         total_pages: number
         has_next: boolean
         has_prev: boolean
+      }
+      summary: {
+        total_cash_in: number
+        total_transfer_in: number
+        total_setoran: number
+        net_cash_flow: number
+        total_cash_transactions: number
+        total_transfer_transactions: number
+        total_setoran_transactions: number
+        total_events: number
       }
     }>>,
     staleTime: 1000 * 60 * 2, // 2 minutes

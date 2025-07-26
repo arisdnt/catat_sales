@@ -109,6 +109,80 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Calculate total revenue from all records matching the filters (not just current page)
+    let totalRevenueQuery = supabase
+      .from('v_penagihan_dashboard')
+      .select('total_uang_diterima')
+
+    // Apply the same filters as the main query to get accurate total revenue
+    if (search.trim()) {
+      const searchNum = parseInt(search)
+      if (!isNaN(searchNum)) {
+        totalRevenueQuery = totalRevenueQuery.eq('id_penagihan', searchNum)
+      } else {
+        totalRevenueQuery = totalRevenueQuery.or(
+          `nama_toko.ilike.*${search}*,kecamatan.ilike.*${search}*,kabupaten.ilike.*${search}*,nama_sales.ilike.*${search}*`
+        )
+      }
+    }
+
+    if (metode_pembayaran && metode_pembayaran !== 'all') {
+      totalRevenueQuery = totalRevenueQuery.eq('metode_pembayaran', metode_pembayaran)
+    }
+
+    if (ada_potongan && ada_potongan !== 'all') {
+      const hasDiscount = ada_potongan === 'true'
+      totalRevenueQuery = totalRevenueQuery.eq('ada_potongan', hasDiscount)
+    }
+
+    if (sales_id && sales_id !== 'all') {
+      totalRevenueQuery = totalRevenueQuery.eq('id_sales', parseInt(sales_id))
+    }
+
+    if (kabupaten && kabupaten !== 'all') {
+      totalRevenueQuery = totalRevenueQuery.eq('kabupaten', kabupaten)
+    }
+
+    if (kecamatan && kecamatan !== 'all') {
+      totalRevenueQuery = totalRevenueQuery.eq('kecamatan', kecamatan)
+    }
+
+    // Apply date range filter to total revenue query
+    if (date_range !== 'all') {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      switch (date_range) {
+        case 'today':
+          const todayStr = today.toISOString().split('T')[0]
+          const tomorrowStr = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          totalRevenueQuery = totalRevenueQuery.gte('dibuat_pada', todayStr).lt('dibuat_pada', tomorrowStr)
+          break
+        case 'week':
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          totalRevenueQuery = totalRevenueQuery
+            .gte('dibuat_pada', weekAgo.toISOString().split('T')[0])
+            .lte('dibuat_pada', today.toISOString().split('T')[0])
+          break
+        case 'month':
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          totalRevenueQuery = totalRevenueQuery
+            .gte('dibuat_pada', monthAgo.toISOString().split('T')[0])
+            .lte('dibuat_pada', today.toISOString().split('T')[0])
+          break
+      }
+    }
+
+    const { data: revenueData, error: revenueError } = await totalRevenueQuery
+
+    if (revenueError) {
+      console.error('Error calculating total revenue:', revenueError)
+      // Continue without total revenue if this fails
+    }
+
+    // Calculate total revenue from all matching records
+    const totalRevenue = revenueData?.reduce((sum, item) => sum + (item.total_uang_diterima || 0), 0) || 0
+
     // Transform data from v_penagihan_dashboard view
     const transformedData = data?.map((item: any) => ({
       id_penagihan: item.id_penagihan,
@@ -147,6 +221,12 @@ export async function GET(request: NextRequest) {
           total_pages: totalPages,
           has_next: hasNextPage,
           has_prev: hasPrevPage
+        },
+        metadata: {
+          totalItems: count || 0,
+          totalRevenue: totalRevenue,
+          totalPages: totalPages,
+          currentPage: page
         }
       }
     })
