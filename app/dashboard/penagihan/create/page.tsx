@@ -266,7 +266,7 @@ export default function CreatePenagihanPage() {
       tanggal_pembayaran: new Date().toISOString().split('T')[0] // Default ke tanggal hari ini
     }
 
-    setStoreRows(prev => [...prev, newStoreRow])
+    setStoreRows(prev => [newStoreRow, ...prev])
     
     setSearchQuery('')
     setShowSuggestions(false)
