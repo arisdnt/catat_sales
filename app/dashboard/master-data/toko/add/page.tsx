@@ -82,7 +82,7 @@ export default function AddTokoPage() {
       hasInitialStock: false,
       initialStock: []
     }
-    setTokoRows(prev => [...prev, newRow])
+    setTokoRows(prev => [newRow, ...prev])
   }, [formData.selectedSales])
   
   // Remove toko row
