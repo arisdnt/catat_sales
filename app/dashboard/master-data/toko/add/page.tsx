@@ -211,7 +211,7 @@ export default function AddTokoPage() {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit'
-              }).format(getCurrentDateIndonesia()), // Today's date (timezone Indonesia)
+              }).format(new Date(getCurrentDateIndonesia())), // Today's date (timezone Indonesia)
               details: stockWithQuantity.map(stock => ({
                 id_produk: stock.id_produk,
                 jumlah_kirim: stock.jumlah

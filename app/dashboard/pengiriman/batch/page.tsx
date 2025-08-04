@@ -40,7 +40,7 @@ export default function BatchPengirimanPage() {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
-    }).format(getCurrentDateIndonesia()),
+    }).format(new Date(getCurrentDateIndonesia())),
     keterangan: ''
   })
   

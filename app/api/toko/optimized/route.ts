@@ -99,7 +99,8 @@ export async function GET(request: NextRequest) {
     const sortOrder = (searchParams.get('sortOrder') || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
     // Use the simple search function directly (search_toko_optimized doesn't exist)
-    let searchResults, searchError
+    let searchResults = null
+    let searchError = null
     
     console.log('Using search_toko_simple function')
     const simpleResult = await supabase

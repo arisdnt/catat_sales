@@ -138,7 +138,8 @@ export default function AddPenagihanPage() {
                   validators={{
                     onChange: penagihanSchema.shape.toko_id
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Toko"
                       name={field.name}
@@ -152,14 +153,15 @@ export default function AddPenagihanPage() {
                       required
                     />
                   )}
-                />
+                </form.Field>
 
                 <form.Field
                   name="metode_pembayaran"
                   validators={{
                     onChange: penagihanSchema.shape.metode_pembayaran
                   }}
-                  children={(field) => (
+                >
+                  {(field) => (
                     <FormField
                       label="Metode Pembayaran"
                       name={field.name}
@@ -172,7 +174,7 @@ export default function AddPenagihanPage() {
                       required
                     />
                   )}
-                />
+                </form.Field>
               </div>
 
               <form.Field
@@ -180,7 +182,8 @@ export default function AddPenagihanPage() {
                 validators={{
                   onChange: penagihanSchema.shape.total_uang_diterima
                 }}
-                children={(field) => (
+              >
+                {(field) => (
                   <FormField
                     label="Total Uang Diterima"
                     name={field.name}
@@ -194,7 +197,7 @@ export default function AddPenagihanPage() {
                     required
                   />
                 )}
-              />
+              </form.Field>
 
               <div className="flex items-center justify-end gap-4 pt-6 border-t">
                 <Button

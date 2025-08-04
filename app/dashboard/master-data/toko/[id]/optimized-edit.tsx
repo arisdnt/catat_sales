@@ -1,7 +1,6 @@
-// @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,7 +15,6 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import { useUpdateTokoMutation } from '@/lib/queries/toko'
 import { useComprehensivePrefetch } from '@/lib/hooks/use-smart-prefetch'
 import { SalesSelect } from '@/components/forms/optimized-select'
-import { VirtualList } from '@/components/search'
 import { useToast } from '@/components/ui/use-toast'
 
 interface TokoEditPageProps {
@@ -41,17 +39,17 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
   
   // Use optimized queries with materialized views
   // TODO: Replace with direct queries - materialized views removed
-  const tokoData = null
+  const tokoData: TokoFormData | null = null
   const tokoLoading = false
   const tokoError = null
-  const salesData = []
+  const salesData: any[] = []
   const salesLoading = false
   const updateMutation = useUpdateTokoMutation()
   
   // Smart prefetching
   const { prefetchEntity } = useComprehensivePrefetch('toko')
   
-  const form = useForm({
+  const form = useForm<TokoFormData>({
     defaultValues: {
       nama_toko: '',
       id_sales: 0,
@@ -62,42 +60,44 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
       link_gmaps: '',
       status_toko: true,
     },
-    onSubmit: async ({ value }) => {
-      try {
-        await updateMutation.mutateAsync({
-          id: tokoId,
-          data: value,
-        })
-        
-        toast({
-          title: "Success",
-          description: "Store updated successfully",
-        })
-        
-        router.push(`/dashboard/master-data/toko/${tokoId}`)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to update store",
-          variant: "destructive",
-        })
-      }
-    },
   })
 
-  // Populate form when data loads
-  useEffect(() => {
-    if (tokoData) {
-      form.setFieldValue('nama_toko', tokoData.nama_toko || '')
-      form.setFieldValue('id_sales', tokoData.id_sales || 0)
-      form.setFieldValue('alamat', tokoData.alamat || '')
-      form.setFieldValue('desa', tokoData.desa || '')
-      form.setFieldValue('kecamatan', tokoData.kecamatan || '')
-      form.setFieldValue('kabupaten', tokoData.kabupaten || '')
-      form.setFieldValue('link_gmaps', tokoData.link_gmaps || '')
-      form.setFieldValue('status_toko', tokoData.status_toko ?? true)
+  const onSubmit = async (data: TokoFormData) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: tokoId,
+        data,
+      })
+      
+      toast({
+        title: "Success",
+        description: "Store updated successfully",
+      })
+      
+      router.push(`/dashboard/master-data/toko/${tokoId}`)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update store",
+        variant: "destructive",
+      })
     }
-  }, [tokoData, form])
+  }
+
+  // Populate form when data loads
+  // TODO: Implement when data loading is restored
+  // useEffect(() => {
+  //   if (tokoData) {
+  //     form.setValue('nama_toko', tokoData.nama_toko || '')
+  //     form.setValue('id_sales', tokoData.id_sales || 0)
+  //     form.setValue('alamat', tokoData.alamat || '')
+  //     form.setValue('desa', tokoData.desa || '')
+  //     form.setValue('kecamatan', tokoData.kecamatan || '')
+  //     form.setValue('kabupaten', tokoData.kabupaten || '')
+  //     form.setValue('link_gmaps', tokoData.link_gmaps || '')
+  //     form.setValue('status_toko', tokoData.status_toko ?? true)
+  //   }
+  // }, [tokoData, form])
 
   // Prefetch detail page data
   useEffect(() => {
@@ -149,18 +149,14 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Edit Store</h1>
-            <p className="text-muted-foreground">{tokoData.nama_toko}</p>
+            <p className="text-muted-foreground">{(tokoData as TokoFormData | null)?.nama_toko || 'Loading...'}</p>
           </div>
         </div>
       </div>
 
       {/* Form */}
       <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          form.handleSubmit()
-        }}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <Card>
           <CardHeader>
@@ -168,133 +164,94 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Store Name */}
-            <form.Field name="nama_toko">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="nama_toko">Store Name *</Label>
-                  <Input
-                    id="nama_toko"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Enter store name"
-                    required
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
-                  )}
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="nama_toko">Store Name *</Label>
+              <Input
+                id="nama_toko"
+                {...form.register('nama_toko', { required: 'Store name is required' })}
+                placeholder="Enter store name"
+              />
+              {form.formState.errors.nama_toko && (
+                <p className="text-sm text-red-500">{form.formState.errors.nama_toko.message}</p>
               )}
-            </form.Field>
+            </div>
 
             {/* Sales Assignment with Optimized Select */}
-            <form.Field name="id_sales">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label>Assigned Sales *</Label>
-                  <SalesSelect
-                    value={field.state.value}
-                    onValueChange={field.handleChange}
-                    placeholder="Select sales representative"
-                    filters={{ activeOnly: true }}
-                    disabled={salesLoading}
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
-                  )}
-                </div>
+            <div className="space-y-2">
+              <Label>Assigned Sales *</Label>
+              <SalesSelect
+                value={form.watch('id_sales')}
+                onValueChange={(value) => form.setValue('id_sales', typeof value === 'string' ? parseInt(value) : value)}
+                placeholder="Select sales representative"
+                filters={{ activeOnly: true }}
+                disabled={salesLoading}
+              />
+              {form.formState.errors.id_sales && (
+                <p className="text-sm text-red-500">{form.formState.errors.id_sales.message}</p>
               )}
-            </form.Field>
+            </div>
 
             {/* Address */}
-            <form.Field name="alamat">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="alamat">Address</Label>
-                  <Textarea
-                    id="alamat"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Enter complete address"
-                    rows={3}
-                  />
-                </div>
-              )}
-            </form.Field>
+            <div className="space-y-2">
+              <Label htmlFor="alamat">Address</Label>
+              <Textarea
+                id="alamat"
+                {...form.register('alamat')}
+                placeholder="Enter complete address"
+                rows={3}
+              />
+            </div>
 
             {/* Location Details */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <form.Field name="desa">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor="desa">Village</Label>
-                    <Input
-                      id="desa"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="Village name"
-                    />
-                  </div>
-                )}
-              </form.Field>
+              <div className="space-y-2">
+                <Label htmlFor="desa">Village</Label>
+                <Input
+                  id="desa"
+                  {...form.register('desa')}
+                  placeholder="Village name"
+                />
+              </div>
 
-              <form.Field name="kecamatan">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor="kecamatan">District</Label>
-                    <Input
-                      id="kecamatan"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="District name"
-                    />
-                  </div>
-                )}
-              </form.Field>
+              <div className="space-y-2">
+                <Label htmlFor="kecamatan">District</Label>
+                <Input
+                  id="kecamatan"
+                  {...form.register('kecamatan')}
+                  placeholder="District name"
+                />
+              </div>
 
-              <form.Field name="kabupaten">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor="kabupaten">Regency</Label>
-                    <Input
-                      id="kabupaten"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="Regency name"
-                    />
-                  </div>
-                )}
-              </form.Field>
+              <div className="space-y-2">
+                <Label htmlFor="kabupaten">Regency</Label>
+                <Input
+                  id="kabupaten"
+                  {...form.register('kabupaten')}
+                  placeholder="Regency name"
+                />
+              </div>
             </div>
 
             {/* Google Maps Link */}
-            <form.Field name="link_gmaps">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="link_gmaps">Google Maps Link</Label>
-                  <Input
-                    id="link_gmaps"
-                    type="url"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="https://maps.google.com/..."
-                  />
-                </div>
-              )}
-            </form.Field>
+            <div className="space-y-2">
+              <Label htmlFor="link_gmaps">Google Maps Link</Label>
+              <Input
+                id="link_gmaps"
+                type="url"
+                {...form.register('link_gmaps')}
+                placeholder="https://maps.google.com/..."
+              />
+            </div>
 
             {/* Status */}
-            <form.Field name="status_toko">
-              {(field) => (
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="status_toko"
-                    checked={field.state.value}
-                    onCheckedChange={field.handleChange}
-                  />
-                  <Label htmlFor="status_toko">Active Store</Label>
-                </div>
-              )}
-            </form.Field>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="status_toko"
+                checked={form.watch('status_toko')}
+                onCheckedChange={(checked) => form.setValue('status_toko', checked)}
+              />
+              <Label htmlFor="status_toko">Active Store</Label>
+            </div>
 
             {/* Form Actions */}
             <div className="flex items-center justify-end space-x-4 pt-6">
@@ -308,7 +265,7 @@ export default function OptimizedTokoEditPage({ params }: TokoEditPageProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={updateMutation.isPending || !form.state.isFormValid}
+                disabled={updateMutation.isPending || !form.formState.isValid}
               >
                 {updateMutation.isPending ? (
                   <>

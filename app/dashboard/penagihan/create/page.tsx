@@ -269,7 +269,7 @@ export default function CreatePenagihanPage() {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
-      }).format(getCurrentDateIndonesia()) // Default ke tanggal hari ini (timezone Indonesia)
+      }).format(new Date(getCurrentDateIndonesia())) // Default ke tanggal hari ini (timezone Indonesia)
     }
 
     setStoreRows(prev => [newStoreRow, ...prev])

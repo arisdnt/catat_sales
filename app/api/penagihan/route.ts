@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }).format(getCurrentDateIndonesia())
+        }).format(new Date(getCurrentDateIndonesia()))
         
         // Filter details that have jumlah_terjual > 0 for auto-restock
         const restockDetails = details.filter(detail => detail.jumlah_terjual > 0)
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }).format(getCurrentDateIndonesia())
+        }).format(new Date(getCurrentDateIndonesia()))
         
         // Validate additional shipment details
         for (const detail of (additional_shipment as AdditionalShipment).details) {

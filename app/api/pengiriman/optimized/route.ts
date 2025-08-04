@@ -105,7 +105,8 @@ export async function GET(request: NextRequest) {
     const sortOrder = (searchParams.get('sortOrder') || 'desc').toLowerCase() === 'desc' ? 'desc' : 'asc'
 
     // Use the simple search function directly (materialized views removed)
-    let searchResults, searchError
+    let searchResults = null
+    let searchError = null
     
     console.log('Using search_pengiriman_simple function')
     const simpleResult = await supabase

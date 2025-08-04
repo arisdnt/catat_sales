@@ -1,13 +1,12 @@
-// @ts-nocheck
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { useState, useEffect } from 'react'
+import { Command, CommandEmpty, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Check, ChevronsUpDown, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { VirtualList as VirtualSelectList } from '@/components/search'
+import { VirtualSelectList } from '@/components/search'
 import { useDebounceStoreSearch, useDebounceProductSearch, useDebouncesSalesSearch } from '@/lib/hooks/use-debounced-search'
 
 interface OptimizedSelectProps {
@@ -21,7 +20,7 @@ interface OptimizedSelectProps {
   filters?: Record<string, any>
   displayField?: string
   valueField?: string
-  renderItem?: (item: any) => React.ReactNode
+  renderItem?: (item: any, index: number) => React.ReactElement
   maxHeight?: number
 }
 

@@ -87,11 +87,12 @@ export async function GET(request: NextRequest) {
             .lte('dibuat_pada', today.toISOString().split('T')[0])
           break
         case 'current_month':
-          // From 1st of current month to today
+          // From 1st of current month to end of current month
           const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+          const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0) // Last day of current month
           query = query
             .gte('dibuat_pada', currentMonthStart.toISOString().split('T')[0])
-            .lte('dibuat_pada', today.toISOString().split('T')[0])
+            .lte('dibuat_pada', currentMonthEnd.toISOString().split('T')[0])
           break
         case 'last_month':
           // From 1st of last month to last day of last month

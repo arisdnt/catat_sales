@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Date-based suggestions using Indonesia timezone
-      const today = getCurrentDateIndonesia()
+      const today = new Date(getCurrentDateIndonesia())
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
       const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
       

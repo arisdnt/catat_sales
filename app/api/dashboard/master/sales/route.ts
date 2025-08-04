@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
       
       // Combine and deduplicate sales IDs
       const salesIds = new Set<string>()
-      pengirimanSales?.forEach(p => salesIds.add(p.toko.id_sales))
-      penagihanSales?.forEach(p => salesIds.add(p.toko.id_sales))
+      pengirimanSales?.forEach((p: any) => salesIds.add(p.toko.id_sales))
+      penagihanSales?.forEach((p: any) => salesIds.add(p.toko.id_sales))
       
       if (salesIds.size > 0) {
         // Get sales data for those who have transactions

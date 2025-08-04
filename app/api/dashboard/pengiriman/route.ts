@@ -86,17 +86,24 @@ export async function GET(request: NextRequest) {
             .lte('tanggal_kirim', todayStr)
           break
         case 'current_month':
-          // From 1st of current month to today (Indonesia timezone)
+          // From 1st of current month to end of current month (Indonesia timezone)
           const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+          const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0) // Last day of current month
           const currentMonthStartStr = new Intl.DateTimeFormat('sv-SE', {
             timeZone: INDONESIA_TIMEZONE,
             year: 'numeric',
             month: '2-digit',
             day: '2-digit'
           }).format(currentMonthStart)
+          const currentMonthEndStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(currentMonthEnd)
           query = query
             .gte('tanggal_kirim', currentMonthStartStr)
-            .lte('tanggal_kirim', todayStr)
+            .lte('tanggal_kirim', currentMonthEndStr)
           break
         case 'last_month':
           // From 1st of last month to last day of last month (Indonesia timezone)
