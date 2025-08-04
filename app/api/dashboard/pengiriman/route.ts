@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,25 +53,70 @@ export async function GET(request: NextRequest) {
 
     // Apply date range filter
     if (date_range !== 'all') {
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      // Get current date in Indonesia timezone
+      const todayStr = getCurrentDateIndonesia()
+      const today = new Date(todayStr)
       
       switch (date_range) {
         case 'today':
-          const todayStr = today.toISOString().split('T')[0]
           query = query.eq('tanggal_kirim', todayStr)
           break
         case 'week':
           const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+          const weekAgoStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(weekAgo)
           query = query
-            .gte('tanggal_kirim', weekAgo.toISOString().split('T')[0])
-            .lte('tanggal_kirim', today.toISOString().split('T')[0])
+            .gte('tanggal_kirim', weekAgoStr)
+            .lte('tanggal_kirim', todayStr)
           break
         case 'month':
           const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+          const monthAgoStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(monthAgo)
           query = query
-            .gte('tanggal_kirim', monthAgo.toISOString().split('T')[0])
-            .lte('tanggal_kirim', today.toISOString().split('T')[0])
+            .gte('tanggal_kirim', monthAgoStr)
+            .lte('tanggal_kirim', todayStr)
+          break
+        case 'current_month':
+          // From 1st of current month to today (Indonesia timezone)
+          const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+          const currentMonthStartStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(currentMonthStart)
+          query = query
+            .gte('tanggal_kirim', currentMonthStartStr)
+            .lte('tanggal_kirim', todayStr)
+          break
+        case 'last_month':
+          // From 1st of last month to last day of last month (Indonesia timezone)
+          const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+          const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0) // Last day of previous month
+          const lastMonthStartStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(lastMonthStart)
+          const lastMonthEndStr = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(lastMonthEnd)
+          query = query
+            .gte('tanggal_kirim', lastMonthStartStr)
+            .lte('tanggal_kirim', lastMonthEndStr)
           break
       }
     }

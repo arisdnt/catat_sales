@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/providers/auth-provider'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
+import { DateTimeDisplay } from '../shared/datetime-display'
 
 const menuItems = [
   {
@@ -155,6 +156,9 @@ export function ModernSidebar() {
           </Button>
         </div>
       </div>
+
+      {/* Date and Time Display */}
+      <DateTimeDisplay isCollapsed={isCollapsed} />
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

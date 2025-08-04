@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { INDONESIA_TIMEZONE } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -44,10 +45,15 @@ export async function GET(request: NextRequest) {
       // Group transactions by date for daily calculations
       const dailyData = new Map()
       
-      // First, collect all cash transactions by date
+      // First, collect all cash transactions by date using Indonesia timezone
       penagihanData?.forEach(penagihan => {
         if (penagihan.metode_pembayaran === 'Cash') {
-          const date = new Date(penagihan.dibuat_pada).toISOString().split('T')[0]
+          const date = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(new Date(penagihan.dibuat_pada))
           if (!dailyData.has(date)) {
             dailyData.set(date, { cashAmount: 0, setoranAmount: 0, transactions: [] })
           }
@@ -56,9 +62,14 @@ export async function GET(request: NextRequest) {
         }
       })
       
-      // Then, add setoran data by date
+      // Then, add setoran data by date using Indonesia timezone
       setoranData?.forEach(setoran => {
-        const date = new Date(setoran.dibuat_pada).toISOString().split('T')[0]
+        const date = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: INDONESIA_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(new Date(setoran.dibuat_pada))
         if (!dailyData.has(date)) {
           dailyData.set(date, { cashAmount: 0, setoranAmount: 0, transactions: [] })
         }

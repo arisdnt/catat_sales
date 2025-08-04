@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 // Type definitions
 interface ShipmentDetail {
@@ -202,8 +203,13 @@ export async function POST(request: NextRequest) {
     let shipmentData = null
     if (auto_restock) {
       try {
-        // Use payment date for shipment, fallback to today if not provided
-        const shipmentDate = tanggal_pembayaran || new Date().toISOString().split('T')[0]
+        // Use payment date for shipment, fallback to today if not provided (using Indonesia timezone)
+        const shipmentDate = tanggal_pembayaran || new Intl.DateTimeFormat('sv-SE', {
+          timeZone: INDONESIA_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(getCurrentDateIndonesia())
         
         // Filter details that have jumlah_terjual > 0 for auto-restock
         const restockDetails = details.filter(detail => detail.jumlah_terjual > 0)
@@ -269,8 +275,13 @@ export async function POST(request: NextRequest) {
     let additionalShipmentData = null
     if (additional_shipment && additional_shipment.enabled && additional_shipment.details && additional_shipment.details.length > 0) {
       try {
-        // Use payment date for additional shipment, fallback to today if not provided
-        const additionalShipmentDate = tanggal_pembayaran || new Date().toISOString().split('T')[0]
+        // Use payment date for additional shipment, fallback to today if not provided (using Indonesia timezone)
+        const additionalShipmentDate = tanggal_pembayaran || new Intl.DateTimeFormat('sv-SE', {
+          timeZone: INDONESIA_TIMEZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(getCurrentDateIndonesia())
         
         // Validate additional shipment details
         for (const detail of (additional_shipment as AdditionalShipment).details) {

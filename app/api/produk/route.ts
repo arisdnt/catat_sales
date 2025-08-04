@@ -14,13 +14,14 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = (searchParams.get('status') as 'aktif' | 'non-aktif' | 'semua') || 'semua';
     const priority = (searchParams.get('priority') as 'priority' | 'non-priority' | 'semua') || 'semua';
+    const dateRange = searchParams.get('date_range') || 'all';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
     const [products, totalCount] = await Promise.all([
-      searchProduk({ search, status, priority, limit, offset }),
-      countProduk({ search, status, priority })
+      searchProduk({ search, status, priority, dateRange, limit, offset }),
+      countProduk({ search, status, priority, dateRange })
     ]);
 
     return NextResponse.json({

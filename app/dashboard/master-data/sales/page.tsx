@@ -31,6 +31,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useMasterSalesQuery, type MasterSales } from '@/lib/queries/dashboard'
 import { useDeleteSalesMutation } from '@/lib/queries/sales'
 import { exportSalesData } from '@/lib/excel-export'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
+import { DateRangePicker } from '@/components/dashboard/date-range-picker'
 
 // Page animations (identical to toko)
 const pageVariants = {
@@ -92,6 +94,8 @@ interface SalesFilters {
   search: string
   status_aktif: string
   telepon_exists: string
+  start_date: string
+  end_date: string
 }
 
 // Filter component
@@ -111,64 +115,78 @@ function SalesFilterPanel({
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Search Input */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Cari sales, telepon..."
-                value={filters.search}
-                onChange={(e) => onFiltersChange({ search: e.target.value })}
-                className="pl-10"
-              />
+        {/* Date Range Picker - Moved to top */}
+        <div className="mb-4">
+          <DateRangePicker
+            startDate={filters.start_date}
+            endDate={filters.end_date}
+            onDateRangeChange={(startDate, endDate) => 
+              onFiltersChange({ start_date: startDate, end_date: endDate })
+            }
+          />
+        </div>
+        
+        {/* Search and Filter Controls - Moved below date picker */}
+        <div className="pt-4 border-t">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Search Input */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Cari sales, telepon..."
+                  value={filters.search}
+                  onChange={(e) => onFiltersChange({ search: e.target.value })}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Status Filter */}
-          <div className="min-w-[150px]">
-            <Select
-              value={filters.status_aktif}
-              onValueChange={(value) => onFiltersChange({ status_aktif: value })}
+            {/* Status Filter */}
+            <div className="min-w-[150px]">
+              <Select
+                value={filters.status_aktif}
+                onValueChange={(value) => onFiltersChange({ status_aktif: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="true">Aktif</SelectItem>
+                  <SelectItem value="false">Tidak Aktif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Phone Filter */}
+            <div className="min-w-[150px]">
+              <Select
+                value={filters.telepon_exists}
+                onValueChange={(value) => onFiltersChange({ telepon_exists: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Telepon" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua</SelectItem>
+                  <SelectItem value="true">Ada Telepon</SelectItem>
+                  <SelectItem value="false">Tanpa Telepon</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearFilters}
+              disabled={!hasActiveFilters || isLoading}
+              className="p-2"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="true">Aktif</SelectItem>
-                <SelectItem value="false">Tidak Aktif</SelectItem>
-              </SelectContent>
-            </Select>
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
-
-          {/* Phone Filter */}
-          <div className="min-w-[150px]">
-            <Select
-              value={filters.telepon_exists}
-              onValueChange={(value) => onFiltersChange({ telepon_exists: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Telepon" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua</SelectItem>
-                <SelectItem value="true">Ada Telepon</SelectItem>
-                <SelectItem value="false">Tanpa Telepon</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Clear Filters Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClearFilters}
-            disabled={!hasActiveFilters || isLoading}
-            className="p-2"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
         </div>
       </CardContent>
     </Card>
@@ -308,7 +326,7 @@ function SalesDataTable({
                 <div className="p-2">
                   <p className="font-semibold text-sm mb-2">Detail Barang Dikirim:</p>
                   <p className="text-xs whitespace-pre-line">
-                    {'Detail pengiriman tidak tersedia untuk data sales'}
+                    {sales.detail_shipped || 'Tidak ada detail pengiriman'}
                   </p>
                 </div>
               </TooltipContent>
@@ -346,7 +364,7 @@ function SalesDataTable({
                 <div className="p-2">
                   <p className="font-semibold text-sm mb-2">Detail Barang Terjual:</p>
                   <p className="text-xs whitespace-pre-line">
-                    {'Detail penjualan tidak tersedia untuk data sales'}
+                    {sales.detail_sold || 'Tidak ada detail penjualan'}
                   </p>
                 </div>
               </TooltipContent>
@@ -542,14 +560,51 @@ export default function SalesPage() {
   const { toast } = useToast()
   const deleteSalesMutation = useDeleteSalesMutation()
 
-  // Use new dashboard query
-  const { data: masterData, isLoading, error, refetch } = useMasterSalesQuery()
-  
-  // Filter state
-  const [filters, setFilters] = useState<SalesFilters>({
-    search: '',
-    status_aktif: 'all',
-    telepon_exists: 'all'
+  // Initialize date range for current month (1st to last day)
+  const initializeDateRange = () => {
+    const today = new Date()
+    const currentYear = today.getFullYear()
+    const currentMonth = today.getMonth()
+    
+    // Start from the 1st day of current month
+    const firstDay = new Date(currentYear, currentMonth, 1)
+    // End at current date
+    const lastDay = new Date(today)
+    
+    // Format dates using Indonesia timezone
+    const startDate = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(firstDay)
+    
+    const endDate = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(lastDay)
+    
+    return { startDate, endDate }
+  }
+
+  // Filter state with default date range
+  const [filters, setFilters] = useState<SalesFilters>(() => {
+    const { startDate, endDate } = initializeDateRange()
+    return {
+      search: '',
+      status_aktif: 'all',
+      telepon_exists: 'all',
+      start_date: startDate,
+      end_date: endDate
+    }
+  })
+
+  // Use new dashboard query with date parameters
+  const { data: masterData, isLoading, error, refetch } = useMasterSalesQuery({
+    start_date: filters.start_date,
+    end_date: filters.end_date
   })
   
   // Apply filters to data
@@ -609,10 +664,13 @@ export default function SalesPage() {
   }, [])
 
   const handleClearFilters = useCallback(() => {
+    const { startDate, endDate } = initializeDateRange()
     setFilters({
       search: '',
       status_aktif: 'all',
-      telepon_exists: 'all'
+      telepon_exists: 'all',
+      start_date: startDate,
+      end_date: endDate
     })
   }, [])
 

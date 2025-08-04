@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Plus, X, Truck } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { apiClient } from '@/lib/api-client'
 import { useSalesQuery } from '@/lib/queries/sales'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 interface BatchShipmentDetail {
   id_produk: number
@@ -34,7 +35,12 @@ export default function BatchPengirimanPage() {
   // Form data
   const [formData, setFormData] = useState({
     id_sales: '',
-    tanggal_kirim: new Date().toISOString().split('T')[0],
+    tanggal_kirim: new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(getCurrentDateIndonesia()),
     keterangan: ''
   })
   

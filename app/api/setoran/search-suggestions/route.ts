@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -68,23 +69,45 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      // Date suggestions for recent dates
-      const today = new Date()
+      // Date suggestions for recent dates using Indonesia timezone
+      const todayStr = getCurrentDateIndonesia()
+      const today = new Date(todayStr)
+      
       const yesterday = new Date(today)
       yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: INDONESIA_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(yesterday)
+      
       const thisWeek = new Date(today)
       thisWeek.setDate(thisWeek.getDate() - 7)
+      const thisWeekStr = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: INDONESIA_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(thisWeek)
+      
       const thisMonth = new Date(today)
       thisMonth.setDate(1)
+      const thisMonthStr = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: INDONESIA_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(thisMonth)
       
       if (query.toLowerCase().includes('hari') || query.toLowerCase().includes('today')) {
         suggestions.push({
           id: 'date-today',
           type: 'date_from',
-          value: today.toISOString().split('T')[0],
+          value: todayStr,
           label: 'Hari ini',
           description: 'Setoran hari ini',
-          metadata: { date: today.toISOString().split('T')[0] }
+          metadata: { date: todayStr }
         })
       }
       
@@ -92,10 +115,10 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-yesterday',
           type: 'date_from',
-          value: yesterday.toISOString().split('T')[0],
+          value: yesterdayStr,
           label: 'Kemarin',
           description: 'Setoran kemarin',
-          metadata: { date: yesterday.toISOString().split('T')[0] }
+          metadata: { date: yesterdayStr }
         })
       }
       
@@ -103,10 +126,10 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-this-week',
           type: 'date_from',
-          value: thisWeek.toISOString().split('T')[0],
+          value: thisWeekStr,
           label: 'Minggu ini',
           description: 'Setoran minggu ini',
-          metadata: { date: thisWeek.toISOString().split('T')[0] }
+          metadata: { date: thisWeekStr }
         })
       }
       
@@ -114,10 +137,10 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-this-month',
           type: 'date_from',
-          value: thisMonth.toISOString().split('T')[0],
+          value: thisMonthStr,
           label: 'Bulan ini',
           description: 'Setoran bulan ini',
-          metadata: { date: thisMonth.toISOString().split('T')[0] }
+          metadata: { date: thisMonthStr }
         })
       }
       

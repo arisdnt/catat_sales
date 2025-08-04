@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx'
 import { format } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
+import { INDONESIA_TIMEZONE } from './utils'
 
 export interface ExcelExportOptions {
   filename?: string
@@ -55,7 +57,8 @@ export function exportToExcel<T extends Record<string, any>>(
         }
         // Default formatting for common types
         else if (value instanceof Date) {
-          value = format(value, 'dd/MM/yyyy HH:mm:ss')
+          const zonedDate = toZonedTime(value, INDONESIA_TIMEZONE)
+          value = format(zonedDate, 'dd/MM/yyyy HH:mm:ss')
         } else if (typeof value === 'boolean') {
           value = value ? 'Ya' : 'Tidak'
         } else if (value === null || value === undefined) {
@@ -78,7 +81,7 @@ export function exportToExcel<T extends Record<string, any>>(
     XLSX.utils.book_append_sheet(wb, ws, sheetName)
 
     // Generate filename with timestamp if requested
-    const timestamp = includeTimestamp ? `_${format(new Date(), 'yyyyMMdd_HHmmss')}` : ''
+    const timestamp = includeTimestamp ? `_${format(toZonedTime(new Date(), INDONESIA_TIMEZONE), 'yyyyMMdd_HHmmss')}` : ''
     const finalFilename = `${filename}${timestamp}.xlsx`
 
     // Write and download file

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createSuccessResponse } from '@/lib/api-helpers'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   return handleApiRequest(request, async () => {
@@ -108,8 +109,8 @@ export async function GET(request: NextRequest) {
         })
       }
       
-      // Date-based suggestions
-      const today = new Date()
+      // Date-based suggestions using Indonesia timezone
+      const today = getCurrentDateIndonesia()
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
       const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
       
@@ -117,7 +118,12 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-today',
           type: 'tanggal',
-          value: today.toISOString().split('T')[0],
+          value: new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(today),
           label: 'Dibuat Hari Ini',
           description: 'Sales yang dibuat hari ini',
           metadata: { date_type: 'today' }
@@ -128,7 +134,12 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-week',
           type: 'tanggal',
-          value: weekAgo.toISOString().split('T')[0],
+          value: new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(weekAgo),
           label: 'Dibuat Minggu Ini',
           description: 'Sales yang dibuat dalam 7 hari terakhir',
           metadata: { date_type: 'week' }
@@ -139,7 +150,12 @@ export async function GET(request: NextRequest) {
         suggestions.push({
           id: 'date-month',
           type: 'tanggal',
-          value: monthAgo.toISOString().split('T')[0],
+          value: new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(monthAgo),
           label: 'Dibuat Bulan Ini',
           description: 'Sales yang dibuat dalam 30 hari terakhir',
           metadata: { date_type: 'month' }

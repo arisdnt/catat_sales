@@ -337,6 +337,7 @@ export function useMasterProdukQuery(params?: {
   search?: string
   status_produk?: string
   is_priority?: string
+  date_range?: string
 }) {
   return useQuery({
     queryKey: [...dashboardKeys.masterProduk(), params],
@@ -383,10 +384,13 @@ export function useMasterTokoQuery(params?: {
   })
 }
 
-export function useMasterSalesQuery() {
+export function useMasterSalesQuery(params?: {
+  start_date?: string
+  end_date?: string
+}) {
   return useQuery({
-    queryKey: dashboardKeys.masterSales(),
-    queryFn: () => apiClient.getMasterSales() as Promise<ApiResponse<MasterSales[]>>,
+    queryKey: [...dashboardKeys.masterSales(), params],
+    queryFn: () => apiClient.getMasterSales(params) as Promise<ApiResponse<MasterSales[]>>,
     staleTime: 1000 * 60 * 5, // 5 minutes for master data
   })
 }
@@ -597,5 +601,33 @@ export function useDashboardRecentTransactionsQuery(startDate: string, endDate: 
     },
     staleTime: 1000 * 60 * 1, // 1 minute for real-time transaction feed
     enabled: !!startDate && !!endDate,
+  })
+}
+
+// Master Produk Statistics Query
+export interface MasterProdukStats {
+  total_produk: number
+  produk_aktif: number
+  produk_priority: number
+  total_dikirim: number
+  total_terjual: number
+  total_dikembalikan: number
+  sisa_stok_total: number
+  nilai_total_dikirim: number
+  nilai_total_terjual: number
+  nilai_total_dikembalikan: number
+  total_dibayar: number
+}
+
+export function useMasterProdukStatsQuery(params?: {
+  search?: string
+  status_produk?: string
+  is_priority?: string
+  date_range?: string
+}) {
+  return useQuery({
+    queryKey: [...dashboardKeys.masterProduk(), 'stats', params],
+    queryFn: () => apiClient.getMasterProdukStats(params) as Promise<ApiResponse<MasterProdukStats>>,
+    staleTime: 1000 * 60 * 2, // 2 minutes for stats
   })
 }

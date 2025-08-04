@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar, Clock } from 'lucide-react'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 interface DateRangePickerProps {
   startDate: string
@@ -22,12 +23,26 @@ export function DateRangePicker({ startDate, endDate, onDateRangeChange }: DateR
   }
 
   const setQuickRange = (days: number) => {
-    const end = new Date()
-    const start = new Date()
-    start.setDate(end.getDate() - days + 1)
+    // Get current date in Indonesia timezone
+    const today = getCurrentDateIndonesia()
+    const endDate = new Date(today)
+    const startDate = new Date(today)
+    startDate.setDate(endDate.getDate() - days + 1)
     
-    const endDateStr = end.toISOString().split('T')[0]
-    const startDateStr = start.toISOString().split('T')[0]
+    // Format dates using Indonesia timezone
+    const endDateStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(endDate)
+    
+    const startDateStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(startDate)
     
     setTempStartDate(startDateStr)
     setTempEndDate(endDateStr)
@@ -35,12 +50,25 @@ export function DateRangePicker({ startDate, endDate, onDateRangeChange }: DateR
   }
 
   const setCurrentMonth = () => {
-    const today = new Date()
+    // Get current date in Indonesia timezone
+    const today = new Date(getCurrentDateIndonesia())
     const start = new Date(today.getFullYear(), today.getMonth(), 1)
     const end = new Date(today.getFullYear(), today.getMonth() + 1, 0)
     
-    const startDateStr = start.toISOString().split('T')[0]
-    const endDateStr = end.toISOString().split('T')[0]
+    // Format dates using Indonesia timezone
+    const startDateStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(start)
+    
+    const endDateStr = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(end)
     
     setTempStartDate(startDateStr)
     setTempEndDate(endDateStr)
@@ -136,10 +164,12 @@ export function DateRangePicker({ startDate, endDate, onDateRangeChange }: DateR
         <div className="text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded">
           <span className="font-medium">Periode: </span>
           <span>{new Date(startDate).toLocaleDateString('id-ID', { 
+            timeZone: INDONESIA_TIMEZONE,
             day: 'numeric', 
             month: 'short', 
             year: 'numeric' 
           })} - {new Date(endDate).toLocaleDateString('id-ID', { 
+            timeZone: INDONESIA_TIMEZONE,
             day: 'numeric', 
             month: 'short', 
             year: 'numeric' 

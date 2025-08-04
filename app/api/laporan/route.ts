@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { supabaseAdmin, handleApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 // Force this API route to use Node.js runtime
 export const runtime = 'nodejs'
@@ -378,25 +379,58 @@ async function getLaporanRekonsiliasi(start_date?: string | null, end_date?: str
 
 async function getDashboardStats(timeFilter?: string | null) {
   try {
-    const today = new Date().toISOString().split('T')[0]
-    let currentMonth = new Date().toISOString().substring(0, 7)
-    let threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    // Get current date in Indonesia timezone
+    const today = getCurrentDateIndonesia()
+    const nowIndonesia = new Date(today + 'T00:00:00')
+    
+    let currentMonth = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit'
+    }).format(nowIndonesia)
+    
+    const threeMonthsAgoDate = new Date(nowIndonesia.getTime() - 90 * 24 * 60 * 60 * 1000)
+    let threeMonthsAgo = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(threeMonthsAgoDate)
     
     // Handle time filter
     let useTimeFilter = true
     if (timeFilter) {
-      const now = new Date()
       switch (timeFilter) {
         case 'lastMonth':
-          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-          currentMonth = lastMonth.toISOString().substring(0, 7)
+          const lastMonth = new Date(nowIndonesia.getFullYear(), nowIndonesia.getMonth() - 1, 1)
+          currentMonth = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit'
+          }).format(lastMonth)
           break
         case 'last3Months':
-          threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString().split('T')[0]
+          const last3MonthsDate = new Date(nowIndonesia.getFullYear(), nowIndonesia.getMonth() - 3, 1)
+          threeMonthsAgo = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(last3MonthsDate)
           break
         case 'thisYear':
-          currentMonth = new Date(now.getFullYear(), 0, 1).toISOString().substring(0, 7)
-          threeMonthsAgo = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
+          const thisYearStart = new Date(nowIndonesia.getFullYear(), 0, 1)
+          currentMonth = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit'
+          }).format(thisYearStart)
+          threeMonthsAgo = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: INDONESIA_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          }).format(thisYearStart)
           break
         case 'allTime':
           useTimeFilter = false

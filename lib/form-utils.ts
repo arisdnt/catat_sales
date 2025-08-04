@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { INDONESIA_TIMEZONE } from './utils'
 
 // Common validation schemas
 export const phoneSchema = z.string()
@@ -160,6 +161,7 @@ export const formatDate = (date: string | Date | null | undefined): string => {
   }
   
   return dateObj.toLocaleDateString('id-ID', {
+    timeZone: INDONESIA_TIMEZONE,
     day: 'numeric',
     month: 'long',
     year: 'numeric'

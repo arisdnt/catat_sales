@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
-import { useMasterProdukQuery, type MasterProduk } from '@/lib/queries/dashboard'
+import { useMasterProdukQuery, useMasterProdukStatsQuery, type MasterProduk } from '@/lib/queries/dashboard'
 import { formatCurrency } from '@/lib/form-utils'
 
 // Page animations (identical to penagihan)
@@ -65,6 +65,7 @@ interface ProdukFilters {
   search: string
   status_produk: string
   is_priority: string
+  date_range: string
 }
 
 // Filter component
@@ -128,6 +129,26 @@ function ProdukFilterPanel({
                 <SelectItem value="all">Semua</SelectItem>
                 <SelectItem value="true">Priority</SelectItem>
                 <SelectItem value="false">Non-Priority</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="min-w-[150px]">
+            <Select
+              value={filters.date_range}
+              onValueChange={(value) => onFiltersChange({ date_range: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Periode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Waktu</SelectItem>
+                <SelectItem value="today">Hari Ini</SelectItem>
+                <SelectItem value="week">7 Hari Terakhir</SelectItem>
+                <SelectItem value="month">30 Hari Terakhir</SelectItem>
+                <SelectItem value="current_month">Bulan Ini</SelectItem>
+                <SelectItem value="last_month">Bulan Lalu</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -424,7 +445,8 @@ export default function ProdukPage() {
   const [filters, setFilters] = useState<ProdukFilters>({
     search: '',
     status_produk: 'all',
-    is_priority: 'all'
+    is_priority: 'all',
+    date_range: 'current_month'
   })
   
   const [page, setPage] = useState(1)
@@ -435,6 +457,14 @@ export default function ProdukPage() {
     page,
     limit,
     ...filters
+  })
+  
+  // Use separate query for statistics that respects all filters including date_range
+  const { data: statsData, isLoading: isStatsLoading } = useMasterProdukStatsQuery({
+    search: filters.search,
+    status_produk: filters.status_produk,
+    is_priority: filters.is_priority,
+    date_range: filters.date_range
   })
   
   // Transform data for compatibility with existing table component
@@ -479,7 +509,8 @@ export default function ProdukPage() {
     setFilters({
       search: '',
       status_produk: 'all',
-      is_priority: 'all'
+      is_priority: 'all',
+      date_range: 'current_month'
     })
     setPage(1) // Reset to first page when clearing filters
   }, [])
@@ -524,16 +555,30 @@ export default function ProdukPage() {
     navigate('/dashboard/master-data/produk/add')
   }, [navigate])
 
-  // Summary statistics for header display only
+  // Summary statistics using filtered data from stats API
+  const stats = statsData?.data || {
+    total_produk: 0,
+    produk_aktif: 0,
+    produk_priority: 0,
+    total_dikirim: 0,
+    total_terjual: 0,
+    total_dikembalikan: 0,
+    sisa_stok_total: 0,
+    nilai_total_dikirim: 0,
+    nilai_total_terjual: 0,
+    nilai_total_dikembalikan: 0,
+    total_dibayar: 0
+  }
+  
   const summary = {
-    total_produk: data.pagination.total || 0,
+    total_produk: stats.total_produk,
     current_page_count: data.data.length,
     total_pages: data.pagination.totalPages,
-    produk_aktif: data.data.filter(p => p.status_produk).length || 0,
-    produk_priority: data.data.filter(p => p.is_priority).length || 0,
-    total_dikirim: data.data.reduce((sum, p) => sum + (p.total_dikirim || 0), 0) || 0,
-    total_terjual: data.data.reduce((sum, p) => sum + (p.total_terjual || 0), 0) || 0,
-    sisa_stok_total: data.data.reduce((sum, p) => sum + (p.stok_di_toko || 0), 0) || 0
+    produk_aktif: stats.produk_aktif,
+    produk_priority: stats.produk_priority,
+    total_dikirim: stats.total_dikirim,
+    total_terjual: stats.total_terjual,
+    sisa_stok_total: stats.sisa_stok_total
   }
 
   // Show error state if data fetch fails

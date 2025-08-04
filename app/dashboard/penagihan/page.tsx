@@ -22,23 +22,22 @@ import {
   RefreshCw,
   ExternalLink
 } from 'lucide-react'
+import { INDONESIA_TIMEZONE } from '@/lib/utils'
 
 import { useToast } from '@/components/ui/use-toast'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
-import { SearchFilterAdvanced as SearchFilterToko } from '@/components/search'
 import { 
   useDashboardPenagihanQuery,
   useSalesOptionsQuery,
   useKabupatenOptionsQuery,
-  useKecamatanOptionsQuery,
-  useTokoOptionsQuery
+  useKecamatanOptionsQuery
 } from '@/lib/queries/dashboard'
 import { useDeletePenagihanMutation } from '@/lib/queries/penagihan'
 import { exportBillingData } from '@/lib/excel-export'
@@ -83,20 +82,7 @@ const statusConfig = {
   }
 }
 
-// Helper function to create status badge
-function createStatusBadge(status: string) {
-  const config = statusConfig[status as keyof typeof statusConfig]
-  if (!config) return null
-  
-  const Icon = config.icon
-  
-  return (
-    <Badge variant="outline" className={`flex items-center gap-1 ${config.color}`}>
-      <Icon className="w-3 h-3" />
-      {config.label}
-    </Badge>
-  )
-}
+
 
 // Helper function to format numbers (identical to toko)
 function formatNumber(num: number): string {
@@ -115,11 +101,10 @@ function formatCurrency(amount: number): string {
 // Helper function to format date
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('id-ID', {
+    timeZone: INDONESIA_TIMEZONE,
     year: 'numeric',
     month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric'
   })
 }
 
@@ -131,7 +116,7 @@ interface PenagihanFilters {
   sales_id: string
   kabupaten: string
   kecamatan: string
-  date_range: 'today' | 'week' | 'month' | 'all'
+  date_range: 'today' | 'week' | 'month' | 'current_month' | 'last_month' | 'all'
 }
 
 // Filter component
@@ -192,6 +177,8 @@ function PenagihanFilterPanel({
                 <SelectItem value="today">Hari Ini</SelectItem>
                 <SelectItem value="week">7 Hari Terakhir</SelectItem>
                 <SelectItem value="month">30 Hari Terakhir</SelectItem>
+                <SelectItem value="current_month">Bulan Ini</SelectItem>
+                <SelectItem value="last_month">Bulan Lalu</SelectItem>
                 <SelectItem value="all">Semua Data</SelectItem>
               </SelectContent>
             </Select>
@@ -518,40 +505,24 @@ function PenagihanDataTable({
       header: 'Detail Produk',
       cell: ({ row }) => {
         const penagihan = row.original
-        const [isHovered, setIsHovered] = useState(false)
-        const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
         
         // Use detail_produk and total_quantity_terjual from API response
-          const detailProduk = penagihan.detail_produk || 'Tidak ada produk terjual'
-          const totalQuantity = penagihan.total_quantity_terjual || 0
-          
-          // Parse detail_terjual untuk mendapatkan array produk
-          const products = detailProduk !== 'Tidak ada produk terjual' 
-            ? detailProduk.split(', ').map((item: string) => {
-              const match = item.match(/^(.+) \[(\d+)\]$/)
-              return match ? {
-                nama_produk: match[1],
-                quantity: parseInt(match[2])
-              } : null
-            }).filter(Boolean)
-          : []
+        const detailProduk = penagihan.detail_produk || 'Tidak ada produk terjual'
+        const totalQuantity = penagihan.total_quantity_terjual || 0
         
-        const handleMouseEnter = (e: React.MouseEvent) => {
-          setIsHovered(true)
-          setMousePos({ x: e.clientX, y: e.clientY })
-        }
-        
-        const handleMouseMove = (e: React.MouseEvent) => {
-          setMousePos({ x: e.clientX, y: e.clientY })
-        }
+        // Parse detail_terjual untuk mendapatkan array produk
+        const products = detailProduk !== 'Tidak ada produk terjual' 
+          ? detailProduk.split(', ').map((item: string) => {
+            const match = item.match(/^(.+) \[(\d+)\]$/)
+            return match ? {
+              nama_produk: match[1],
+              quantity: parseInt(match[2])
+            } : null
+          }).filter(Boolean)
+        : []
         
         return (
-          <div 
-            className="text-left relative"
-            onMouseEnter={handleMouseEnter}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setIsHovered(false)}
-          >
+          <div className="text-left relative">
             <div className="flex items-center gap-2">
               <div className="flex items-center">
                 <Package className="w-4 h-4 text-gray-400 mr-1" />
@@ -563,41 +534,9 @@ function PenagihanDataTable({
                 ({formatNumber(totalQuantity)} pcs)
               </div>
             </div>
-            
-            {/* Hover tooltip */}
-            {isHovered && products.length > 0 && (
-              <div 
-                className="fixed z-[9999] bg-white border rounded-lg shadow-xl p-3 min-w-[280px] max-w-[420px] pointer-events-none"
-                style={{
-                  left: `${Math.min(window.innerWidth - 440, Math.max(10, mousePos.x + 10))}px`,
-                  top: `${Math.max(10, mousePos.y - 150)}px`
-                }}
-              >
-                <div className="text-xs font-medium text-gray-700 mb-2 border-b pb-1">Detail Produk Terjual:</div>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {products.map((product: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-center text-xs py-1">
-                      <span className="text-gray-700 truncate flex-1 mr-2">{product.nama_produk}</span>
-                      <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                        {product.quantity} pcs
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t mt-2 pt-2 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Total Quantity:</span>
-                    <span className="font-medium text-gray-900">
-                      {formatNumber(totalQuantity)} pcs
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Total Nilai:</span>
-                    <span className="font-medium text-green-600">
-                      {formatCurrency(penagihan.total_uang_diterima || 0)}
-                    </span>
-                  </div>
-                </div>
+            {products.length > 0 && (
+              <div className="text-xs text-gray-500 mt-1 truncate" title={detailProduk}>
+                {detailProduk}
               </div>
             )}
           </div>
@@ -609,7 +548,7 @@ function PenagihanDataTable({
       meta: { priority: 'medium', columnType: 'stats' },
     },
 
-  ], [])
+  ], [onView, onEdit, onDelete])
 
   // Table actions (identical to toko)
   const tableActions = useMemo(() => [
@@ -679,7 +618,7 @@ export default function PenagihanPage() {
     sales_id: 'all',
     kabupaten: 'all',
     kecamatan: 'all',
-    date_range: 'all'
+    date_range: 'current_month'
   })
   
   const [page, setPage] = useState(1)
@@ -738,7 +677,7 @@ export default function PenagihanPage() {
       sales_id: 'all',
       kabupaten: 'all',
       kecamatan: 'all',
-      date_range: 'all'
+      date_range: 'current_month'
     })
     setPage(1) // Reset to first page when clearing filters
   }, [])

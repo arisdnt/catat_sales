@@ -16,6 +16,7 @@ import { useSalesQuery } from '@/lib/queries/sales'
 import { useCreatePenagihanMutation, penagihanKeys } from '@/lib/queries/penagihan'
 import { penagihanOptimizedKeys } from '@/lib/queries/penagihan-optimized'
 import { useQueryClient } from '@tanstack/react-query'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 // Types
 interface PriorityProduct {
@@ -263,7 +264,12 @@ export default function CreatePenagihanPage() {
       ada_potongan: false,
       jumlah_potongan: 0,
       alasan_potongan: '',
-      tanggal_pembayaran: new Date().toISOString().split('T')[0] // Default ke tanggal hari ini
+      tanggal_pembayaran: new Intl.DateTimeFormat('sv-SE', {
+        timeZone: INDONESIA_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(getCurrentDateIndonesia()) // Default ke tanggal hari ini (timezone Indonesia)
     }
 
     setStoreRows(prev => [newStoreRow, ...prev])

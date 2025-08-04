@@ -102,7 +102,7 @@ interface PengirimanFilters {
   sales_id: string
   kabupaten: string
   kecamatan: string
-  date_range: 'today' | 'week' | 'month' | 'all'
+  date_range: 'today' | 'week' | 'month' | 'current_month' | 'last_month' | 'all'
 }
 
 // Filter component
@@ -161,6 +161,8 @@ function PengirimanFilterPanel({
                 <SelectItem value="today">Hari Ini</SelectItem>
                 <SelectItem value="week">7 Hari Terakhir</SelectItem>
                 <SelectItem value="month">30 Hari Terakhir</SelectItem>
+                <SelectItem value="current_month">Bulan Ini</SelectItem>
+                <SelectItem value="last_month">Bulan Lalu</SelectItem>
                 <SelectItem value="all">Semua Data</SelectItem>
               </SelectContent>
             </Select>
@@ -484,7 +486,7 @@ function PengirimanDataTable({
         // Use database total as primary source (already calculated correctly in view)
         const displayTotal = totalQty
         
-        const tooltipContent = useMemo(() => {
+        const tooltipContent = (() => {
           if (!parsedDetails || parsedDetails.length === 0) {
             return <p className="text-sm text-gray-500">Tidak ada detail pengiriman</p>
           }
@@ -514,7 +516,7 @@ function PengirimanDataTable({
               </div>
             </div>
           )
-        }, [parsedDetails, displayTotal, pengiriman.id_pengiriman, pengiriman.tanggal_kirim, pengiriman.nama_toko])
+        })()
         
         return (
           <Tooltip delayDuration={200}>
@@ -622,7 +624,7 @@ export default function ShippingPage() {
     sales_id: 'all',
     kabupaten: 'all',
     kecamatan: 'all',
-    date_range: 'all'
+    date_range: 'current_month'
   })
   
   const [page, setPage] = useState(1)
@@ -680,7 +682,7 @@ export default function ShippingPage() {
       sales_id: 'all',
       kabupaten: 'all',
       kecamatan: 'all',
-      date_range: 'all'
+      date_range: 'current_month'
     })
     setPage(1) // Reset to first page when clearing filters
   }, [])
@@ -751,7 +753,7 @@ export default function ShippingPage() {
     if (data?.pagination?.hasNextPage) {
       setPage(prev => prev + 1)
     }
-  }, [data?.pagination?.hasNextPage, page])
+  }, [data?.pagination?.hasNextPage, data?.pagination?.totalPages, page])
 
   const handlePrevPage = useCallback(() => {
     console.log('Previous page clicked:', { 

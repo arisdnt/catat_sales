@@ -23,12 +23,14 @@ export interface ProdukFilters {
   search?: string;
   status?: 'aktif' | 'non-aktif' | 'semua';
   priority?: 'priority' | 'non-priority' | 'semua';
+  dateRange?: string;
 }
 
 export async function searchProduk({
   search = '',
   status = 'semua',
   priority = 'semua',
+  dateRange = 'all',
   limit = 50,
   offset = 0
 }: ProdukFilters & { limit?: number; offset?: number }) {
@@ -40,7 +42,8 @@ export async function searchProduk({
       limit,
       search: search.trim() || undefined,
       status_produk: status !== 'semua' ? status : undefined,
-      is_priority: priority !== 'semua' ? priority : undefined
+      is_priority: priority !== 'semua' ? priority : undefined,
+      date_range: dateRange !== 'all' ? dateRange : undefined
     });
 
     if (!(response as any).success || !(response as any).data) {
@@ -54,14 +57,15 @@ export async function searchProduk({
   }
 }
 
-export async function countProduk({ search = '', status = 'semua', priority = 'semua' }: ProdukFilters) {
+export async function countProduk({ search = '', status = 'semua', priority = 'semua', dateRange = 'all' }: ProdukFilters) {
   try {
     const response = await apiClient.getMasterProduk({
       page: 1,
       limit: 1,
       search: search.trim() || undefined,
       status_produk: status !== 'semua' ? status : undefined,
-      is_priority: priority !== 'semua' ? priority : undefined
+      is_priority: priority !== 'semua' ? priority : undefined,
+      date_range: dateRange !== 'all' ? dateRange : undefined
     });
 
     if (!(response as any).success || !(response as any).data) {

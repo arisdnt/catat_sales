@@ -16,6 +16,7 @@ import { usePriorityProdukQuery, type Produk } from '@/lib/queries/produk'
 import { Switch } from '@/components/ui/switch'
 import { Package2 } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 // Types
 interface InitialStock {
@@ -205,7 +206,12 @@ export default function AddTokoPage() {
             // Create shipment for initial stock
             const shipmentData = {
               id_toko: (tokoResult as any).data.id_toko,
-              tanggal_kirim: new Date().toISOString().split('T')[0], // Today's date
+              tanggal_kirim: new Intl.DateTimeFormat('sv-SE', {
+                timeZone: INDONESIA_TIMEZONE,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).format(getCurrentDateIndonesia()), // Today's date (timezone Indonesia)
               details: stockWithQuantity.map(stock => ({
                 id_produk: stock.id_produk,
                 jumlah_kirim: stock.jumlah

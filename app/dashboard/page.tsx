@@ -6,17 +6,33 @@ import { AnalyticsKPICards } from '@/components/dashboard/analytics-kpi-cards'
 import { DateRangePicker } from '@/components/dashboard/date-range-picker'
 import { PerformanceCharts } from '@/components/dashboard/performance-charts'
 import { RecentTransactions } from '@/components/dashboard/recent-transactions'
+import { getCurrentDateIndonesia, INDONESIA_TIMEZONE } from '@/lib/utils'
 
 export default function DashboardPage() {
-  // Default to last 7 days
+  // Default to current month (from 1st to end of month) using Indonesia timezone
   const [startDate, setStartDate] = useState(() => {
-    const date = new Date()
-    date.setDate(date.getDate() - 6) // 7 days ago (including today)
-    return date.toISOString().split('T')[0]
+    const today = getCurrentDateIndonesia()
+    const date = new Date(today)
+    date.setDate(1) // Set to first day of current month
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date)
   })
   
   const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split('T')[0]
+    const today = getCurrentDateIndonesia()
+    const date = new Date(today)
+    // Set to last day of current month
+    date.setMonth(date.getMonth() + 1, 0)
+    return new Intl.DateTimeFormat('sv-SE', {
+      timeZone: INDONESIA_TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date)
   })
 
   const handleDateRangeChange = (newStartDate: string, newEndDate: string) => {

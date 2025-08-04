@@ -563,6 +563,7 @@ class ApiClient {
     search?: string
     status_produk?: string
     is_priority?: string
+    date_range?: string
   }) {
     const searchParams = new URLSearchParams()
     
@@ -574,6 +575,9 @@ class ApiClient {
     }
     if (params?.is_priority && params.is_priority !== 'all') {
       searchParams.set('is_priority', params.is_priority)
+    }
+    if (params?.date_range && params.date_range !== 'all') {
+      searchParams.set('date_range', params.date_range)
     }
 
     const queryString = searchParams.toString()
@@ -617,8 +621,23 @@ class ApiClient {
     return this.request(endpoint)
   }
 
-  async getMasterSales() {
-    return this.request('/dashboard/master/sales')
+  async getMasterSales(params?: {
+    start_date?: string
+    end_date?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    
+    if (params?.start_date) {
+      searchParams.append('start_date', params.start_date)
+    }
+    if (params?.end_date) {
+      searchParams.append('end_date', params.end_date)
+    }
+    
+    const queryString = searchParams.toString()
+    const endpoint = `/dashboard/master/sales${queryString ? `?${queryString}` : ''}`
+    
+    return this.request(endpoint)
   }
 
   // Filter Options API
@@ -650,6 +669,31 @@ class ApiClient {
 
   async getProdukOptions() {
     return this.request('/dashboard/filters/produk')
+  }
+
+  async getMasterProdukStats(params?: {
+    search?: string
+    status_produk?: string
+    is_priority?: string
+    date_range?: string
+  }) {
+    const searchParams = new URLSearchParams()
+    
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.status_produk && params.status_produk !== 'all') {
+      searchParams.set('status_produk', params.status_produk)
+    }
+    if (params?.is_priority && params.is_priority !== 'all') {
+      searchParams.set('is_priority', params.is_priority)
+    }
+    if (params?.date_range && params.date_range !== 'all') {
+      searchParams.set('date_range', params.date_range)
+    }
+
+    const queryString = searchParams.toString()
+    const url = `/dashboard/master/produk/stats${queryString ? `?${queryString}` : ''}`
+    
+    return this.request(url)
   }
 }
 

@@ -84,7 +84,7 @@ function formatCurrency(amount: number): string {
 interface SetoranFilters {
   search: string
   status_setoran: string
-  date_range: 'today' | 'week' | 'month' | 'all'
+  date_range: 'today' | 'week' | 'month' | 'current_month' | 'last_month' | 'all'
   event_type: 'all' | 'PEMBAYARAN_CASH' | 'PEMBAYARAN_TRANSFER' | 'SETORAN'
 }
 
@@ -286,6 +286,8 @@ function SetoranFilterPanel({
                 <SelectItem value="today">Hari Ini</SelectItem>
                 <SelectItem value="week">7 Hari Terakhir</SelectItem>
                 <SelectItem value="month">30 Hari Terakhir</SelectItem>
+                <SelectItem value="current_month">Bulan Ini</SelectItem>
+                <SelectItem value="last_month">Bulan Lalu</SelectItem>
                 <SelectItem value="all">Semua Data</SelectItem>
               </SelectContent>
             </Select>
@@ -659,7 +661,7 @@ export default function DepositsPage() {
   const [filters, setFilters] = useState<SetoranFilters>({
     search: '',
     status_setoran: 'all',
-    date_range: 'all',
+    date_range: 'current_month',
     event_type: 'all'
   })
   
@@ -742,7 +744,7 @@ export default function DepositsPage() {
     setFilters({
       search: '',
       status_setoran: 'all',
-      date_range: 'all',
+      date_range: 'current_month',
       event_type: 'all'  // Reset to show all transactions when clearing
     })
     setPage(1) // Reset to first page when clearing filters
