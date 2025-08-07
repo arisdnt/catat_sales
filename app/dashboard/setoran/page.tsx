@@ -80,6 +80,43 @@ function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+// Helper function to get date range display text
+function getDateRangeDisplay(dateRange: string): string {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
+  switch (dateRange) {
+    case 'today':
+      return `Today (${today.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })})`
+    
+    case 'week': {
+      const weekAgo = new Date(today)
+      weekAgo.setDate(weekAgo.getDate() - 6)
+      return `${weekAgo.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })} - ${today.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+    }
+    
+    case 'month': {
+      const monthAgo = new Date(today)
+      monthAgo.setDate(monthAgo.getDate() - 29)
+      return `${monthAgo.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })} - ${today.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+    }
+    
+    case 'current_month': {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      return `${firstDay.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })} - ${today.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+    }
+    
+    case 'last_month': {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+      return `${lastMonth.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })} - ${lastDayOfLastMonth.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })}`
+    }
+    
+    default:
+      return dateRange
+  }
+}
+
 // Filter types
 interface SetoranFilters {
   search: string
@@ -356,8 +393,7 @@ function SetoranFilterPanel({
               )}
               {filters.date_range && filters.date_range !== 'all' && (
                 <Badge variant="secondary">
-                  Period: {filters.date_range === 'today' ? 'Today' : 
-                          filters.date_range === 'week' ? '7 Days' : '30 Days'}
+                  Period: {getDateRangeDisplay(filters.date_range)}
                 </Badge>
               )}
               {filters.event_type && filters.event_type !== 'all' && (

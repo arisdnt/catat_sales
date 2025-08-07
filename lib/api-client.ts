@@ -458,7 +458,7 @@ class ApiClient {
     search?: string
     metode_pembayaran?: string
     ada_potongan?: string
-    id_sales?: string
+    sales_id?: string
     kabupaten?: string
     kecamatan?: string
     date_range?: string
@@ -474,8 +474,8 @@ class ApiClient {
     if (params?.ada_potongan && params.ada_potongan !== 'all') {
       searchParams.set('ada_potongan', params.ada_potongan)
     }
-    if (params?.id_sales && params.id_sales !== 'all') {
-      searchParams.set('id_sales', params.id_sales)
+    if (params?.sales_id && params.sales_id !== 'all') {
+      searchParams.set('sales_id', params.sales_id)
     }
     if (params?.kabupaten && params.kabupaten !== 'all') {
       searchParams.set('kabupaten', params.kabupaten)
@@ -498,7 +498,7 @@ class ApiClient {
     limit?: number
     search?: string
     is_autorestock?: string
-    id_sales?: string
+    sales_id?: string
     kabupaten?: string
     kecamatan?: string
     date_range?: string
@@ -510,8 +510,8 @@ class ApiClient {
     if (params?.is_autorestock && params.is_autorestock !== 'all') {
       queryParams.append('is_autorestock', params.is_autorestock)
     }
-    if (params?.id_sales && params.id_sales !== 'all') {
-      queryParams.append('id_sales', params.id_sales)
+    if (params?.sales_id && params.sales_id !== 'all') {
+      queryParams.append('sales_id', params.sales_id)
     }
     if (params?.kabupaten && params.kabupaten !== 'all') {
       queryParams.append('kabupaten', params.kabupaten)
@@ -593,7 +593,7 @@ class ApiClient {
     kabupaten?: string
     kecamatan?: string
     status_toko?: string
-    id_sales?: string
+    sales_id?: string
   }) {
     const searchParams = new URLSearchParams()
     
@@ -611,8 +611,8 @@ class ApiClient {
     if (params?.status_toko && params.status_toko !== 'all') {
       searchParams.set('status_toko', params.status_toko)
     }
-    if (params?.id_sales && params.id_sales !== 'all') {
-      searchParams.set('id_sales', params.id_sales)
+    if (params?.sales_id && params.sales_id !== 'all') {
+      searchParams.set('sales_id', params.sales_id)
     }
 
     const queryString = searchParams.toString()

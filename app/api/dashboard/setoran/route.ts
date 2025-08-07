@@ -127,24 +127,16 @@ export async function GET(request: Request) {
           query = query.gte('tanggal_setoran', monthAgoStr)
           break
         case 'current_month':
-          // From 1st of current month to end of current month (Indonesia timezone)
-          const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-          const currentMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0) // Last day of current month
-          const currentMonthStartStr = new Intl.DateTimeFormat('sv-SE', {
-            timeZone: INDONESIA_TIMEZONE,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          }).format(currentMonthStart)
-          const currentMonthEndStr = new Intl.DateTimeFormat('sv-SE', {
-            timeZone: INDONESIA_TIMEZONE,
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          }).format(currentMonthEnd)
+          // From 1st of current month to end of current month (exclusive)
+          const currentYear = today.getFullYear()
+          const currentMonth = today.getMonth()
+          const startDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`
+          const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1
+          const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
+          const endDateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
           query = query
-            .gte('tanggal_setoran', currentMonthStartStr)
-            .lte('tanggal_setoran', currentMonthEndStr)
+            .gte('tanggal_setoran', startDateStr)
+            .lt('tanggal_setoran', endDateStr)
           break
         case 'last_month':
           // From 1st of last month to last day of last month (Indonesia timezone)

@@ -87,12 +87,17 @@ export async function GET(request: NextRequest) {
             .lte('dibuat_pada', today.toISOString().split('T')[0])
           break
         case 'current_month':
-          // From 1st of current month to end of current month
-          const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-          const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0) // Last day of current month
+          // From 1st of current month to end of current month (exclusive)
+          const currentYear = now.getFullYear()
+          const currentMonth = now.getMonth()
+          const startDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`
+          const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1
+          const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
+          const endDateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
+
           query = query
-            .gte('dibuat_pada', currentMonthStart.toISOString().split('T')[0])
-            .lte('dibuat_pada', currentMonthEnd.toISOString().split('T')[0])
+            .gte('dibuat_pada', startDateStr)
+            .lt('dibuat_pada', endDateStr)
           break
         case 'last_month':
           // From 1st of last month to last day of last month
@@ -112,6 +117,8 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     const { data, error, count } = await query
+
+
 
     if (error) {
       console.error('Error fetching penagihan data:', error)
@@ -187,11 +194,17 @@ export async function GET(request: NextRequest) {
             .lte('dibuat_pada', today.toISOString().split('T')[0])
           break
         case 'current_month':
-          // From 1st of current month to today
-          const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+          // From 1st of current month to end of current month (exclusive)
+          const currentYear = now.getFullYear()
+          const currentMonth = now.getMonth()
+          const startDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`
+          const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1
+          const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
+          const endDateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`
+
           totalRevenueQuery = totalRevenueQuery
-            .gte('dibuat_pada', currentMonthStart.toISOString().split('T')[0])
-            .lte('dibuat_pada', today.toISOString().split('T')[0])
+            .gte('dibuat_pada', startDateStr)
+            .lt('dibuat_pada', endDateStr)
           break
         case 'last_month':
           // From 1st of last month to last day of last month

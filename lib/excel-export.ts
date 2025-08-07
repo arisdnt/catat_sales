@@ -110,8 +110,8 @@ export function exportSalesData(data: any[]) {
     { key: 'nama_sales', header: 'Nama Sales', width: 25 },
     { key: 'nomor_telepon', header: 'Nomor Telepon', width: 15 },
     { key: 'status_aktif', header: 'Status', width: 10, formatter: (value) => value ? 'Aktif' : 'Non-aktif' },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') },
-    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) },
+    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -129,8 +129,8 @@ export function exportProductData(data: any[]) {
     { key: 'nama_produk', header: 'Nama Produk', width: 30 },
     { key: 'harga_satuan', header: 'Harga Satuan', width: 15, formatter: (value) => formatCurrency(value) },
     { key: 'status_produk', header: 'Status', width: 10, formatter: (value) => value ? 'Aktif' : 'Non-aktif' },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') },
-    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) },
+    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -152,7 +152,7 @@ export function exportStoreData(data: any[]) {
     { key: 'no_telepon', header: 'No. Telepon', width: 15 },
     { key: 'link_gmaps', header: 'Link Google Maps', width: 20 },
     { key: 'status_toko', header: 'Status', width: 10, formatter: (value) => value ? 'Aktif' : 'Non-aktif' },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -168,9 +168,9 @@ export function exportShipmentData(data: any[]) {
   const columns: ExcelColumn[] = [
     { key: 'id_pengiriman', header: 'ID Pengiriman', width: 15 },
     { key: 'id_toko', header: 'ID Toko', width: 10 },
-    { key: 'tanggal_kirim', header: 'Tanggal Kirim', width: 15, formatter: (value) => format(new Date(value), 'dd/MM/yyyy') },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') },
-    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'tanggal_kirim', header: 'Tanggal Kirim', width: 15, formatter: (value) => formatDateSafe(value, 'dd/MM/yyyy') },
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) },
+    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -186,11 +186,12 @@ export function exportBillingData(data: any[]) {
   const columns: ExcelColumn[] = [
     { key: 'id_penagihan', header: 'ID Penagihan', width: 15 },
     { key: 'id_toko', header: 'ID Toko', width: 10 },
+    { key: 'nama_toko', header: 'Nama Toko', width: 25 },
     { key: 'total_uang_diterima', header: 'Total Uang Diterima', width: 20, formatter: (value) => formatCurrency(value) },
     { key: 'metode_pembayaran', header: 'Metode Pembayaran', width: 15 },
     { key: 'ada_potongan', header: 'Ada Potongan', width: 15, formatter: (value) => value ? 'Ya' : 'Tidak' },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') },
-    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) },
+    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -207,8 +208,8 @@ export function exportDepositData(data: any[]) {
     { key: 'id_setoran', header: 'ID Setoran', width: 15 },
     { key: 'total_setoran', header: 'Total Setoran', width: 20, formatter: (value) => formatCurrency(value) },
     { key: 'penerima_setoran', header: 'Penerima Setoran', width: 25 },
-    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') },
-    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => format(new Date(value), 'dd/MM/yyyy HH:mm') }
+    { key: 'dibuat_pada', header: 'Dibuat Pada', width: 20, formatter: (value) => formatDateSafe(value) },
+    { key: 'diperbarui_pada', header: 'Diperbarui Pada', width: 20, formatter: (value) => formatDateSafe(value) }
   ]
 
   return exportToExcel(data, columns, {
@@ -314,8 +315,8 @@ function createSalesSheet(data: any[]) {
     'Nama Sales': item.nama_sales,
     'Nomor Telepon': item.nomor_telepon || '',
     'Status': item.status_aktif ? 'Aktif' : 'Non-aktif',
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm'),
-    'Diperbarui Pada': format(new Date(item.diperbarui_pada), 'dd/MM/yyyy HH:mm')
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada),
+    'Diperbarui Pada': formatDateSafe(item.diperbarui_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -327,8 +328,8 @@ function createProductsSheet(data: any[]) {
     'Nama Produk': item.nama_produk,
     'Harga Satuan': formatCurrency(item.harga_satuan),
     'Status': item.status_produk ? 'Aktif' : 'Non-aktif',
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm'),
-    'Diperbarui Pada': format(new Date(item.diperbarui_pada), 'dd/MM/yyyy HH:mm')
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada),
+    'Diperbarui Pada': formatDateSafe(item.diperbarui_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -345,7 +346,7 @@ function createStoresSheet(data: any[]) {
     'Kabupaten': item.kabupaten || '',
     'Link Google Maps': item.link_gmaps || '',
     'Status': item.status_toko ? 'Aktif' : 'Non-aktif',
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm')
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -355,9 +356,9 @@ function createShipmentsSheet(data: any[]) {
   const formatted = data.map(item => ({
     'ID Pengiriman': item.id_pengiriman,
     'ID Toko': item.id_toko,
-    'Tanggal Kirim': format(new Date(item.tanggal_kirim), 'dd/MM/yyyy'),
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm'),
-    'Diperbarui Pada': format(new Date(item.diperbarui_pada), 'dd/MM/yyyy HH:mm')
+    'Tanggal Kirim': formatDateSafe(item.tanggal_kirim, 'dd/MM/yyyy'),
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada),
+    'Diperbarui Pada': formatDateSafe(item.diperbarui_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -367,11 +368,12 @@ function createBillingsSheet(data: any[]) {
   const formatted = data.map(item => ({
     'ID Penagihan': item.id_penagihan,
     'ID Toko': item.id_toko,
+    'Nama Toko': item.nama_toko || '-',
     'Total Uang Diterima': formatCurrency(item.total_uang_diterima),
     'Metode Pembayaran': item.metode_pembayaran,
     'Ada Potongan': item.ada_potongan ? 'Ya' : 'Tidak',
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm'),
-    'Diperbarui Pada': format(new Date(item.diperbarui_pada), 'dd/MM/yyyy HH:mm')
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada),
+    'Diperbarui Pada': formatDateSafe(item.diperbarui_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -382,8 +384,8 @@ function createDepositsSheet(data: any[]) {
     'ID Setoran': item.id_setoran,
     'Total Setoran': formatCurrency(item.total_setoran),
     'Penerima Setoran': item.penerima_setoran,
-    'Dibuat Pada': format(new Date(item.dibuat_pada), 'dd/MM/yyyy HH:mm'),
-    'Diperbarui Pada': format(new Date(item.diperbarui_pada), 'dd/MM/yyyy HH:mm')
+    'Dibuat Pada': formatDateSafe(item.dibuat_pada),
+    'Diperbarui Pada': formatDateSafe(item.diperbarui_pada)
   }))
   
   return XLSX.utils.json_to_sheet(formatted)
@@ -407,9 +409,20 @@ function createDashboardSheet(data: any) {
 
 // Currency formatter helper
 function formatCurrency(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return 'Rp 0'
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount ?? 0)
+    currency: 'IDR'
+  }).format(amount)
+}
+
+function formatDateSafe(value: any, formatString: string = 'dd/MM/yyyy HH:mm'): string {
+  if (!value || value === '' || value === null || value === undefined) return '-'
+  try {
+    const date = new Date(value)
+    if (isNaN(date.getTime())) return '-'
+    return format(date, formatString)
+  } catch {
+    return '-'
+  }
 }

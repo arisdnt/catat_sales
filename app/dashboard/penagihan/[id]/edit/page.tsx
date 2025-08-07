@@ -113,6 +113,29 @@ export default function EditPenagihanPage() {
     }
   }, [formData.details, formData.ada_potongan, formData.potongan, products])
 
+  // Auto-fill total uang diterima based on calculated total
+  const autoFillTotalUangDiterima = () => {
+    setFormData(prev => ({
+      ...prev,
+      total_uang_diterima: calculations.calculatedTotal
+    }))
+  }
+
+  // Check if current total differs from calculated total
+  const isDifferentFromCalculated = Math.abs(formData.total_uang_diterima - calculations.calculatedTotal) > 0.01
+
+  // Auto-update total uang diterima when details or discount changes (optional)
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(false)
+  
+  useEffect(() => {
+    if (autoUpdateEnabled && calculations.calculatedTotal > 0) {
+      setFormData(prev => ({
+        ...prev,
+        total_uang_diterima: calculations.calculatedTotal
+      }))
+    }
+  }, [calculations.calculatedTotal, autoUpdateEnabled])
+
   const addProductDetail = () => {
     setFormData(prev => ({
       ...prev,
@@ -388,7 +411,9 @@ export default function EditPenagihanPage() {
                                 type="number"
                                 min="0"
                                 value={detail.jumlah_terjual}
-                                onChange={(e) => updateProductDetail(index, 'jumlah_terjual', parseInt(e.target.value) || 0)}
+                                onChange={(e) => {
+                                  updateProductDetail(index, 'jumlah_terjual', parseInt(e.target.value) || 0)
+                                }}
                                 className="mt-1 h-9"
                               />
                             </div>
@@ -400,7 +425,9 @@ export default function EditPenagihanPage() {
                                 type="number"
                                 min="0"
                                 value={detail.jumlah_kembali}
-                                onChange={(e) => updateProductDetail(index, 'jumlah_kembali', parseInt(e.target.value) || 0)}
+                                onChange={(e) => {
+                                  updateProductDetail(index, 'jumlah_kembali', parseInt(e.target.value) || 0)
+                                }}
                                 className="mt-1 h-9"
                               />
                             </div>
@@ -421,11 +448,17 @@ export default function EditPenagihanPage() {
                                 </div>
                                 <div>
                                   <span className="text-gray-500 block mb-1">Subtotal</span>
-                                  <p className="font-semibold text-gray-900">
+                                  <p className="font-semibold text-green-600">
                                     {formatCurrency(detail.jumlah_terjual * product.harga_satuan)}
                                   </p>
                                 </div>
                               </div>
+                              {autoUpdateEnabled && (
+                                <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3" />
+                                  <span>Berkontribusi ke total otomatis</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -480,16 +513,66 @@ export default function EditPenagihanPage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="total-received" className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Uang Diterima</Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label htmlFor="total-received" className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Uang Diterima</Label>
+                      <div className="flex items-center gap-2">
+                        {calculations.calculatedTotal > 0 && isDifferentFromCalculated && !autoUpdateEnabled && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={autoFillTotalUangDiterima}
+                            className="text-xs h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            Auto-fill
+                          </Button>
+                        )}
+                        <div className="flex items-center space-x-1">
+                          <Checkbox
+                            id="auto-update"
+                            checked={autoUpdateEnabled}
+                            onCheckedChange={(checked) => {
+                              setAutoUpdateEnabled(!!checked)
+                              if (checked && calculations.calculatedTotal > 0) {
+                                autoFillTotalUangDiterima()
+                              }
+                            }}
+                            className="h-3 w-3"
+                          />
+                          <Label htmlFor="auto-update" className="text-xs text-gray-500">Auto</Label>
+                        </div>
+                      </div>
+                    </div>
                     <Input
                       id="total-received"
                       type="number"
                       min="0"
                       step="0.01"
                       value={formData.total_uang_diterima}
-                      onChange={(e) => setFormData(prev => ({ ...prev, total_uang_diterima: parseFloat(e.target.value) || 0 }))}
-                      className="mt-1 h-9"
+                      onChange={(e) => {
+                        if (!autoUpdateEnabled) {
+                          setFormData(prev => ({ ...prev, total_uang_diterima: parseFloat(e.target.value) || 0 }))
+                        }
+                      }}
+                      disabled={autoUpdateEnabled}
+                      className={`mt-1 h-9 ${
+                        autoUpdateEnabled
+                          ? 'bg-gray-100 cursor-not-allowed'
+                          : isDifferentFromCalculated && calculations.calculatedTotal > 0
+                          ? 'border-orange-300 bg-orange-50 focus:border-orange-500 focus:ring-orange-500'
+                          : ''
+                      }`}
                     />
+                    {!autoUpdateEnabled && isDifferentFromCalculated && calculations.calculatedTotal > 0 && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        Berbeda dari kalkulasi: {formatCurrency(calculations.calculatedTotal)}
+                      </p>
+                    )}
+                    {autoUpdateEnabled && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Auto-update aktif - total akan diperbarui otomatis
+                      </p>
+                    )}
                   </div>
                   
                   <Separator className="my-3" />
@@ -513,6 +596,20 @@ export default function EditPenagihanPage() {
                       <span className="font-semibold text-gray-900">Total Kalkulasi</span>
                       <span className="font-bold text-green-600">{formatCurrency(calculations.calculatedTotal)}</span>
                     </div>
+                    
+                    {isDifferentFromCalculated && calculations.calculatedTotal > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-orange-50 rounded-md border border-orange-200">
+                        <span className="font-semibold text-gray-900">Selisih</span>
+                        <span className={`font-bold ${
+                          formData.total_uang_diterima > calculations.calculatedTotal
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}>
+                          {formData.total_uang_diterima > calculations.calculatedTotal ? '+' : ''}
+                          {formatCurrency(formData.total_uang_diterima - calculations.calculatedTotal)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
