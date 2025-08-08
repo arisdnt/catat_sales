@@ -38,6 +38,7 @@ import { useNavigation } from '@/lib/hooks/use-navigation'
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
 import { useDashboardSetoranQuery } from '@/lib/queries/dashboard'
 import { useDeleteSetoranMutation } from '@/lib/queries/setoran'
+import { usePengeluaranTotalByRange } from '@/lib/queries/pengeluaran'
 import { exportDepositData } from '@/lib/excel-export'
 
 // Page animations (identical to toko)
@@ -126,18 +127,26 @@ interface SetoranFilters {
 }
 
 // Cash Flow Summary Component - FIXED to show proper setoran count
+// Statistics Card Component - Removed as requested
+// This component has been removed and its functionality moved to CashFlowSummary
+
 function CashFlowSummary({ summary, recordCount, currentFilter }: { 
   summary: any, 
   recordCount: number,
   currentFilter: string 
 }) {
+  // Use the same date range filter as the main page
+  const dateRangeFilter = currentFilter || 'today'
+
+  const { data: pengeluaranData, isLoading: isPengeluaranLoading } = usePengeluaranTotalByRange(dateRangeFilter)
+
   const stats = useMemo(() => {
     if (!summary) {
       return {
         totalCash: 0,
         totalTransfer: 0,
         totalSetoran: 0,
-        cashBalance: 0,
+        totalPengeluaran: pengeluaranData?.total_pengeluaran || 0,
         totalTransactionsCash: 0,
         totalTransactionsTransfer: 0,
         totalSetoranTransactions: 0,
@@ -146,20 +155,25 @@ function CashFlowSummary({ summary, recordCount, currentFilter }: {
     }
 
     // Use the accurate summary data from database function
+    const totalCash = summary.total_cash_in || 0
+    const totalPengeluaran = pengeluaranData?.total_pengeluaran || 0
+    const sisaCash = totalCash - totalPengeluaran
+    
     return {
-      totalCash: summary.total_cash_in || 0,
+      totalCash,
       totalTransfer: summary.total_transfer_in || 0,
       totalSetoran: summary.total_setoran || 0,
-      cashBalance: summary.net_cash_flow || 0, // This is already calculated correctly as cash_in - setoran
+      totalPengeluaran,
+      sisaCash,
       totalTransactionsCash: summary.total_cash_transactions || 0,
       totalTransactionsTransfer: summary.total_transfer_transactions || 0,
       totalSetoranTransactions: summary.total_setoran_transactions || 0,
       totalRecords: recordCount || 0
     }
-  }, [summary, recordCount])
+  }, [summary, recordCount, pengeluaranData])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
       {/* Cash Payments Card */}
       <motion.div variants={cardVariants} whileHover="hover">
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
@@ -220,48 +234,78 @@ function CashFlowSummary({ summary, recordCount, currentFilter }: {
         </Card>
       </motion.div>
 
-      {/* Cash Balance Card */}
+      {/* Total Pengeluaran Card */}
+      <motion.div variants={cardVariants} whileHover="hover">
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-700">Total Pengeluaran Hari Ini</p>
+                <p className="text-2xl font-bold text-red-900">
+                  {isPengeluaranLoading ? (
+                    <span className="animate-pulse">Loading...</span>
+                  ) : (
+                    formatCurrency(stats.totalPengeluaran)
+                  )}
+                </p>
+                <p className="text-xs text-red-600 mt-1">
+                  Pengeluaran operasional
+                </p>
+              </div>
+              <div className="p-3 bg-red-200 rounded-full">
+                <TrendingDown className="w-6 h-6 text-red-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Sisa Cash di Tangan Sales Card */}
       <motion.div variants={cardVariants} whileHover="hover">
         <Card className={`bg-gradient-to-br ${
-          stats.cashBalance > 0 
+          (stats.sisaCash ?? 0) > 0 
             ? 'from-orange-50 to-orange-100 border-orange-200' 
-            : stats.cashBalance < 0
-            ? 'from-red-50 to-red-100 border-red-200'
-            : 'from-gray-50 to-gray-100 border-gray-200'
+            : (stats.sisaCash ?? 0) < 0
+            ? 'from-gray-50 to-gray-100 border-gray-200'
+            : 'from-yellow-50 to-yellow-100 border-yellow-200'
         }`}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-sm font-medium ${
-                  stats.cashBalance > 0 ? 'text-orange-700' : 
-                  stats.cashBalance < 0 ? 'text-red-700' : 'text-gray-700'
+                  (stats.sisaCash ?? 0) > 0 ? 'text-orange-700' : 
+                  (stats.sisaCash ?? 0) < 0 ? 'text-gray-700' : 'text-yellow-700'
                 }`}>
-                  Cash di Tangan Sales
+                  Sisa Cash di Tangan Sales
                 </p>
                 <p className={`text-2xl font-bold ${
-                  stats.cashBalance > 0 ? 'text-orange-900' : 
-                  stats.cashBalance < 0 ? 'text-red-900' : 'text-gray-900'
+                  (stats.sisaCash ?? 0) > 0 ? 'text-orange-900' : 
+                  (stats.sisaCash ?? 0) < 0 ? 'text-gray-900' : 'text-yellow-900'
                 }`}>
-                  {formatCurrency(Math.abs(stats.cashBalance))}
+                  {isPengeluaranLoading ? (
+                    <span className="animate-pulse">Loading...</span>
+                  ) : (
+                    formatCurrency(Math.abs(stats.sisaCash ?? 0))
+                  )}
                 </p>
                 <p className={`text-xs mt-1 ${
-                  stats.cashBalance > 0 ? 'text-orange-600' : 
-                  stats.cashBalance < 0 ? 'text-red-600' : 'text-gray-600'
+                  (stats.sisaCash ?? 0) > 0 ? 'text-orange-600' : 
+                  (stats.sisaCash ?? 0) < 0 ? 'text-gray-600' : 'text-yellow-600'
                 }`}>
-                  {stats.cashBalance > 0 ? 'Belum disetor' : 
-                   stats.cashBalance < 0 ? 'Lebih setor' : 'Seimbang'}
+                  {(stats.sisaCash ?? 0) > 0 ? 'Sisa positif' : 
+                   (stats.sisaCash ?? 0) < 0 ? 'Defisit' : 'Seimbang'}
                 </p>
               </div>
               <div className={`p-3 rounded-full ${
-                stats.cashBalance > 0 ? 'bg-orange-200' : 
-                stats.cashBalance < 0 ? 'bg-red-200' : 'bg-gray-200'
+                (stats.sisaCash ?? 0) > 0 ? 'bg-orange-200' : 
+                (stats.sisaCash ?? 0) < 0 ? 'bg-gray-200' : 'bg-yellow-200'
               }`}>
-                {stats.cashBalance > 0 ? (
-                  <AlertCircle className="w-6 h-6 text-orange-700" />
-                ) : stats.cashBalance < 0 ? (
-                  <TrendingDown className="w-6 h-6 text-red-700" />
+                {(stats.sisaCash ?? 0) > 0 ? (
+                  <Wallet className="w-6 h-6 text-orange-700" />
+                ) : (stats.sisaCash ?? 0) < 0 ? (
+                  <AlertCircle className="w-6 h-6 text-gray-700" />
                 ) : (
-                  <CheckCircle className="w-6 h-6 text-gray-700" />
+                  <CheckCircle className="w-6 h-6 text-yellow-700" />
                 )}
               </div>
             </div>
@@ -931,7 +975,7 @@ export default function DepositsPage() {
         <CashFlowSummary 
           summary={dashboardData?.data?.summary} 
           recordCount={data?.data?.length || 0}
-          currentFilter={filters.event_type}
+          currentFilter={filters.date_range}
         />
       </motion.div>
 

@@ -38,6 +38,44 @@ export function createSuccessResponse(data: any, status: number = 200) {
   return NextResponse.json({ success: true, data }, { status })
 }
 
+export function isAdmin(user: any): boolean {
+  if (!user) return false
+  
+  // Check if user is admin based on:
+  // 1. User metadata role
+  // 2. Email domain
+  // 3. Specific admin emails
+  return (
+    user.user_metadata?.role === 'admin' ||
+    user.email?.includes('admin') ||
+    user.email?.endsWith('@teracendani.com')
+  )
+}
+
+export async function handleAdminApiRequest(
+  request: NextRequest,
+  handler: (user: any) => Promise<NextResponse>
+) {
+  try {
+    const { error, user } = await authenticateRequest(request)
+    
+    if (error) {
+      console.log('Authentication error:', error)
+      return createErrorResponse(error, 401)
+    }
+    
+    // Check if user is admin
+    if (!isAdmin(user)) {
+      return createErrorResponse('Access denied. Admin privileges required.', 403)
+    }
+    
+    return await handler(user)
+  } catch (error) {
+    console.error('API Error:', error)
+    return createErrorResponse('Internal server error', 500)
+  }
+}
+
 export async function handleApiRequest(
   request: NextRequest,
   handler: (user: any) => Promise<NextResponse>

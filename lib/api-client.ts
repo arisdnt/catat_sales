@@ -558,6 +558,18 @@ class ApiClient {
     return this.request(`/dashboard/setoran${queryString ? `?${queryString}` : ''}`)
   }
 
+  async getDashboardPengeluaranStats(params?: {
+    date_range?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params?.date_range && params.date_range !== 'all') {
+      queryParams.append('date_range', params.date_range)
+    }
+    
+    const queryString = queryParams.toString()
+    return this.request(`/dashboard/pengeluaran/stats${queryString ? `?${queryString}` : ''}`)
+  }
+
   async getDashboardOverview() {
     return this.request('/dashboard/overview')
   }

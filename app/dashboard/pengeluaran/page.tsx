@@ -263,17 +263,44 @@ function PengeluaranDataTable({
       meta: { priority: 'high', columnType: 'currency' },
     },
     {
-      accessorKey: 'bukti_foto',
+      accessorKey: 'url_bukti_foto',
       header: 'Bukti',
       cell: ({ row }) => {
         const pengeluaran = row.original
+        const [showPreview, setShowPreview] = useState(false)
+        
         return (
-          <div className="text-left">
-            {pengeluaran.bukti_foto ? (
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                <ImageIcon className="w-3 h-3 mr-1" />
-                Ada
-              </Badge>
+          <div className="text-left relative">
+            {pengeluaran.url_bukti_foto ? (
+              <div 
+                className="relative inline-block"
+                onMouseEnter={() => setShowPreview(true)}
+                onMouseLeave={() => setShowPreview(false)}
+              >
+                <Badge variant="secondary" className="bg-green-100 text-green-800 cursor-pointer">
+                  <ImageIcon className="w-3 h-3 mr-1" />
+                  Ada
+                </Badge>
+                {showPreview && (
+                    <div className="fixed z-[9999] pointer-events-none" style={{
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)'
+                    }}>
+                      <div className="bg-white border rounded-lg shadow-2xl p-4 max-w-lg">
+                        <img
+                          src={pengeluaran.url_bukti_foto}
+                          alt="Preview bukti"
+                          className="w-full h-80 object-cover rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                        <p className="text-sm text-gray-600 mt-3 text-center font-medium">Preview Bukti Foto</p>
+                      </div>
+                    </div>
+                  )}
+              </div>
             ) : (
               <Badge variant="secondary" className="bg-gray-100 text-gray-600">
                 Tidak ada
@@ -313,15 +340,15 @@ function PengeluaranDataTable({
 
   // Pagination info
   const paginationInfo = data?.pagination ? {
-    currentPage: data.pagination.page || 1,
-    totalPages: data.pagination.totalPages || 1,
-    total: data.pagination.total || 0,
-    hasNextPage: data.pagination.hasNextPage || false,
-    hasPrevPage: data.pagination.hasPrevPage || false,
+    currentPage: data?.pagination?.page || 1,
+    totalPages: data?.pagination?.totalPages || 1,
+    total: data?.pagination?.total || 0,
+    hasNextPage: (data?.pagination?.page || 1) < (data?.pagination?.totalPages || 1),
+    hasPrevPage: (data?.pagination?.page || 1) > 1,
     onPageChange,
     onNextPage,
     onPrevPage,
-    pageSize: data.pagination.limit || 10
+    pageSize: data?.pagination?.limit || 10
   } : undefined
 
   if (error) {
@@ -348,7 +375,6 @@ function PengeluaranDataTable({
       loading={isLoading}
       pagination={paginationInfo}
       emptyStateMessage="Tidak ada data pengeluaran"
-      showColumnToggle={false}
       emptyStateIcon={Receipt}
     />
   )
@@ -413,9 +439,8 @@ export default function PengeluaranPage() {
 
   // Handle view
   const handleView = useCallback((pengeluaran: any) => {
-    // TODO: Implement view modal or navigate to detail page
-    console.log('View pengeluaran:', pengeluaran)
-  }, [])
+    navigate(`/dashboard/pengeluaran/${pengeluaran.id_pengeluaran}`)
+  }, [navigate])
 
   // Handle edit
   const handleEdit = useCallback((pengeluaran: any) => {
@@ -433,16 +458,16 @@ export default function PengeluaranPage() {
   }, [])
 
   const handleNextPage = useCallback(() => {
-    if (data?.pagination?.hasNextPage) {
+    if (data?.pagination && data.pagination.page < data.pagination.totalPages) {
       setPage(prev => prev + 1)
     }
-  }, [data?.pagination?.hasNextPage])
+  }, [data?.pagination?.page, data?.pagination?.totalPages])
 
   const handlePrevPage = useCallback(() => {
-    if (data?.pagination?.hasPrevPage) {
+    if (data?.pagination && data.pagination.page > 1) {
       setPage(prev => prev - 1)
     }
-  }, [data?.pagination?.hasPrevPage])
+  }, [data?.pagination?.page])
 
   // Summary statistics for header display
   const summary = {
@@ -459,7 +484,7 @@ export default function PengeluaranPage() {
     // Simple CSV export for now
     const csvContent = [
       ['Tanggal', 'Kategori', 'Deskripsi', 'Jumlah'],
-      ...data.data.map((item: any) => [
+      ...(data?.data || []).map((item: any) => [
         formatDateDisplay(item.tanggal),
         item.kategori || '-',
         item.deskripsi || '-',
@@ -495,7 +520,7 @@ export default function PengeluaranPage() {
             <h1 className="text-3xl font-bold text-gray-900">Daftar Pengeluaran</h1>
             <p className="text-gray-600 mt-2">
               Menampilkan {summary.current_page_count} dari {formatNumber(summary.total_pengeluaran)} pengeluaran 
-              (Halaman {data?.pagination?.currentPage || 1} dari {summary.total_pages}) dengan total pengeluaran {formatCurrency(summary.total_amount)}
+              (Halaman {data?.pagination?.page || 1} dari {summary.total_pages}) dengan total pengeluaran {formatCurrency(summary.total_amount)}
             </p>
           </div>
           <div className="flex items-center gap-3">

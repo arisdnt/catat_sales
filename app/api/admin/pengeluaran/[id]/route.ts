@@ -1,65 +1,50 @@
 import { createClient } from '@/lib/supabase'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { handleAdminApiRequest, createErrorResponse, createSuccessResponse } from '@/lib/api-helpers'
 
-// Schema validasi untuk pengeluaran
 const pengeluaranSchema = z.object({
   jumlah: z.number().positive('Jumlah harus lebih dari 0'),
   keterangan: z.string().min(1, 'Keterangan tidak boleh kosong'),
   tanggal_pengeluaran: z.string().datetime('Format tanggal tidak valid'),
 })
 
-export async function GET(request: NextRequest) {
+// GET single pengeluaran
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return handleAdminApiRequest(request, async () => {
     const supabase = createClient()
-    const { searchParams } = new URL(request.url)
-    
-    // Pagination parameters
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    
-    // Build query
-    let query = supabase
-      .from('pengeluaran_operasional')
-      .select('*', { count: 'exact' })
-      .order('tanggal_pengeluaran', { ascending: false })
+    const { id } = await params
 
-    // Add search filter if provided
-    if (search) {
-      query = query.ilike('keterangan', `%${search}%`)
+    if (!id) {
+      return createErrorResponse('ID pengeluaran diperlukan', 400)
     }
 
-    // Add pagination
-    const from = (page - 1) * limit
-    const to = from + limit - 1
-    query = query.range(from, to)
-
-    const { data, error, count } = await query
+    const { data, error } = await supabase
+      .from('pengeluaran_operasional')
+      .select('*')
+      .eq('id_pengeluaran', id)
+      .single()
 
     if (error) {
       console.error('Database error:', error)
-      return createErrorResponse('Database error', 500)
+      return createErrorResponse('Pengeluaran tidak ditemukan', 404)
     }
 
-    return createSuccessResponse({
-      data,
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
-    })
+    return createSuccessResponse(data)
   })
 }
 
-export async function POST(request: NextRequest) {
+// PUT update pengeluaran
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return handleAdminApiRequest(request, async () => {
     const supabase = createClient()
+    const { id } = await params
     const formData = await request.formData()
     
+    if (!id) {
+      return createErrorResponse('ID pengeluaran diperlukan', 400)
+    }
+
     // Extract form data
     const jumlah = parseFloat(formData.get('jumlah') as string)
     const keterangan = formData.get('keterangan') as string
@@ -74,12 +59,23 @@ export async function POST(request: NextRequest) {
     })
 
     if (!validationResult.success) {
-        return createErrorResponse('Validation failed', 400)
-      }
+      return createErrorResponse('Validation failed', 400)
+    }
 
-    let url_bukti_foto: string | null = null
+    // Get existing record
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from('pengeluaran_operasional')
+      .select('url_bukti_foto')
+      .eq('id_pengeluaran', id)
+      .single()
 
-    // Handle file upload if provided
+    if (fetchError) {
+      return createErrorResponse('Pengeluaran tidak ditemukan', 404)
+    }
+
+    let url_bukti_foto = existingRecord.url_bukti_foto
+
+    // Handle file upload if new file provided
     if (bukti_foto && bukti_foto.size > 0) {
       // Validate file type and size
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
@@ -93,12 +89,22 @@ export async function POST(request: NextRequest) {
         return createErrorResponse('File size too large. Maximum 5MB allowed.', 400)
       }
 
+      // Delete old file if exists
+      if (existingRecord.url_bukti_foto) {
+        const oldFileName = existingRecord.url_bukti_foto.split('/').pop()
+        if (oldFileName) {
+          await supabase.storage
+            .from('bukti-pengeluaran')
+            .remove([oldFileName])
+        }
+      }
+
       // Generate unique filename
       const timestamp = Date.now()
       const fileExtension = bukti_foto.name.split('.').pop()
       const fileName = `pengeluaran_${timestamp}.${fileExtension}`
 
-      // Upload to Supabase Storage
+      // Upload new file to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('bukti-pengeluaran')
         .upload(fileName, bukti_foto, {
@@ -119,35 +125,35 @@ export async function POST(request: NextRequest) {
       url_bukti_foto = urlData.publicUrl
     }
 
-    // Insert data into database
+    // Update data in database
     const { data, error } = await supabase
       .from('pengeluaran_operasional')
-      .insert({
+      .update({
         jumlah,
         keterangan,
         tanggal_pengeluaran,
         url_bukti_foto
       })
+      .eq('id_pengeluaran', id)
       .select()
       .single()
 
     if (error) {
-      console.error('Database insert error:', error)
-      return createErrorResponse('Failed to save pengeluaran', 500)
+      console.error('Database update error:', error)
+      return createErrorResponse('Failed to update pengeluaran', 500)
     }
 
     return createSuccessResponse(
-      { message: 'Pengeluaran berhasil disimpan', data },
-      201
+      { message: 'Pengeluaran berhasil diperbarui', data }
     )
   })
 }
 
-export async function DELETE(request: NextRequest) {
+// DELETE pengeluaran
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return handleAdminApiRequest(request, async () => {
     const supabase = createClient()
-    const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const { id } = await params
 
     if (!id) {
       return createErrorResponse('ID pengeluaran diperlukan', 400)
@@ -186,8 +192,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     return createSuccessResponse(
-      { message: 'Pengeluaran berhasil dihapus' },
-      200
+      { message: 'Pengeluaran berhasil dihapus' }
     )
   })
 }

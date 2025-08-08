@@ -3,7 +3,6 @@ import { Database } from '@/types/database'
 import { apiClient } from '@/lib/api-client'
 
 type PengeluaranOperasional = Database['public']['Tables']['pengeluaran_operasional']['Row']
-type PengeluaranInsert = Database['public']['Tables']['pengeluaran_operasional']['Insert']
 
 interface PengeluaranResponse {
   data: PengeluaranOperasional[]
@@ -19,6 +18,17 @@ interface PengeluaranParams {
   page?: number
   limit?: number
   search?: string
+  date_range?: string
+}
+
+interface PengeluaranStatsResponse {
+  total_pengeluaran: number
+  tanggal: string
+}
+
+interface PengeluaranStatsByRangeResponse {
+  total_pengeluaran: number
+  date_range: string
 }
 
 // Query key factory
@@ -26,6 +36,9 @@ export const pengeluaranKeys = {
   all: ['pengeluaran'] as const,
   lists: () => [...pengeluaranKeys.all, 'list'] as const,
   list: (params: PengeluaranParams) => [...pengeluaranKeys.lists(), params] as const,
+  stats: () => [...pengeluaranKeys.all, 'stats'] as const,
+  totalByDate: (date: string) => [...pengeluaranKeys.stats(), 'total-by-date', date] as const,
+  totalByRange: (dateRange: string) => [...pengeluaranKeys.stats(), 'total-by-range', dateRange] as const,
 }
 
 // Fetch pengeluaran list
@@ -39,9 +52,9 @@ export const usePengeluaranList = (params: PengeluaranParams = {}) => {
       if (params.limit) searchParams.set('limit', params.limit.toString())
       if (params.search) searchParams.set('search', params.search)
 
-      const response = await apiClient.get(`/admin/pengeluaran?${searchParams.toString()}`)
+      const response = await apiClient.get(`/admin/pengeluaran?${searchParams.toString()}`) as { data: PengeluaranResponse } | PengeluaranResponse
       // Handle the wrapped response from createSuccessResponse
-      return response.data || response
+      return (response as any).data || response
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
@@ -106,6 +119,34 @@ export const useDeletePengeluaran = () => {
       // Invalidate and refetch pengeluaran queries
       queryClient.invalidateQueries({ queryKey: pengeluaranKeys.lists() })
     },
+  })
+}
+
+// Get total pengeluaran by date
+export const usePengeluaranTotalByDate = (date: string) => {
+  return useQuery({
+    queryKey: pengeluaranKeys.totalByDate(date),
+    queryFn: async (): Promise<PengeluaranStatsResponse> => {
+      const response = await apiClient.get(`/admin/pengeluaran/stats?date=${date}`) as { data: PengeluaranStatsResponse } | PengeluaranStatsResponse
+      return (response as any).data || response
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!date, // Only run query if date is provided
+  })
+}
+
+// Get total pengeluaran by date range
+export const usePengeluaranTotalByRange = (dateRange: string = 'today') => {
+  return useQuery({
+    queryKey: pengeluaranKeys.totalByRange(dateRange),
+    queryFn: async (): Promise<PengeluaranStatsByRangeResponse> => {
+      const response = await apiClient.getDashboardPengeluaranStats({ date_range: dateRange }) as { data: PengeluaranStatsByRangeResponse } | PengeluaranStatsByRangeResponse
+      return (response as any).data || response
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!dateRange, // Only run query if dateRange is provided
   })
 }
 

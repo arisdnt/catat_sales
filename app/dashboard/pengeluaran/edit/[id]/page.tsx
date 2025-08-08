@@ -1,20 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Upload, X, Receipt, Calendar, DollarSign, FileText, Camera } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { ArrowLeft, Upload, X, Receipt, Calendar, DollarSign, FileText, Camera, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-
 import { useToast } from '@/components/ui/use-toast'
-import { useCreatePengeluaran } from '@/lib/queries/pengeluaran'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { formatCurrency } from '@/lib/utils'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiClient } from '@/lib/api-client'
 
 const pengeluaranSchema = z.object({
   jumlah: z.number().min(1, 'Jumlah harus lebih dari 0'),
@@ -37,48 +37,114 @@ const pageVariants = {
   }
 }
 
-
-
-export default function CreatePengeluaranPage() {
+export default function EditPengeluaranPage() {
   const router = useRouter()
+  const params = useParams()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const createMutation = useCreatePengeluaran()
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
+
+  const id = params.id as string
+
+  // Fetch existing data
+  const { data: pengeluaran, isLoading: isLoadingData } = useQuery({
+    queryKey: ['pengeluaran', id],
+    queryFn: async () => {
+      const response = await apiClient.get(`/admin/pengeluaran/${id}`) as any
+      return response.data || response
+    },
+    enabled: !!id
+  })
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
-    watch
+    watch,
+    reset
   } = useForm<PengeluaranFormData>({
-    resolver: zodResolver(pengeluaranSchema),
-    defaultValues: {
-      tanggal_pengeluaran: new Date().toISOString().split('T')[0]
-    }
+    resolver: zodResolver(pengeluaranSchema)
   })
 
   const bukti_foto = watch('bukti_foto')
   const jumlah = watch('jumlah')
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const headers = await apiClient.getAuthHeadersPublic()
+      
+      const response = await fetch(`/api/admin/pengeluaran/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': headers.Authorization,
+          // Don't set Content-Type for FormData - browser will set it automatically with boundary
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update pengeluaran')
+      }
+
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pengeluaran'] })
+      toast({
+        title: 'Berhasil',
+        description: 'Pengeluaran berhasil diperbarui'
+      })
+      router.push('/dashboard/pengeluaran')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Gagal memperbarui pengeluaran',
+        variant: 'destructive'
+      })
+    }
+  })
+
+  // Set form data when pengeluaran data is loaded
+  useEffect(() => {
+    if (pengeluaran) {
+      const tanggalFormatted = new Date(pengeluaran.tanggal_pengeluaran).toISOString().split('T')[0]
+      reset({
+        jumlah: pengeluaran.jumlah,
+        keterangan: pengeluaran.keterangan,
+        tanggal_pengeluaran: tanggalFormatted
+      })
+      
+      if (pengeluaran.url_bukti_foto) {
+        setExistingImageUrl(pengeluaran.url_bukti_foto)
+      }
+    }
+  }, [pengeluaran, reset])
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+      if (!allowedTypes.includes(file.type)) {
         toast({
           title: 'Error',
-          description: 'File harus berupa gambar',
+          description: 'Tipe file tidak didukung. Gunakan JPEG, PNG, atau JPG.',
           variant: 'destructive'
         })
         return
       }
 
       // Validate file size (5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
         toast({
           title: 'Error',
-          description: 'Ukuran file maksimal 5MB',
+          description: 'Ukuran file terlalu besar. Maksimal 5MB.',
           variant: 'destructive'
         })
         return
@@ -89,6 +155,7 @@ export default function CreatePengeluaranPage() {
       // Create preview URL
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
+      setExistingImageUrl(null) // Hide existing image when new file is selected
     }
   }
 
@@ -98,35 +165,47 @@ export default function CreatePengeluaranPage() {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
     }
+    // Show existing image again if available
+    if (pengeluaran?.url_bukti_foto) {
+      setExistingImageUrl(pengeluaran.url_bukti_foto)
+    }
   }
 
   const onSubmit = async (data: PengeluaranFormData) => {
-    try {
-      // Create FormData object
-      const formData = new FormData()
-      formData.append('jumlah', data.jumlah.toString())
-      formData.append('keterangan', data.keterangan)
-      formData.append('tanggal_pengeluaran', new Date(data.tanggal_pengeluaran).toISOString())
-      
-      if (data.bukti_foto) {
-        formData.append('bukti_foto', data.bukti_foto)
-      }
-
-      await createMutation.mutateAsync(formData)
-
-      toast({
-        title: 'Berhasil',
-        description: 'Pengeluaran berhasil ditambahkan'
-      })
-
-      router.push('/dashboard/pengeluaran')
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Gagal menambahkan pengeluaran',
-        variant: 'destructive'
-      })
+    const formData = new FormData()
+    formData.append('jumlah', data.jumlah.toString())
+    formData.append('keterangan', data.keterangan)
+    formData.append('tanggal_pengeluaran', new Date(data.tanggal_pengeluaran).toISOString())
+    
+    if (data.bukti_foto) {
+      formData.append('bukti_foto', data.bukti_foto)
     }
+
+    await updateMutation.mutateAsync(formData)
+  }
+
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Memuat data pengeluaran...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!pengeluaran) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Data pengeluaran tidak ditemukan</p>
+          <Button onClick={() => router.push('/dashboard/pengeluaran')}>
+            Kembali ke Daftar Pengeluaran
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -140,8 +219,8 @@ export default function CreatePengeluaranPage() {
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
         >
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Tambah Pengeluaran</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Tambahkan pengeluaran operasional baru dengan detail yang akurat</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Edit Pengeluaran</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Perbarui data pengeluaran operasional</p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <Button
@@ -242,13 +321,26 @@ export default function CreatePengeluaranPage() {
                   Bukti Foto (Opsional)
                 </Label>
                 <div className="space-y-4">
+                  {/* Show existing image if no new file selected */}
+                  {existingImageUrl && !previewUrl && (
+                    <div className="relative inline-block">
+                      <img
+                        src={existingImageUrl}
+                        alt="Bukti pengeluaran saat ini"
+                        className="max-w-full max-h-64 rounded-lg border shadow-sm"
+                      />
+                      <p className="text-sm text-gray-500 mt-2">Bukti foto saat ini</p>
+                    </div>
+                  )}
+
+                  {/* File upload area */}
                   {!bukti_foto && (
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
-                      <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                      <div className="mt-4">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                      <div className="mt-2">
                         <Label htmlFor="bukti_foto" className="cursor-pointer">
-                          <span className="text-sm font-medium text-primary hover:text-primary/80">
-                            Pilih file gambar
+                          <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            {existingImageUrl ? 'Ganti foto' : 'Pilih file gambar'}
                           </span>
                           <Input
                             id="bukti_foto"
@@ -258,13 +350,14 @@ export default function CreatePengeluaranPage() {
                             className="hidden"
                           />
                         </Label>
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs text-gray-500 mt-1">
                           PNG, JPG, JPEG hingga 5MB
                         </p>
                       </div>
                     </div>
                   )}
 
+                  {/* New file preview */}
                   {previewUrl && (
                     <div className="relative inline-block">
                       <img
@@ -289,12 +382,28 @@ export default function CreatePengeluaranPage() {
               {/* Submit Buttons */}
               <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Batal
+                </Button>
+                <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 px-6 shadow-lg min-w-[140px]"
+                  className="min-w-[140px]"
                 >
-                  <Receipt className="w-4 h-4 mr-2" />
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Pengeluaran'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Receipt className="w-4 h-4 mr-2" />
+                      Perbarui Pengeluaran
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
