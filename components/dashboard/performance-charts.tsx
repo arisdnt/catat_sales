@@ -91,6 +91,42 @@ export function PerformanceCharts({ startDate, endDate }: PerformanceChartsProps
         </Card>
       )}
 
+      {/* Product Performance Chart */}
+      {produkLoading ? (
+        <ChartLoading title="Performa Produk" icon={Package} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Top 10 Produk
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={produkData?.data?.slice(0, 10) || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="nama_produk" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    fontSize={12}
+                  />
+                  <YAxis fontSize={12} />
+                  <Tooltip 
+                    formatter={(value: number) => [value.toLocaleString('id-ID'), 'Quantity Terjual']}
+                    labelStyle={{ color: '#000' }}
+                  />
+                  <Bar dataKey="total_terjual" fill="#FFBB28" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Store Performance Chart */}
       {tokoLoading ? (
         <ChartLoading title="Performa Toko" icon={Store} />
@@ -120,42 +156,6 @@ export function PerformanceCharts({ startDate, endDate }: PerformanceChartsProps
                     labelStyle={{ color: '#000' }}
                   />
                   <Bar dataKey="total_pendapatan" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Product Performance Chart */}
-      {produkLoading ? (
-        <ChartLoading title="Performa Produk" icon={Package} />
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Top 10 Produk
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={produkData?.data?.slice(0, 10) || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="nama_produk" 
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    fontSize={12}
-                  />
-                  <YAxis tickFormatter={formatCurrency} fontSize={12} />
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), 'Pendapatan']}
-                    labelStyle={{ color: '#000' }}
-                  />
-                  <Bar dataKey="total_pendapatan" fill="#FFBB28" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -68,7 +68,7 @@ export function Sidebar() {
         title: 'Berhasil',
         description: 'Logout berhasil',
       })
-    } catch (_error) {
+    } catch (_) { // eslint-disable-line @typescript-eslint/no-unused-vars
       toast({
         title: 'Error',
         description: 'Gagal logout',

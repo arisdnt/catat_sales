@@ -30,6 +30,12 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTableToko } from '@/components/data-tables'
@@ -557,25 +563,67 @@ function PenagihanDataTable({
           }).filter(Boolean)
         : []
         
-        return (
-          <div className="text-left relative">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center">
-                <Package className="w-4 h-4 text-gray-400 mr-1" />
-                <span className="text-sm font-medium text-gray-900">
-                  {products.length} items
-                </span>
+        const tooltipContent = (() => {
+          if (!products || products.length === 0) {
+            return <p className="text-sm text-gray-500">Tidak ada detail penagihan</p>
+          }
+          return (
+            <div className="space-y-2">
+              <div className="border-b pb-2">
+                <div className="text-xs text-gray-500 mb-1">Informasi Penagihan</div>
+                <div className="text-sm">
+                  <div><span className="font-medium">Tanggal:</span> {formatDate(penagihan.tanggal_penagihan)}</div>
+                  <div><span className="font-medium">Toko:</span> {penagihan.nama_toko}</div>
+                  <div><span className="font-medium">Metode:</span> {penagihan.metode_pembayaran}</div>
+                </div>
               </div>
-              <div className="text-xs text-gray-600">
-                ({formatNumber(totalQuantity)} pcs)
+              <div>
+                <div className="text-xs text-gray-500 mb-1">Detail Produk Terjual</div>
+                {products.map((product: any, index: number) => (
+                  <div key={`${penagihan.id_penagihan}-detail-${index}`} className="flex justify-between text-sm">
+                    <span className="text-gray-700">{product.nama_produk}</span>
+                    <span className="font-medium">{formatNumber(product.quantity)} pcs</span>
+                  </div>
+                ))}
+                <div className="border-t pt-1 mt-2">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total Terjual:</span>
+                    <span>{formatNumber(totalQuantity)} pcs</span>
+                  </div>
+                </div>
               </div>
             </div>
-            {products.length > 0 && (
-              <div className="text-xs text-gray-500 mt-1 truncate" title={detailProduk}>
-                {detailProduk}
+          )
+        })()
+        
+        return (
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <div className="text-left flex items-center gap-2 cursor-help">
+                <Package className="h-4 w-4 text-green-500" />
+                <div>
+                  <div className="text-sm font-medium text-green-600">
+                    {formatNumber(totalQuantity)} pcs
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {products.length} jenis produk
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <div className="max-w-sm">
+                <div className="mb-2">
+                  <p className="font-semibold text-sm">Detail Penagihan #{penagihan.id_penagihan}</p>
+                  <p className="text-xs text-gray-500">Tanggal: {formatDate(penagihan.tanggal_penagihan)}</p>
+                  <p className="text-xs text-gray-500">Toko: {penagihan.nama_toko}</p>
+                </div>
+                <div className="border-t pt-2">
+                  {tooltipContent}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         )
       },
       size: 160,
@@ -800,12 +848,13 @@ export default function PenagihanPage() {
   }
 
   return (
-    <motion.div 
-      variants={pageVariants}
-      initial="hidden"
-      animate="visible" 
-      className="p-6 space-y-6 w-full max-w-full overflow-hidden"
-    >
+    <TooltipProvider>
+      <motion.div 
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible" 
+        className="p-6 space-y-6 w-full max-w-full overflow-hidden"
+      >
       {/* Page Header with Enhanced Statistics */}
       <motion.div variants={cardVariants} className="space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -869,5 +918,6 @@ export default function PenagihanPage() {
         </div>
       </motion.div>
     </motion.div>
+    </TooltipProvider>
   )
 }

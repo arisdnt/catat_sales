@@ -113,7 +113,7 @@ export function ModernSidebar() {
         title: 'Berhasil',
         description: 'Logout berhasil',
       })
-    } catch (_error) {
+    } catch (_) { // eslint-disable-line @typescript-eslint/no-unused-vars
       toast({
         title: 'Error',
         description: 'Gagal logout',
@@ -173,7 +173,6 @@ export function ModernSidebar() {
         {flatMenuItems.map((item, index) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-          const _isParent = item.level === 0 && !item.href
 
           if (item.href) {
             return (

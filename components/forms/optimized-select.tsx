@@ -83,7 +83,7 @@ export function OptimizedSelect({
     return placeholder
   }
 
-  const defaultRenderItem = (item: any, index: number) => {
+  const defaultRenderItem = (item: any, _: number) => {
     const isSelected = selectedItem && selectedItem[valueField] === item[valueField]
     
     return (
@@ -268,7 +268,7 @@ export function OptimizedMultiSelect({
       value={undefined}
       onValueChange={handleSelect}
       placeholder={getDisplayText()}
-      renderItem={(item, index) => {
+      renderItem={(item, _) => {
         const valueField = props.valueField || 'id'
         const isSelected = values.includes(item[valueField])
         const displayField = props.displayField || 'nama'

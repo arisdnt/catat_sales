@@ -70,7 +70,8 @@ export function useMemoizedColumns(
   columnFactory: () => any[],
   dependencies: any[] = []
 ) {
-  return useMemo(() => columnFactory(), [columnFactory, ...dependencies])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => columnFactory(), [columnFactory, JSON.stringify(dependencies)])
 }
 
 // Optimized action handlers

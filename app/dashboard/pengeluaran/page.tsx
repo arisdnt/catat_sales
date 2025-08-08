@@ -29,7 +29,8 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { useNavigation } from '@/lib/hooks/use-navigation'
 
 import { DataTableAdvanced as DataTablePengeluaran } from '@/components/data-tables'
-import { usePengeluaranList, useDeletePengeluaran, formatCurrency, formatDate } from '@/lib/queries/pengeluaran'
+import { useDeletePengeluaran, formatCurrency, formatDate } from '@/lib/queries/pengeluaran'
+import { useDashboardPengeluaranQuery } from '@/lib/queries/dashboard'
 import { Database } from '@/types/database'
 
 type PengeluaranOperasional = Database['public']['Tables']['pengeluaran_operasional']['Row']
@@ -376,6 +377,7 @@ function PengeluaranDataTable({
       pagination={paginationInfo}
       emptyStateMessage="Tidak ada data pengeluaran"
       emptyStateIcon={Receipt}
+      enableColumnVisibility={false}
     />
   )
 }
@@ -394,12 +396,44 @@ export default function PengeluaranPage() {
   const [page, setPage] = useState(1)
   const limit = 30
 
-  const { data, isLoading, error, refetch } = usePengeluaranList({
+  // Use new dashboard query with server-side filtering and pagination
+  const { data: dashboardData, isLoading, error, refetch } = useDashboardPengeluaranQuery({
     page,
     limit,
-    search: filters.search,
-    date_range: filters.date_range
+    ...filters
   })
+  
+  // Transform data for compatibility with existing table component
+  const data = {
+    data: dashboardData?.data?.data || [],
+    pagination: dashboardData?.data?.pagination ? {
+      hasNextPage: dashboardData.data.pagination.has_next,
+      hasPrevPage: dashboardData.data.pagination.has_prev,
+      totalPages: dashboardData.data.pagination.total_pages,
+      currentPage: dashboardData.data.pagination.page,
+      pageSize: dashboardData.data.pagination.limit,
+      total: dashboardData.data.pagination.total,
+      totalItems: dashboardData.data.pagination.total,
+      totalRecords: dashboardData.data.pagination.total,
+      limit: dashboardData.data.pagination.limit,
+      page: dashboardData.data.pagination.page,
+      from: ((dashboardData.data.pagination.page - 1) * dashboardData.data.pagination.limit) + 1,
+      to: Math.min(dashboardData.data.pagination.page * dashboardData.data.pagination.limit, dashboardData.data.pagination.total)
+    } : {
+      hasNextPage: false,
+      hasPrevPage: false,
+      totalPages: 1,
+      currentPage: 1,
+      pageSize: 30,
+      total: 0,
+      totalItems: 0,
+      totalRecords: 0,
+      limit: 30,
+      page: 1,
+      from: 0,
+      to: 0
+    }
+  }
 
   // Filter handlers
   const handleFiltersChange = useCallback((newFilters: Partial<PengeluaranFilters>) => {

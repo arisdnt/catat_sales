@@ -1,7 +1,6 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 

@@ -405,7 +405,7 @@ export function SearchFilterToko({
             )}
 
             {Object.entries(activeFilters)
-              .filter(([_key, value]) => value)
+              .filter(([_, value]) => value)
               .map(([key, value]) => {
                 const getLabel = () => {
                   switch (key) {

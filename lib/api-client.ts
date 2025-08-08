@@ -558,6 +558,24 @@ class ApiClient {
     return this.request(`/dashboard/setoran${queryString ? `?${queryString}` : ''}`)
   }
 
+  async getDashboardPengeluaran(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    date_range?: string
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params?.page) queryParams.append('page', params.page.toString())
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.search) queryParams.append('search', params.search)
+    if (params?.date_range && params.date_range !== 'all') {
+      queryParams.append('date_range', params.date_range)
+    }
+    
+    const queryString = queryParams.toString()
+    return this.request(`/dashboard/pengeluaran${queryString ? `?${queryString}` : ''}`)
+  }
+
   async getDashboardPengeluaranStats(params?: {
     date_range?: string
   }) {

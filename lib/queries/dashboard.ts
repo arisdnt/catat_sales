@@ -63,6 +63,18 @@ export interface DashboardSetoran {
   nama_sales?: string
 }
 
+export interface DashboardPengeluaran {
+  id_pengeluaran: number
+  tanggal_pengeluaran: string
+  kategori_pengeluaran: string
+  deskripsi_pengeluaran: string
+  jumlah_pengeluaran: number
+  metode_pembayaran?: string
+  bukti_pengeluaran?: string
+  dibuat_pada: string
+  diperbarui_pada: string
+}
+
 export interface DashboardOverview {
   tanggal_dashboard: string
   waktu_update: string
@@ -208,6 +220,7 @@ export const dashboardKeys = {
   penagihan: () => [...dashboardKeys.all, 'penagihan'] as const,
   pengiriman: () => [...dashboardKeys.all, 'pengiriman'] as const,
   setoran: () => [...dashboardKeys.all, 'setoran'] as const,
+  pengeluaran: () => [...dashboardKeys.all, 'pengeluaran'] as const,
   overview: () => [...dashboardKeys.all, 'overview'] as const,
   master: () => [...dashboardKeys.all, 'master'] as const,
   masterProduk: () => [...dashboardKeys.master(), 'produk'] as const,
@@ -318,6 +331,37 @@ export function useDashboardSetoranQuery(params?: {
       }
     }>>,
     staleTime: 1000 * 60 * 2, // 2 minutes
+  })
+}
+
+export function useDashboardPengeluaranQuery(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  date_range?: string
+}) {
+  return useQuery({
+    queryKey: [...dashboardKeys.pengeluaran(), params],
+    queryFn: () => apiClient.getDashboardPengeluaran(params) as Promise<ApiResponse<{
+      data: DashboardPengeluaran[]
+      pagination: {
+        page: number
+        limit: number
+        total: number
+        total_pages: number
+        has_next: boolean
+        has_prev: boolean
+      }
+      metadata?: {
+        totalItems: number
+        totalRevenue: number
+        totalPages: number
+        currentPage: number
+      }
+    }>>,
+    staleTime: 0, // Always consider data stale to ensure fresh data
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Always refetch on mount
   })
 }
 
