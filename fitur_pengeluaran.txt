@@ -1,0 +1,182 @@
+# Panduan Implementasi Fitur: Pencatatan Pengeluaran Operasional
+
+**Versi:** 1.0
+**Tanggal:** 8 Agustus 2025
+**Tujuan:** Dokumen ini adalah panduan teknis lengkap untuk tim pengembangan dalam mengimplementasikan fitur pencatatan pengeluaran operasional. Dokumen ini mencakup analisis sistem, logika bisnis, arsitektur yang direkomendasikan, dan panduan implementasi langkah-demi-langkah.
+
+---
+
+## 1. Ringkasan Eksekutif & Logika Bisnis
+
+### 1.1. Tujuan Fitur
+Fitur ini bertujuan untuk membuat sebuah buku besar (ledger) digital yang memungkinkan pengguna dengan hak akses **Admin** untuk mencatat semua pengeluaran operasional perusahaan. Contoh pengeluaran mencakup biaya bensin, parkir, tol, konsumsi, pembelian ATK, dan biaya insidental lainnya.
+
+### 1.2. Logika Bisnis Utama
+- **Pemisahan Entitas:** Fitur ini **sepenuhnya terpisah (decoupled)** dari alur kerja penjualan yang sudah ada (`pengiriman`, `penagihan`, `setoran`).
+- **Tidak Mempengaruhi Saldo Sales:** Pencatatan pengeluaran **TIDAK** akan mengurangi atau mempengaruhi saldo kas yang dipegang oleh masing-masing sales. Ini adalah murni pencatatan pengeluaran tingkat perusahaan.
+- **Pengguna:** Hanya dapat diakses dan dikelola oleh pengguna dengan peran 'Admin'. Pengguna biasa atau sales tidak dapat melihat atau berinteraksi dengan fitur ini.
+- **Bukti Transaksi:** Setiap entri pengeluaran dapat secara opsional menyertakan unggahan gambar sebagai bukti transaksi (nota, struk, dll.).
+
+### 1.3. Alur Kerja Pengguna (User Flow)
+1.  Admin mengakses halaman "Pengeluaran Operasional" dari menu navigasi.
+2.  Halaman menampilkan tabel berisi riwayat semua pengeluaran yang telah dicatat, dengan fitur pencarian dan filter.
+3.  Admin menekan tombol "Tambah Pengeluaran Baru".
+4.  Sebuah form (dalam dialog/modal) muncul, meminta isian: Tanggal Pengeluaran, Jumlah, Keterangan, dan input file opsional untuk Bukti Foto.
+5.  Admin mengisi form dan menekan "Simpan".
+6.  Sistem memvalidasi data. Jika ada bukti foto, file diunggah ke server.
+7.  Data pengeluaran baru disimpan di database.
+8.  Tabel di halaman utama secara otomatis diperbarui untuk menampilkan data baru.
+
+---
+
+## 2. Analisis Teknologi & Arsitektur Proyek
+
+Untuk memastikan konsistensi, implementasi fitur baru harus selaras dengan teknologi dan pola arsitektur yang sudah digunakan dalam proyek ini.
+
+- **Framework:** **Next.js 14+** dengan **App Router**.
+- **Bahasa:** **TypeScript**.
+- **Database:** **PostgreSQL**.
+- **Interaksi Database:** **Supabase Client (`@supabase/supabase-js`)**. Ini digunakan untuk kueri database (RPC dan query tabel langsung) dan interaksi dengan **Supabase Storage** untuk unggahan file.
+- **Manajemen State & Data Fetching:** **TanStack Query (`@tanstack/react-query`)**. Ini adalah standar proyek untuk mengelola state server, caching, dan mutasi data. Semua pengambilan data dari API harus menggunakan `useQuery`, dan semua operasi CUD (Create, Update, Delete) harus menggunakan `useMutation`.
+- **Komponen UI:** **shadcn/ui** dan **Radix UI**. Komponen yang ada di `components/ui` harus digunakan kembali untuk menjaga konsistensi visual.
+- **Styling:** **Tailwind CSS**.
+- **Tabel Data:** **TanStack Table (`@tanstack/react-table`)**. Komponen `OptimizedDataTable` yang ada di `components/data-tables/data-table-optimized.tsx` harus digunakan untuk menampilkan data tabular.
+- **Formulir:** **React Hook Form (`react-hook-form`)** dengan **Zod (`zod`)** untuk validasi skema, baik di sisi klien maupun server.
+- **Otentikasi:** **Supabase Auth**. Middleware (`middleware.ts`) saat ini bersifat permisif, yang berarti perlindungan rute (route guarding) kemungkinan besar diimplementasikan di sisi klien. Ini harus diterapkan untuk fitur baru.
+
+---
+
+## 3. Panduan Implementasi Teknis
+
+Berikut adalah langkah-langkah yang direkomendasikan untuk tim pengembangan.
+
+### 3.1. Persiapan Database (SQL Migrasi)
+Artefak ini telah disiapkan dan hanya perlu dieksekusi oleh penanggung jawab database.
+
+- **File Migrasi:** `migrations/001_create_pengeluaran_operasional.sql`
+- **Isi File:**
+```sql
+CREATE TABLE public.pengeluaran_operasional (
+    id_pengeluaran SERIAL PRIMARY KEY,
+    jumlah NUMERIC(12, 2) NOT NULL,
+    keterangan TEXT NOT NULL,
+    url_bukti_foto TEXT,
+    tanggal_pengeluaran TIMESTAMPTZ NOT NULL,
+    dibuat_pada TIMESTAMPTZ DEFAULT NOW(),
+    diperbarui_pada TIMESTAMPTZ DEFAULT NOW()
+);
+COMMENT ON TABLE public.pengeluaran_operasional IS 'Mencatat pengeluaran operasional umum perusahaan.';
+CREATE OR REPLACE FUNCTION set_timestamp() RETURNS TRIGGER AS $$
+BEGIN
+  NEW.diperbarui_pada = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER set_pengeluaran_operasional_timestamp
+BEFORE UPDATE ON public.pengeluaran_operasional
+FOR EACH ROW EXECUTE FUNCTION set_timestamp();
+```
+- **Tindakan:** Jalankan file SQL ini pada database untuk membuat tabel baru.
+
+### 3.2. Pembaruan Tipe TypeScript
+Setelah migrasi database, perbarui file `types/database.ts` untuk menyertakan definisi tabel baru agar type-safety terjaga di seluruh aplikasi.
+
+### 3.3. Implementasi Backend (API Route)
+
+1.  **Buat API Route File:**
+    - **Lokasi:** `app/api/admin/pengeluaran/route.ts`
+
+2.  **Implementasikan Endpoint `GET`:**
+    - **Tujuan:** Mengambil data pengeluaran dengan paginasi, pencarian, dan filter.
+    - **Contoh Logika:**
+    ```typescript
+    // app/api/admin/pengeluaran/route.ts
+    import { createClient } from '@/lib/supabase';
+    import { NextResponse } from 'next/server';
+
+    export async function GET(request: Request) {
+      // TODO: Implementasikan verifikasi sesi dan peran admin di sini.
+      const supabase = createClient();
+      const { searchParams } = new URL(request.url);
+      const page = parseInt(searchParams.get('page') || '1');
+      const limit = parseInt(searchParams.get('limit') || '10');
+      // ... logika untuk search, filter, dan paginasi ...
+
+      const { data, error, count } = await supabase
+        .from('pengeluaran_operasional')
+        .select('*', { count: 'exact' })
+        .order('tanggal_pengeluaran', { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ data, count });
+    }
+    ```
+
+3.  **Implementasikan Endpoint `POST`:**
+    - **Tujuan:** Membuat entri pengeluaran baru.
+    - **Penting:** Gunakan `FormData` untuk menangani unggahan file.
+    - **Contoh Logika:**
+    ```typescript
+    // ... (di dalam file yang sama)
+    export async function POST(request: Request) {
+      // TODO: Implementasikan verifikasi sesi dan peran admin.
+      const supabase = createClient();
+      const formData = await request.formData();
+
+      // Validasi data menggunakan Zod
+      // ... 
+
+      // Logika unggah file ke Supabase Storage bucket 'bukti-pengeluaran'
+      // ...
+
+      // Simpan data ke tabel 'pengeluaran_operasional'
+      // ...
+
+      return NextResponse.json({ message: 'Sukses' }, { status: 201 });
+    }
+    ```
+
+### 3.4. Implementasi Frontend (UI & Komponen)
+
+1.  **Perlindungan Rute (Route Guarding):**
+    - Buat HOC (Higher-Order Component) atau gunakan layout khusus untuk rute `/dashboard/admin/*` yang memeriksa peran pengguna dari `useAuth()`.
+
+2.  **Navigasi Sidebar:**
+    - **File:** `components/navigation/sidebar-modern.tsx`
+    - **Tindakan:** Tambahkan item menu baru "Pengeluaran" di bawah grup "Master Data" atau grup baru "Admin". Tampilkan item ini secara kondisional hanya jika pengguna adalah admin.
+
+3.  **Halaman Utama Fitur:**
+    - **Lokasi:** `app/dashboard/admin/pengeluaran/page.tsx`
+    - **Tindakan:**
+        - Gunakan `'use client'`.
+        - Gunakan `useQuery` dari TanStack Query untuk memanggil endpoint `GET /api/admin/pengeluaran`.
+        - Gunakan komponen `<OptimizedDataTable>` untuk menampilkan data.
+        - Konfigurasikan `columns` untuk tabel, termasuk `accessorKey` untuk setiap kolom data dan `cell` untuk formatting (misal: format mata uang dan tanggal).
+        - Tambahkan tombol "Tambah Pengeluaran" yang akan memicu state untuk membuka dialog form.
+
+4.  **Form Tambah/Edit Pengeluaran:**
+    - **Lokasi:** Buat komponen baru, misal: `app/dashboard/admin/pengeluaran/components/pengeluaran-form.tsx`.
+    - **Tindakan:**
+        - Gunakan komponen `<Dialog>` dari shadcn/ui.
+        - Gunakan `react-hook-form` dan `zod` untuk manajemen dan validasi form.
+        - Gunakan `useMutation` untuk mengirim data ke endpoint `POST /api/admin/pengeluaran`.
+        - Pada `onSuccess` dari `useMutation`, panggil `queryClient.invalidateQueries(...)` untuk me-refresh data di tabel dan tutup dialog.
+
+---
+
+## 4. Pertimbangan Keamanan
+
+- **Otorisasi API:** Setiap fungsi dalam API route (`GET`, `POST`, `PUT`, `DELETE`) **WAJIB** memeriksa apakah pengguna yang melakukan request memiliki peran 'admin'. Jangan hanya mengandalkan perlindungan di sisi klien.
+- **Validasi Input:** Lakukan validasi yang ketat di sisi server menggunakan Zod untuk mencegah data yang tidak valid masuk ke database.
+- **Keamanan Unggahan File:** Batasi ukuran dan tipe file yang dapat diunggah di sisi server untuk mencegah serangan DoS atau unggahan file berbahaya.
+- **Kebijakan Bucket Supabase:** Konfigurasikan *Row-Level Security (RLS)* dan *Storage Policies* di Supabase. Bucket `bukti-pengeluaran` harusnya hanya bisa ditulis oleh *service role* (dari backend) dan bisa dibaca secara publik jika diperlukan.
+
+---
+
+## 5. Penutup & Penyerahan
+
+Dokumen ini menyediakan blueprint yang lengkap untuk implementasi fitur. Tim pengembangan diharapkan mengikuti pola dan teknologi yang sudah ada untuk menjaga kualitas dan konsistensi kode. Dengan mengikuti panduan ini, fitur baru dapat diintegrasikan dengan aman tanpa mengganggu sistem yang sudah berjalan.

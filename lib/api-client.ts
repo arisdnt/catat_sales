@@ -14,6 +14,11 @@ class ApiClient {
     }
   }
 
+  // Public method to get auth headers for external use
+  async getAuthHeadersPublic() {
+    return this.getAuthHeaders()
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers = await this.getAuthHeaders()
     

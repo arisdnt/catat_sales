@@ -255,6 +255,35 @@ export interface Database {
           dibuat_pada?: string
           diperbarui_pada?: string
         }
+      },
+      pengeluaran_operasional: {
+        Row: {
+          id_pengeluaran: number
+          jumlah: number
+          keterangan: string
+          url_bukti_foto: string | null
+          tanggal_pengeluaran: string
+          dibuat_pada: string
+          diperbarui_pada: string
+        }
+        Insert: {
+          id_pengeluaran?: number
+          jumlah: number
+          keterangan: string
+          url_bukti_foto?: string | null
+          tanggal_pengeluaran: string
+          dibuat_pada?: string
+          diperbarui_pada?: string
+        }
+        Update: {
+          id_pengeluaran?: number
+          jumlah?: number
+          keterangan?: string
+          url_bukti_foto?: string | null
+          tanggal_pengeluaran?: string
+          dibuat_pada?: string
+          diperbarui_pada?: string
+        }
       }
     }
     Views: {

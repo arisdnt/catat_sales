@@ -13,7 +13,8 @@ import {
   X,
   Truck,
   ShoppingCart,
-  Users
+  Users,
+  Receipt
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/providers/auth-provider'
@@ -50,6 +51,13 @@ const menuItems = [
         icon: Truck,
         color: 'text-blue-600',
         bgColor: 'bg-blue-50'
+      },
+      {
+        title: 'Pengeluaran',
+        href: '/dashboard/pengeluaran',
+        icon: Receipt,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50'
       },
       {
         title: 'Setoran',

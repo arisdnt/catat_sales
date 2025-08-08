@@ -5,7 +5,7 @@
 -- Dumped from database version 17.4
 -- Dumped by pg_dump version 17.0
 
--- Started on 2025-08-04 18:37:26
+-- Started on 2025-08-08 06:35:33
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -4091,7 +4091,7 @@ ALTER TABLE ONLY public.toko ALTER COLUMN id_toko SET DEFAULT nextval('public.to
 -- Name: detail_penagihan_id_detail_tagih_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.detail_penagihan_id_detail_tagih_seq', 1031, true);
+SELECT pg_catalog.setval('public.detail_penagihan_id_detail_tagih_seq', 1154, true);
 
 
 --
@@ -4100,7 +4100,7 @@ SELECT pg_catalog.setval('public.detail_penagihan_id_detail_tagih_seq', 1031, tr
 -- Name: detail_pengiriman_id_detail_kirim_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.detail_pengiriman_id_detail_kirim_seq', 5798, true);
+SELECT pg_catalog.setval('public.detail_pengiriman_id_detail_kirim_seq', 5900, true);
 
 
 --
@@ -4109,7 +4109,7 @@ SELECT pg_catalog.setval('public.detail_pengiriman_id_detail_kirim_seq', 5798, t
 -- Name: penagihan_id_penagihan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.penagihan_id_penagihan_seq', 476, true);
+SELECT pg_catalog.setval('public.penagihan_id_penagihan_seq', 514, true);
 
 
 --
@@ -4118,7 +4118,7 @@ SELECT pg_catalog.setval('public.penagihan_id_penagihan_seq', 476, true);
 -- Name: pengiriman_id_pengiriman_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pengiriman_id_pengiriman_seq', 1451, true);
+SELECT pg_catalog.setval('public.pengiriman_id_pengiriman_seq', 1492, true);
 
 
 --
@@ -4127,7 +4127,7 @@ SELECT pg_catalog.setval('public.pengiriman_id_pengiriman_seq', 1451, true);
 -- Name: potongan_penagihan_id_potongan_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.potongan_penagihan_id_potongan_seq', 4, true);
+SELECT pg_catalog.setval('public.potongan_penagihan_id_potongan_seq', 9, true);
 
 
 --
@@ -4145,7 +4145,7 @@ SELECT pg_catalog.setval('public.produk_id_produk_seq', 5, true);
 -- Name: sales_id_sales_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sales_id_sales_seq', 7, true);
+SELECT pg_catalog.setval('public.sales_id_sales_seq', 8, true);
 
 
 --
@@ -4172,7 +4172,7 @@ SELECT pg_catalog.setval('public.system_logs_id_seq', 5, true);
 -- Name: toko_id_toko_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.toko_id_toko_seq', 1006, true);
+SELECT pg_catalog.setval('public.toko_id_toko_seq', 1009, true);
 
 
 --
@@ -6162,7 +6162,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 
 
--- Completed on 2025-08-04 18:37:33
+-- Completed on 2025-08-08 06:35:39
 
 --
 -- PostgreSQL database dump complete
